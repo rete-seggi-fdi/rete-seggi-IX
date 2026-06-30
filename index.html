@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#152a57" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Rete Seggi" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="icon" href="icons/icon-192.png" />
+<title>Rete Seggi · Roma Capitale</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <img src="icons/icon-192.png" alt="" class="brand-icon" />
+    <div>
+      <p class="eyebrow">Rappresentanti di lista &middot; Roma Capitale</p>
+      <h1>Rete Seggi</h1>
+    </div>
+  </div>
+  <div class="status-cluster">
+    <span id="connStatus" class="status-pill offline">Verifico connessione&hellip;</span>
+    <span id="pendingBadge" class="status-pill pending" hidden>0 in coda</span>
+  </div>
+</header>
+
+<div id="installBanner" class="install-banner" hidden>
+  <p><strong>Aggiungi questa app alla schermata Home</strong> per aprirla come un'app vera, anche senza connessione.</p>
+  <p id="installInstructions" class="install-instructions"></p>
+  <button id="installBtn" class="btn primary" hidden>Installa app</button>
+  <button id="dismissInstallBtn" class="link-btn">Non mostrare più</button>
+</div>
+
+<main id="app">
+
+  <!-- ===================== SCHERMATA 0: codice accesso ===================== -->
+  <section id="screen-login" class="screen active">
+    <article class="card" style="margin-top:20px">
+      <div style="text-align:center; margin-bottom:18px">
+        <img src="icons/icon-192.png" alt="" style="width:72px; border-radius:18px; margin-bottom:10px" />
+        <h2 style="margin:0">Benvenuto in Rete Seggi</h2>
+        <p class="muted-text">Inserisci il tuo nome, cognome e il codice personale fornito dal coordinamento.</p>
+      </div>
+      <label class="field">
+        <span>Nome e cognome</span>
+        <input id="loginNome" type="text" autocomplete="name" placeholder="Es. Mario Rossi" />
+      </label>
+      <label class="field">
+        <span>Codice di accesso</span>
+        <input id="inputCodice" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="Es. ROSSI2026" style="letter-spacing:.08em; font-weight:700; font-size:18px; text-transform:uppercase" />
+      </label>
+      <div id="loginErrore" class="errors" hidden></div>
+      <button id="btnLogin" class="btn primary full">Accedi</button>
+      <p class="muted-text" style="margin-top:14px; font-size:12px; text-align:center">Non hai un codice? Contatta il coordinamento di Fratelli d'Italia.</p>
+    </article>
+  </section>
+
+  <!-- ===================== SCHERMATA 1: profilo + sezione ===================== -->
+  <section id="screen-setup" class="screen active">
+
+    <article class="card" id="cardSeggiEsistenti" hidden>
+      <h2>I tuoi seggi</h2>
+      <p class="muted-text">Segui più di un seggio? Tienili tutti qui, e passa dall'uno all'altro dalla dashboard.</p>
+      <div id="elencoSeggi" class="dynamic-list"></div>
+      <button id="btnAnnullaAggiungiSeggio" class="btn ghost full" hidden>Torna alla dashboard</button>
+    </article>
+
+    <article class="card" id="cardDatiPersona">
+      <h2 id="titoloDatiPersona">1. I tuoi dati</h2>
+      <label class="field">
+        <span>Nome e cognome</span>
+        <input id="inputNome" autocomplete="name" placeholder="Es. Mario Rossi" />
+      </label>
+      <label class="field">
+        <span>Numero di telefono</span>
+        <input id="inputTelefono" type="tel" inputmode="tel" placeholder="Es. 333 1234567" />
+      </label>
+    </article>
+
+    <article class="card">
+      <h2 id="titoloNuovoSeggio">2. Il tuo seggio</h2>
+      <label class="field">
+        <span>Municipio</span>
+        <select id="selectMunicipio">
+          <option value="">Seleziona&hellip;</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Numero sezione</span>
+        <input id="inputSezione" list="sezioniList" inputmode="numeric" placeholder="Es. 1667" autocomplete="off" disabled />
+        <datalist id="sezioniList"></datalist>
+      </label>
+      <div id="seggioPreview" class="info-box muted">Seleziona prima il municipio.</div>
+      <label class="field">
+        <span>Elettori aventi diritto al voto in questa sezione</span>
+        <input id="inputElettori" type="number" min="0" inputmode="numeric" placeholder="Es. 950" />
+      </label>
+      <p class="muted-text" style="margin-top:-6px">Chiedilo al presidente di seggio appena vi insediate: è un numero fisso per tutta la giornata, serve a calcolare subito la percentuale di affluenza.</p>
+      <div id="setupErrore" class="errors" hidden></div>
+      <button id="btnConferma" class="btn primary full">Conferma e inizia</button>
+    </article>
+
+    <article class="card">
+      <h3>Non conosci il numero della tua sezione?</h3>
+      <p class="muted-text">Cerca l'indirizzo della via: l'app ti mostra a quale sezione appartiene.</p>
+      <div class="grid two">
+        <label class="field"><span>Via</span><input id="searchVia" placeholder="Es. VIA GIOVANNI FRIGNANI" /></label>
+        <label class="field"><span>Civico (opzionale)</span><input id="searchCivico" inputmode="numeric" placeholder="Es. 97" /></label>
+      </div>
+      <button id="btnCercaVia" class="btn full">Cerca sezione</button>
+      <div id="risultatiVia" class="results-wrap"></div>
+    </article>
+  </section>
+
+  <!-- ===================== SCHERMATA 2: dashboard operativa ===================== -->
+  <section id="screen-dashboard" class="screen">
+
+    <div class="seggio-banner">
+      <div class="seggio-banner-info">
+        <label class="seggio-select-label" for="selectSeggioAttivo">Seggio attivo</label>
+        <select id="selectSeggioAttivo"></select>
+        <span id="seggioIndirizzo">&nbsp;</span>
+      </div>
+      <button id="btnGestisciSeggi" class="link-btn">+ Aggiungi/gestisci</button>
+    </div>
+
+    <nav class="tabs" aria-label="Sezioni app">
+      <button class="tab active" data-tab="affluenza" type="button">Affluenza</button>
+      <button class="tab" data-tab="scrutinio" type="button">Scrutinio</button>
+      <button class="tab" data-tab="invii" type="button">I miei invii</button>
+    </nav>
+
+    <!-- --- AFFLUENZA --- -->
+    <div id="tab-affluenza" class="tabpanel active">
+      <article class="card">
+        <h2>Rilevazione affluenza</h2>
+        <div id="elettoriBanner" class="info-box">Elettori aventi diritto: <strong id="elettoriValore">—</strong> <button id="btnModificaElettori" class="link-btn" style="padding:0 0 0 6px">modifica</button></div>
+        <p class="muted-text">Tocca l'orario di rilevazione, inserisci i dati e invia. Puoi inviare più rilevazioni nel corso della giornata.</p>
+        <div id="orariAffluenza" class="chip-row"></div>
+
+        <div id="formAffluenza" class="affluenza-form" hidden>
+          <h3 id="affluenzaOrarioTitolo"></h3>
+
+          <div class="chip-row" id="modalitaAffluenza" role="group" aria-label="Modalità di inserimento">
+            <button type="button" class="chip selected" data-modalita="rapido">Solo totale votanti</button>
+            <button type="button" class="chip" data-modalita="dettaglio">Maschi e femmine</button>
+          </div>
+
+          <div id="affRapido">
+            <label class="field"><span>Totale votanti finora</span><input id="affTotaleVotanti" type="number" min="0" step="1" inputmode="numeric" /></label>
+          </div>
+
+          <div id="affDettaglio" hidden>
+            <div class="grid two">
+              <label class="field"><span>Votanti maschi</span><input id="affMaschi" type="number" min="0" step="1" inputmode="numeric" /></label>
+              <label class="field"><span>Votanti femmine</span><input id="affFemmine" type="number" min="0" step="1" inputmode="numeric" /></label>
+            </div>
+          </div>
+
+          <div class="info-box" id="affTotaleBox">Totale: 0</div>
+          <label class="field"><span>Note (opzionale)</span><textarea id="affNote" rows="2"></textarea></label>
+          <div class="button-row">
+            <button id="btnInviaAffluenza" class="btn primary">Invia rilevazione</button>
+            <button id="btnAnnullaAffluenza" class="btn ghost">Annulla</button>
+          </div>
+        </div>
+
+        <div class="responsive-table">
+          <table id="tabellaAffluenza">
+            <thead><tr><th>Orario</th><th>M</th><th>F</th><th>Tot.</th><th>%</th><th>Stato</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+
+    <!-- --- SCRUTINIO --- -->
+    <div id="tab-scrutinio" class="tabpanel">
+      <article class="card">
+        <div class="section-title-row">
+          <h2>Elettori e votanti</h2>
+          <span id="scrutinioBadge" class="pill neutral">non inviato</span>
+        </div>
+        <p class="muted-text">Numeri condivisi tra le due schede (sono la stessa firma sul registro).</p>
+        <div class="grid two">
+          <label class="field"><span>Elettori iscritti</span><input id="scElettori" type="number" min="0" inputmode="numeric" /></label>
+          <label class="field"><span>Votanti totali</span><input id="scVotanti" type="number" min="0" inputmode="numeric" /></label>
+        </div>
+        <div id="scrutinioAvviso" class="warnings" hidden></div>
+      </article>
+
+      <article class="card">
+        <div class="section-title-row"><h2>Scheda Comune</h2><span class="pill neutral">Sindaco e Assemblea Capitolina</span></div>
+        <div class="grid three">
+          <label class="field"><span>Schede valide</span><input id="comValide" type="number" min="0" inputmode="numeric" /></label>
+          <label class="field"><span>Schede bianche</span><input id="comBianche" type="number" min="0" inputmode="numeric" /></label>
+          <label class="field"><span>Schede nulle</span><input id="comNulle" type="number" min="0" inputmode="numeric" /></label>
+        </div>
+        <label class="field"><span>Contestate/non assegnate</span><input id="comContestate" type="number" min="0" inputmode="numeric" /></label>
+        <h3>Voti ai candidati Sindaco</h3>
+        <p class="muted-text">Un campo per ogni candidato Sindaco in competizione, come configurato dal coordinamento.</p>
+        <div id="sindaciContainer" class="dynamic-list"></div>
+        <h3>Voti per lista (Capitolina)</h3>
+        <div id="listeCapitolinaContainer" class="dynamic-list"></div>
+        <h3>Preferenze ai candidati Fratelli d'Italia (Capitolina)</h3>
+        <div id="preferenzeCapitolinaContainer" class="dynamic-list"></div>
+      </article>
+
+      <article class="card">
+        <div class="section-title-row"><h2>Scheda Municipio</h2><span class="pill neutral">Presidente e Consiglio</span></div>
+        <div class="grid three">
+          <label class="field"><span>Schede valide</span><input id="munValide" type="number" min="0" inputmode="numeric" /></label>
+          <label class="field"><span>Schede bianche</span><input id="munBianche" type="number" min="0" inputmode="numeric" /></label>
+          <label class="field"><span>Schede nulle</span><input id="munNulle" type="number" min="0" inputmode="numeric" /></label>
+        </div>
+        <label class="field"><span>Contestate/non assegnate</span><input id="munContestate" type="number" min="0" inputmode="numeric" /></label>
+        <h3>Voti ai candidati Presidente di Municipio</h3>
+        <p class="muted-text">Un campo per ogni candidato Presidente in competizione, come configurato dal coordinamento.</p>
+        <div id="presidentiContainer" class="dynamic-list"></div>
+        <h3>Voti per lista (Municipio)</h3>
+        <div id="listeMunicipioContainer" class="dynamic-list"></div>
+        <h3>Preferenze ai candidati Fratelli d'Italia (Municipio)</h3>
+        <div id="preferenzeMunicipioContainer" class="dynamic-list"></div>
+      </article>
+
+      <article class="card">
+        <label class="field"><span>Note operative</span><textarea id="scNote" rows="3" placeholder="Es. dato ricontrollato con il presidente di seggio, foto allegata, ecc."></textarea></label>
+        <div id="scrutinioErrori" class="errors" hidden></div>
+        <div class="button-row sticky-actions">
+          <button id="btnSalvaBozzaScrutinio" class="btn">Salva bozza</button>
+          <button id="btnInviaScrutinio" class="btn primary">Invia scrutinio</button>
+        </div>
+      </article>
+    </div>
+
+    <!-- --- I MIEI INVII --- -->
+    <div id="tab-invii" class="tabpanel">
+      <article class="card">
+        <div class="section-title-row">
+          <h2>Stato invii</h2>
+          <button id="btnRiprovaInvii" class="btn ghost">Riprova invii in sospeso</button>
+        </div>
+        <div class="responsive-table">
+          <table id="tabellaInvii">
+            <thead><tr><th>Tipo</th><th>Quando</th><th>Stato</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+
+    <div class="sticky-share">
+      <button id="btnCondividi" class="btn ghost full">Condividi riepilogo (WhatsApp / SMS / email)</button>
+    </div>
+  </section>
+
+</main>
+
+<div id="modalRiepilogo" class="modal-overlay" hidden>
+  <div class="modal-box">
+    <h2>Conferma invio scrutinio</h2>
+    <p class="muted-text">Controlla tutti i dati prima di inviare. Una volta inviato non potrai modificarli dall'app.</p>
+    <div id="riepilogoContenuto" class="riepilogo-grid"></div>
+    <div class="button-row" style="margin-top:16px">
+      <button id="btnConfermaInvio" class="btn primary">Invia ora</button>
+      <button id="btnAnnullaInvio" class="btn ghost">Torna indietro e correggi</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script>
+// Forza aggiornamento: disinstalla service worker vecchio e ricarica
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(reg) { reg.unregister(); });
+    if (regs.length > 0) window.location.reload(true);
+  });
+}
+</script>
+<script src="app.js"></script>
+</body>
+</html>

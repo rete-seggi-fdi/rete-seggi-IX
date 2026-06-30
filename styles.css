@@ -1,0 +1,239 @@
+:root{
+  --bg:#f3f5f9;
+  --card:#ffffff;
+  --ink:#101935;
+  --muted:#5b6477;
+  --line:#dde2ec;
+  --brand:#152a57;
+  --brand-light:#1e3a73;
+  --accent:#b3262f;     /* rosso istituzionale, solo per avvisi/azioni critiche */
+  --ok:#0c7a4b;
+  --warn:#a15c00;
+  --bad:#b3262f;
+  --soft:#eaf0fb;
+  --shadow:0 10px 26px rgba(16,25,53,.10);
+  --radius:16px;
+  --tap:48px; /* altezza minima target tattile */
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+  line-height:1.45;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+
+/* ---------- Header ---------- */
+.topbar{
+  background:linear-gradient(135deg,var(--brand),var(--brand-light));
+  color:#fff;
+  padding:14px 16px calc(14px + env(safe-area-inset-top)/3);
+  padding-top:max(14px, env(safe-area-inset-top));
+  display:flex; justify-content:space-between; align-items:center; gap:10px;
+  position:sticky; top:0; z-index:20;
+  box-shadow:0 6px 18px rgba(0,0,0,.18);
+}
+.brand{display:flex; align-items:center; gap:10px}
+.brand-icon{width:34px; height:34px; border-radius:9px; flex:none}
+.eyebrow{margin:0; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#c9d3ea}
+h1{margin:1px 0 0; font-size:20px}
+.status-cluster{display:flex; flex-direction:column; align-items:flex-end; gap:4px}
+.status-pill{
+  font-size:11px; font-weight:700; padding:5px 9px; border-radius:999px;
+  background:rgba(255,255,255,.14); color:#fff; white-space:nowrap;
+}
+.status-pill.online{background:#0c7a4b}
+.status-pill.offline{background:#a15c00}
+.status-pill.pending{background:#b3262f}
+
+/* ---------- Install banner ---------- */
+.install-banner{
+  background:#fff8e6; border-bottom:1px solid #f1deab; padding:12px 16px;
+  font-size:14px;
+}
+.install-banner p{margin:0 0 8px}
+.install-instructions{color:var(--muted); font-size:13px}
+
+/* ---------- Layout ---------- */
+main{max-width:640px; margin:0 auto; padding:14px 14px 110px}
+.screen{display:none}
+.screen.active{display:block}
+
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:18px; margin-bottom:14px; box-shadow:var(--shadow);
+}
+.card h2{margin:0 0 14px; font-size:18px}
+.card h3{margin:16px 0 8px; font-size:15px}
+.card h3:first-child{margin-top:0}
+
+.field{display:flex; flex-direction:column; gap:6px; margin-bottom:13px; font-weight:600; font-size:14px}
+.field span{color:var(--ink)}
+input, select, textarea{
+  width:100%; border:1.5px solid #c7cee0; border-radius:12px;
+  padding:12px 13px; font:inherit; font-size:16px; background:#fff; color:var(--ink);
+  min-height:var(--tap);
+}
+textarea{min-height:auto}
+input:focus, select:focus, textarea:focus{
+  outline:3px solid #9db4e8; border-color:var(--brand-light);
+}
+input:disabled, select:disabled{background:#f1f3f8; color:#9aa3b6}
+
+.grid{display:grid; gap:12px}
+.grid.two{grid-template-columns:1fr 1fr}
+.grid.three{grid-template-columns:1fr 1fr}
+@media(min-width:480px){ .grid.three{grid-template-columns:1fr 1fr 1fr} }
+
+.btn{
+  border:1.5px solid var(--brand); background:#fff; color:var(--brand);
+  font-weight:700; font-size:15px; border-radius:13px; padding:13px 16px;
+  min-height:var(--tap); cursor:pointer; -webkit-tap-highlight-color:transparent;
+}
+.btn.primary{background:var(--brand); color:#fff}
+.btn.ghost{border-color:#c7cee0; color:var(--ink)}
+.btn.full{width:100%}
+.button-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:6px}
+.button-row .btn{flex:1 1 140px}
+.link-btn{
+  background:none; border:none; color:#dfe6f7; font-weight:700; text-decoration:underline;
+  font-size:13px; padding:8px; cursor:pointer;
+}
+.install-banner .link-btn{color:var(--brand)}
+.seggio-banner .link-btn{color:var(--brand); font-weight:700}
+#btnModificaElettori{color:var(--ink); font-weight:700; text-decoration:underline; padding:0 0 0 6px}
+
+.info-box, .notice{
+  border-radius:13px; padding:12px 13px; background:var(--soft); border:1px solid #d7e1f5;
+  font-size:14px; margin-bottom:12px;
+}
+.muted, .muted-text{color:var(--muted)}
+.muted-text{font-size:13px; margin:0 0 12px}
+
+.errors, .warnings{border-radius:13px; padding:12px 13px; margin:12px 0; font-size:14px}
+.errors{background:#fbe9ea; color:#7a1217; border:1px solid #f1c4c6}
+.warnings{background:#fff3e0; color:#7a4a00; border:1px solid #f3dca6}
+.errors ul, .warnings ul{margin:6px 0 0 18px; padding:0}
+
+.pill{display:inline-flex; align-items:center; border-radius:999px; padding:5px 10px; font-weight:700; font-size:12px; background:#eef1f8; color:#3a4256}
+.pill.good{background:#dcf3e7; color:#0c5132}
+.pill.warn{background:#fbe7c8; color:#7a4a00}
+.pill.bad{background:#fbe2e3; color:#7a1217}
+.pill.neutral{background:#e7ecfa; color:#2c3a64}
+
+.section-title-row{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px}
+
+/* ---------- Seggio banner / tabs ---------- */
+.seggio-banner{
+  background:var(--soft); border:1px solid #d7e1f5; border-radius:14px; padding:12px 14px;
+  display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px;
+}
+.seggio-banner-info{flex:1; min-width:0}
+.seggio-select-label{display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-bottom:3px}
+#selectSeggioAttivo{
+  width:100%; min-height:40px; padding:8px 10px; font-size:15px; font-weight:700;
+  border:1.5px solid #c7cee0; border-radius:10px; background:#fff; color:var(--ink); margin-bottom:4px;
+}
+.seggio-banner span{display:block; color:var(--muted); font-size:13px}
+
+.seggio-row{
+  border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:8px;
+  display:flex; justify-content:space-between; align-items:center; gap:10px; background:#fff;
+}
+.seggio-row.attivo{border-color:var(--brand); background:var(--soft)}
+.seggio-row .info{font-size:13.5px}
+.seggio-row .info strong{display:block}
+.seggio-row .azioni{display:flex; gap:6px; flex:none}
+.seggio-row .azioni .btn{padding:8px 10px; font-size:12.5px; min-height:auto}
+
+.tabs{display:flex; gap:8px; margin-bottom:14px; position:sticky; top:64px; z-index:10; background:var(--bg); padding:4px 0}
+.tab{
+  flex:1; border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:11px 8px;
+  font-weight:700; font-size:13.5px; color:var(--muted); cursor:pointer; min-height:var(--tap);
+}
+.tab.active{background:var(--brand); color:#fff; border-color:var(--brand)}
+.tabpanel{display:none}
+.tabpanel.active{display:block}
+
+/* ---------- Affluenza chips ---------- */
+.chip-row{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px}
+.chip{
+  border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:10px 16px;
+  font-weight:700; font-size:14px; cursor:pointer; min-height:var(--tap); display:inline-flex; align-items:center;
+}
+.chip.inviato{background:#dcf3e7; border-color:#bfe6cf; color:#0c5132}
+.chip.selected{background:var(--brand); color:#fff; border-color:var(--brand)}
+.affluenza-form{border:1.5px dashed #c7cee0; border-radius:14px; padding:14px; margin-bottom:14px; background:#fafbfe}
+
+/* ---------- Tabelle ---------- */
+.responsive-table{overflow:auto; border:1px solid var(--line); border-radius:13px}
+table{width:100%; border-collapse:collapse; background:#fff; font-size:13.5px}
+th, td{border-bottom:1px solid var(--line); padding:9px 10px; text-align:left; vertical-align:middle}
+th{background:#f7f9fc; color:#3a4256; position:sticky; top:0}
+tr:last-child td{border-bottom:0}
+
+/* ---------- Liste dinamiche (voti / preferenze) ---------- */
+.dynamic-list .dyn-row{
+  display:grid; grid-template-columns:1fr 92px; gap:10px; align-items:center; margin-bottom:9px;
+}
+.dynamic-list .dyn-row label{font-weight:600; font-size:14px}
+.dynamic-list .dyn-empty{color:var(--muted); font-size:13px}
+
+/* ---------- Risultati ricerca via ---------- */
+.results-wrap{margin-top:10px}
+.result-row{
+  border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:8px;
+  display:flex; justify-content:space-between; align-items:center; gap:10px; background:#fff;
+}
+.result-row .info{font-size:13.5px}
+.result-row .info strong{display:block}
+.result-row button{flex:none}
+
+/* ---------- Condividi sticky ---------- */
+.sticky-share{
+  position:fixed; left:0; right:0; bottom:0; padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  background:rgba(243,245,249,.97); backdrop-filter:blur(8px); border-top:1px solid var(--line);
+  max-width:640px; margin:0 auto;
+}
+
+.sticky-actions{position:static}
+
+/* ---------- Toast ---------- */
+.toast{
+  position:fixed; left:50%; bottom:90px; transform:translateX(-50%);
+  background:var(--ink); color:#fff; padding:12px 18px; border-radius:999px;
+  box-shadow:var(--shadow); z-index:1000; font-weight:700; font-size:14px; max-width:90vw; text-align:center;
+}
+
+/* ---------- Modale riepilogo scrutinio ---------- */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(16,25,53,.55); z-index:200;
+  display:flex; align-items:flex-end; justify-content:center;
+  padding:0 0 env(safe-area-inset-bottom);
+}
+.modal-overlay[hidden]{display:none}
+.modal-box{
+  background:#fff; border-radius:20px 20px 0 0; width:100%; max-width:640px;
+  padding:20px 18px 28px; max-height:88vh; overflow-y:auto;
+  box-shadow:0 -8px 32px rgba(16,25,53,.18);
+}
+.modal-box h2{margin:0 0 6px; font-size:19px}
+.riepilogo-grid{display:flex; flex-direction:column; gap:10px; margin-top:14px}
+.riepilogo-sezione{background:var(--soft); border-radius:12px; padding:12px 14px}
+.riepilogo-sezione h3{margin:0 0 8px; font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em}
+.riepilogo-row{display:flex; justify-content:space-between; align-items:center; font-size:14px; padding:3px 0; border-bottom:1px solid var(--line)}
+.riepilogo-row:last-child{border-bottom:none}
+.riepilogo-row span:first-child{color:var(--muted)}
+.riepilogo-row span:last-child{font-weight:600; text-align:right}
+:focus-visible{outline:3px solid #9db4e8; outline-offset:2px}
+@media(max-width:380px){
+  .grid.two{grid-template-columns:1fr}
+  h1{font-size:18px}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important; animation:none !important}
+}
