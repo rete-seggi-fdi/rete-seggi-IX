@@ -222,12 +222,14 @@ function orariAffluenza() { return (STATE.config && STATE.config.orari) || []; }
 // =======================================================================
 async function onLogin() {
   const nomeInput = $('#loginNome').value.trim();
+  const telefonoInput = $('#loginTelefono').value.trim();
   const codice = $('#inputCodice').value.trim().toUpperCase();
   const errBox = $('#loginErrore');
   errBox.hidden = true;
 
   const errori = [];
   if (!nomeInput) errori.push('Inserisci il tuo nome e cognome.');
+  if (!telefonoInput) errori.push('Inserisci il tuo numero di telefono.');
   if (!codice) errori.push('Inserisci il tuo codice di accesso.');
   if (errori.length) {
     errBox.innerHTML = errori.map((e) => '<p>⚠️ ' + escapeHtml(e) + '</p>').join('');
@@ -253,9 +255,9 @@ async function onLogin() {
       return;
     }
 
-    // Codice valido: uso il nome inserito dall'utente
+    // Codice valido: uso nome e telefono inseriti dall'utente
     saveJSON(LS.CODICE, codice);
-    STATE.persona = { nome: nomeInput, telefono: '' };
+    STATE.persona = { nome: nomeInput, telefono: telefonoInput };
     saveJSON(LS.PERSONA, STATE.persona);
 
     // Carico tutte le sezioni assegnate a questo codice
@@ -413,14 +415,15 @@ async function onCercaVia() {
 async function onConfermaSetup() {
   const errBox = $('#setupErrore');
   errBox.hidden = true;
-  const nome = $('#inputNome').value.trim();
-  const telefono = $('#inputTelefono').value.trim();
+  const haGiaAccesso = !!(loadJSON(LS.CODICE, null) && STATE.persona && STATE.persona.nome && STATE.persona.telefono);
+  const nome = haGiaAccesso ? STATE.persona.nome : $('#inputNome').value.trim();
+  const telefono = haGiaAccesso ? (STATE.persona.telefono || '') : $('#inputTelefono').value.trim();
   const mu = $('#selectMunicipio').value;
   const sezioneInput = $('#inputSezione').value.trim();
 
   const errori = [];
-  if (!nome) errori.push('Inserisci il tuo nome e cognome.');
-  if (!telefono) errori.push('Inserisci un numero di telefono: serve al coordinamento per ricontattarti in caso di dubbi sui dati.');
+  if (!haGiaAccesso && !nome) errori.push('Inserisci il tuo nome e cognome.');
+  if (!haGiaAccesso && !telefono) errori.push('Inserisci un numero di telefono: serve al coordinamento per ricontattarti in caso di dubbi sui dati.');
   if (!mu) errori.push('Seleziona il municipio.');
   if (!sezioneInput) errori.push('Inserisci il numero della tua sezione.');
 
@@ -1140,7 +1143,8 @@ async function avvia() {
 
   $('#btnLogin').addEventListener('click', onLogin);
   $('#inputCodice').addEventListener('keydown', (e) => { if (e.key === 'Enter') onLogin(); });
-  $('#loginNome').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#inputCodice').focus(); });
+  $('#loginNome').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#loginTelefono').focus(); });
+  $('#loginTelefono').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#inputCodice').focus(); });
 
   $('#selectMunicipio').addEventListener('change', onCambiaMunicipioSetup);
   $('#inputSezione').addEventListener('input', onCambiaSezioneSetup);
