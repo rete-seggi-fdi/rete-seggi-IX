@@ -473,14 +473,19 @@ function predisponiSchermataSetup(modalitaAggiungi) {
   STATE.modalitaAggiungiSeggio = !!modalitaAggiungi;
   const haPersona = !!(STATE.persona && STATE.persona.nome);
   const haSeggi = STATE.seggi.length > 0;
+  const datiCompletiDaLogin = !!(loadJSON(LS.CODICE, null) && STATE.persona && STATE.persona.nome && STATE.persona.telefono);
 
   $('#cardSeggiEsistenti').hidden = !haSeggi;
   $('#btnAnnullaAggiungiSeggio').hidden = !haSeggi;
   renderElencoSeggi();
 
-  if (haPersona && (modalitaAggiungi || loadJSON(LS.CODICE, null))) {
+  if (datiCompletiDaLogin) {
+    // Nome, telefono e codice già raccolti al login: non li richiediamo mai più.
     $('#cardDatiPersona').hidden = true;
     $('#titoloNuovoSeggio').textContent = haSeggi ? 'Aggiungi un nuovo seggio' : 'Il tuo seggio';
+  } else if (haPersona && modalitaAggiungi) {
+    $('#cardDatiPersona').hidden = true;
+    $('#titoloNuovoSeggio').textContent = 'Aggiungi un nuovo seggio';
   } else {
     $('#cardDatiPersona').hidden = false;
     $('#titoloDatiPersona').textContent = '1. I tuoi dati';
