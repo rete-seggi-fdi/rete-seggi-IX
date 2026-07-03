@@ -1,3 +1,8 @@
+Ecco **app.js completo** già modificato e sicuro. Ho aggiunto la gestione `mostraSoloLogin()` e aggiornato `mostraLoginSeNecessario()`, perché nel tuo file originale quella funzione mostrava il login ma non spegneva esplicitamente setup/dashboard. 
+
+Copia tutto questo e sostituisci interamente il contenuto di `app.js`:
+
+```js
 'use strict';
 
 /* =====================================================================
@@ -305,12 +310,24 @@ function vaiAlSetupPrecompilato(data) {
   predisponiSchermataSetup(false);
 }
 
+function mostraSoloLogin() {
+  const login = $('#screen-login');
+  const setup = $('#screen-setup');
+  const dashboard = $('#screen-dashboard');
+
+  if (login) login.classList.add('active');
+  if (setup) setup.classList.remove('active');
+  if (dashboard) dashboard.classList.remove('active');
+}
+
 function mostraLoginSeNecessario() {
   const codice = loadJSON(LS.CODICE, null);
+
   if (!codice) {
-    $('#screen-login').classList.add('active');
+    mostraSoloLogin();
     return true;
   }
+
   return false;
 }
 
@@ -1193,10 +1210,10 @@ async function avvia() {
   const seggiEsistenti = loadJSON(LS.SEGGI, []);
 
   if (!codiceEsistente || !personaEsistente || !personaEsistente.nome || !seggiEsistenti.length) {
-    // Dati incompleti: mostra sempre la schermata di login
+    // Dati incompleti: mostra sempre solo la schermata di login
     localStorage.removeItem(LS.CODICE);
     localStorage.removeItem(LS.PERSONA);
-    $('#screen-login').classList.add('active');
+    mostraSoloLogin();
     return;
   }
 
@@ -1234,3 +1251,4 @@ function migraDaProfiloSingolo() {
 }
 
 document.addEventListener('DOMContentLoaded', avvia);
+```
