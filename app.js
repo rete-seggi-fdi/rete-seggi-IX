@@ -1,6 +1,4 @@
-Ecco **app.js completo** già modificato e sicuro. Ho aggiunto la gestione `mostraSoloLogin()` e aggiornato `mostraLoginSeNecessario()`, perché nel tuo file originale quella funzione mostrava il login ma non spegneva esplicitamente setup/dashboard. 
-
-Copia tutto questo e sostituisci interamente il contenuto di `app.js`:
+Eccolo. Copia tutto e sostituisci completamente il contenuto di `app.js`.
 
 ```js
 'use strict';
@@ -314,10 +312,12 @@ function mostraSoloLogin() {
   const login = $('#screen-login');
   const setup = $('#screen-setup');
   const dashboard = $('#screen-dashboard');
+  const cardDatiPersona = $('#cardDatiPersona');
 
   if (login) login.classList.add('active');
   if (setup) setup.classList.remove('active');
   if (dashboard) dashboard.classList.remove('active');
+  if (cardDatiPersona) cardDatiPersona.hidden = true;
 }
 
 function mostraLoginSeNecessario() {
