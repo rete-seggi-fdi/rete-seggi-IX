@@ -1,6 +1,3 @@
-Eccolo. Copia tutto e sostituisci completamente il contenuto di `app.js`.
-
-```js
 'use strict';
 
 /* =====================================================================
@@ -225,14 +222,12 @@ function orariAffluenza() { return (STATE.config && STATE.config.orari) || []; }
 // =======================================================================
 async function onLogin() {
   const nomeInput = $('#loginNome').value.trim();
-  const telefonoInput = $('#loginTelefono').value.trim();
   const codice = $('#inputCodice').value.trim().toUpperCase();
   const errBox = $('#loginErrore');
   errBox.hidden = true;
 
   const errori = [];
   if (!nomeInput) errori.push('Inserisci il tuo nome e cognome.');
-  if (!telefonoInput) errori.push('Inserisci il tuo numero di telefono.');
   if (!codice) errori.push('Inserisci il tuo codice di accesso.');
   if (errori.length) {
     errBox.innerHTML = errori.map((e) => '<p>⚠️ ' + escapeHtml(e) + '</p>').join('');
@@ -258,9 +253,9 @@ async function onLogin() {
       return;
     }
 
-    // Codice valido: uso nome e telefono inseriti dall'utente
+    // Codice valido: uso il nome inserito dall'utente
     saveJSON(LS.CODICE, codice);
-    STATE.persona = { nome: nomeInput, telefono: telefonoInput };
+    STATE.persona = { nome: nomeInput, telefono: '' };
     saveJSON(LS.PERSONA, STATE.persona);
 
     // Carico tutte le sezioni assegnate a questo codice
@@ -308,26 +303,12 @@ function vaiAlSetupPrecompilato(data) {
   predisponiSchermataSetup(false);
 }
 
-function mostraSoloLogin() {
-  const login = $('#screen-login');
-  const setup = $('#screen-setup');
-  const dashboard = $('#screen-dashboard');
-  const cardDatiPersona = $('#cardDatiPersona');
-
-  if (login) login.classList.add('active');
-  if (setup) setup.classList.remove('active');
-  if (dashboard) dashboard.classList.remove('active');
-  if (cardDatiPersona) cardDatiPersona.hidden = true;
-}
-
 function mostraLoginSeNecessario() {
   const codice = loadJSON(LS.CODICE, null);
-
   if (!codice) {
-    mostraSoloLogin();
+    $('#screen-login').classList.add('active');
     return true;
   }
-
   return false;
 }
 
@@ -432,15 +413,14 @@ async function onCercaVia() {
 async function onConfermaSetup() {
   const errBox = $('#setupErrore');
   errBox.hidden = true;
-  const haGiaAccesso = !!(loadJSON(LS.CODICE, null) && STATE.persona && STATE.persona.nome && STATE.persona.telefono);
-  const nome = haGiaAccesso ? STATE.persona.nome : $('#inputNome').value.trim();
-  const telefono = haGiaAccesso ? (STATE.persona.telefono || '') : $('#inputTelefono').value.trim();
+  const nome = $('#inputNome').value.trim();
+  const telefono = $('#inputTelefono').value.trim();
   const mu = $('#selectMunicipio').value;
   const sezioneInput = $('#inputSezione').value.trim();
 
   const errori = [];
-  if (!haGiaAccesso && !nome) errori.push('Inserisci il tuo nome e cognome.');
-  if (!haGiaAccesso && !telefono) errori.push('Inserisci un numero di telefono: serve al coordinamento per ricontattarti in caso di dubbi sui dati.');
+  if (!nome) errori.push('Inserisci il tuo nome e cognome.');
+  if (!telefono) errori.push('Inserisci un numero di telefono: serve al coordinamento per ricontattarti in caso di dubbi sui dati.');
   if (!mu) errori.push('Seleziona il municipio.');
   if (!sezioneInput) errori.push('Inserisci il numero della tua sezione.');
 
@@ -490,19 +470,14 @@ function predisponiSchermataSetup(modalitaAggiungi) {
   STATE.modalitaAggiungiSeggio = !!modalitaAggiungi;
   const haPersona = !!(STATE.persona && STATE.persona.nome);
   const haSeggi = STATE.seggi.length > 0;
-  const datiCompletiDaLogin = !!(loadJSON(LS.CODICE, null) && STATE.persona && STATE.persona.nome && STATE.persona.telefono);
 
   $('#cardSeggiEsistenti').hidden = !haSeggi;
   $('#btnAnnullaAggiungiSeggio').hidden = !haSeggi;
   renderElencoSeggi();
 
-  if (datiCompletiDaLogin) {
-    // Nome, telefono e codice già raccolti al login: non li richiediamo mai più.
+  if (haPersona && (modalitaAggiungi || loadJSON(LS.CODICE, null))) {
     $('#cardDatiPersona').hidden = true;
     $('#titoloNuovoSeggio').textContent = haSeggi ? 'Aggiungi un nuovo seggio' : 'Il tuo seggio';
-  } else if (haPersona && modalitaAggiungi) {
-    $('#cardDatiPersona').hidden = true;
-    $('#titoloNuovoSeggio').textContent = 'Aggiungi un nuovo seggio';
   } else {
     $('#cardDatiPersona').hidden = false;
     $('#titoloDatiPersona').textContent = '1. I tuoi dati';
@@ -1165,8 +1140,7 @@ async function avvia() {
 
   $('#btnLogin').addEventListener('click', onLogin);
   $('#inputCodice').addEventListener('keydown', (e) => { if (e.key === 'Enter') onLogin(); });
-  $('#loginNome').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#loginTelefono').focus(); });
-  $('#loginTelefono').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#inputCodice').focus(); });
+  $('#loginNome').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#inputCodice').focus(); });
 
   $('#selectMunicipio').addEventListener('change', onCambiaMunicipioSetup);
   $('#inputSezione').addEventListener('input', onCambiaSezioneSetup);
@@ -1210,10 +1184,10 @@ async function avvia() {
   const seggiEsistenti = loadJSON(LS.SEGGI, []);
 
   if (!codiceEsistente || !personaEsistente || !personaEsistente.nome || !seggiEsistenti.length) {
-    // Dati incompleti: mostra sempre solo la schermata di login
+    // Dati incompleti: mostra sempre la schermata di login
     localStorage.removeItem(LS.CODICE);
     localStorage.removeItem(LS.PERSONA);
-    mostraSoloLogin();
+    $('#screen-login').classList.add('active');
     return;
   }
 
@@ -1251,4 +1225,3 @@ function migraDaProfiloSingolo() {
 }
 
 document.addEventListener('DOMContentLoaded', avvia);
-```
