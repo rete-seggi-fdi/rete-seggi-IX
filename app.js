@@ -1263,3 +1263,4 @@ function migraDaProfiloSingolo() {
 }
 
 document.addEventListener('DOMContentLoaded', avvia);
+ 
