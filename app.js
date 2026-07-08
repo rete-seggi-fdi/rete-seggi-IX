@@ -225,15 +225,37 @@ async function onLogin() {
     const data = JSON.parse(testo);
 
     if (!data.ok) {
-      errBox.innerHTML = '<p>❌ ' + escapeHtml(data.error || 'Codice non valido.') + '</p>';
+      errBox.innerHTML = '<p>❌ ' + escapeHtml(data.error && data.error.message ? data.error.message : 'Codice non valido.') + '</p>';
       errBox.hidden = false;
       btn.textContent = 'Accedi';
       btn.disabled = false;
       return;
     }
 
+    // 🔒 SICUREZZA: verifica che il nome inserito corrisponda a quello nel database
+    const nomeBackend = (data.nome || '').trim();
+    const nomeInseritoNormalizzato = normalizza(nomeInput);
+    const nomeBackendNormalizzato = normalizza(nomeBackend);
+
+    if (!nomeBackend) {
+      errBox.innerHTML = '<p>❌ Errore: nome non trovato nel sistema. Contatta il coordinamento.</p>';
+      errBox.hidden = false;
+      btn.textContent = 'Accedi';
+      btn.disabled = false;
+      return;
+    }
+
+    if (nomeInseritoNormalizzato !== nomeBackendNormalizzato) {
+      errBox.innerHTML = '<p>❌ Nome e cognome non corrispondono al codice inserito. Verifica di aver scritto correttamente nome e cognome come registrati dal coordinamento.</p>';
+      errBox.hidden = false;
+      btn.textContent = 'Accedi';
+      btn.disabled = false;
+      return;
+    }
+
+    // ✅ Nome verificato — usa quello del backend (più affidabile)
     saveJSON(LS.CODICE, codice);
-    STATE.persona = { nome: nomeInput, telefono: '' };
+    STATE.persona = { nome: nomeBackend, telefono: '' };
     saveJSON(LS.PERSONA, STATE.persona);
 
     if (data.sezioni && data.sezioni.length > 0) {
@@ -258,12 +280,12 @@ async function onLogin() {
         saveJSON(LS.SEGGIO_ATTIVO, STATE.seggioAttivoId);
       }
       ricostruisciProfileDaSeggioAttivo();
-      
+
       if (!STATE.persona.telefono) {
         vaiAlSetupPrecompilato(data);
         return;
       }
-      
+
       $('#screen-login').classList.remove('active');
       mostraDashboard();
     } else {
