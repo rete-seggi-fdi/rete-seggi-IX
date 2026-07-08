@@ -35,13 +35,13 @@ const LS = {
 };
 
 let STATE = {
-  profile: null,       // persona + seggio attivo, fusi insieme (compatibilità col resto del codice)
-  persona: null,       // { nome, telefono }
-  seggi: [],           // [{ id, municipio, sezione, addr, cap, elettori }, ...]
+  profile: null,
+  persona: null,
+  seggi: [],
   seggioAttivoId: null,
   municipioData: null,
   config: null,
-  modalitaAggiungiSeggio: false, // true quando si torna al setup per aggiungere un seggio in più (persona già nota)
+  modalitaAggiungiSeggio: false,
 };
 
 function idSeggio(municipio, sezione) { return municipio + '-' + sezione; }
@@ -143,7 +143,7 @@ function codiceCivicoMatch(codice, da, a, civico) {
     case 'CD': return civico % 2 === 1 && civico >= daEff && civico <= aEff;
     case 'CP': return civico % 2 === 0 && civico >= daEff && civico <= aEff;
     case 'CQ': return civico >= daEff && civico <= aEff;
-    default: return false; // CS, LX, PX, K: caso speciale, non verificabile su un civico singolo
+    default: return false;
   }
 }
 
@@ -253,7 +253,7 @@ async function onLogin() {
       return;
     }
 
-    // Codice valido: uso il nome inserito dall'utente
+    // Codice valido: salvo il nome inserito dall'utente
     saveJSON(LS.CODICE, codice);
     STATE.persona = { nome: nomeInput, telefono: '' };
     saveJSON(LS.PERSONA, STATE.persona);
@@ -269,7 +269,6 @@ async function onLogin() {
             STATE.seggi.push({ id, municipio: s.municipio, sezione: sezInfo.s, addr: sezInfo.addr, cap: sezInfo.cap, elettori: null });
           }
         } catch (e) {
-          // Se non riesce a caricare i dati del municipio, aggiunge il seggio senza indirizzo
           const id = idSeggio(s.municipio, s.sezione);
           if (!STATE.seggi.some((seg) => seg.id === id)) {
             STATE.seggi.push({ id, municipio: s.municipio, sezione: s.sezione, addr: '', cap: '', elettori: null });
@@ -282,6 +281,13 @@ async function onLogin() {
         saveJSON(LS.SEGGIO_ATTIVO, STATE.seggioAttivoId);
       }
       ricostruisciProfileDaSeggioAttivo();
+      
+      // Se il telefono non è stato inserito, mostra il setup per completare i dati
+      if (!STATE.persona.telefono) {
+        vaiAlSetupPrecompilato(data);
+        return;
+      }
+      
       $('#screen-login').classList.remove('active');
       mostraDashboard();
     } else {
@@ -299,7 +305,14 @@ async function onLogin() {
 function vaiAlSetupPrecompilato(data) {
   $('#screen-login').classList.remove('active');
   $('#screen-setup').classList.add('active');
-  if (data.nome) $('#inputNome').value = data.nome;
+  
+  // Precompila i dati personali dal login
+  if (STATE.persona) {
+    $('#inputNome').value = STATE.persona.nome || '';
+    $('#inputTelefono').value = STATE.persona.telefono || '';
+  }
+  if (data && data.nome) $('#inputNome').value = data.nome;
+  
   predisponiSchermataSetup(false);
 }
 
@@ -475,15 +488,36 @@ function predisponiSchermataSetup(modalitaAggiungi) {
   $('#btnAnnullaAggiungiSeggio').hidden = !haSeggi;
   renderElencoSeggi();
 
+  // Gestione card dati personali
   if (haPersona && (modalitaAggiungi || loadJSON(LS.CODICE, null))) {
-    $('#cardDatiPersona').hidden = true;
-    $('#titoloNuovoSeggio').textContent = haSeggi ? 'Aggiungi un nuovo seggio' : 'Il tuo seggio';
+    // L'utente ha già un nome salvato (da login precedente)
+    $('#inputNome').value = STATE.persona.nome;
+    $('#inputTelefono').value = STATE.persona.telefono || '';
+    
+    if (STATE.persona.telefono) {
+      // Telefono già presente: nascondi la card dati personali
+      $('#cardDatiPersona').hidden = true;
+      $('#titoloNuovoSeggio').textContent = haSeggi ? 'Aggiungi un nuovo seggio' : 'Il tuo seggio';
+    } else {
+      // Telefono mancante: mostra la card ma solo con il campo telefono (nome bloccato)
+      $('#cardDatiPersona').hidden = false;
+      $('#titoloDatiPersona').textContent = '1. Completa i tuoi dati';
+      $('#titoloNuovoSeggio').textContent = '2. Il tuo seggio';
+      $('#inputNome').disabled = true;
+      $('#inputNome').style.backgroundColor = '#f0f0f0';
+      $('#inputNome').style.opacity = '0.7';
+      $('#inputTelefono').focus();
+    }
   } else {
+    // Primo accesso: mostra tutta la card dati personali
     $('#cardDatiPersona').hidden = false;
     $('#titoloDatiPersona').textContent = '1. I tuoi dati';
     $('#titoloNuovoSeggio').textContent = '2. Il tuo seggio';
     $('#inputNome').value = (STATE.persona && STATE.persona.nome) || '';
     $('#inputTelefono').value = (STATE.persona && STATE.persona.telefono) || '';
+    $('#inputNome').disabled = false;
+    $('#inputNome').style.backgroundColor = '';
+    $('#inputNome').style.opacity = '';
   }
 }
 
@@ -543,7 +577,7 @@ function onAnnullaAggiungiSeggio() {
     saveJSON(LS.SEGGIO_ATTIVO, STATE.seggioAttivoId);
     ricostruisciProfileDaSeggioAttivo();
   }
-  if (!STATE.profile) return; // nessun seggio disponibile: resta sul setup
+  if (!STATE.profile) return;
   $('#screen-setup').classList.remove('active');
   $('#screen-dashboard').classList.add('active');
   mostraDashboard();
@@ -969,9 +1003,6 @@ function accodaInvio(queueKey, payload) {
 
 async function inviaAlBackend(payload) {
   if (!backendConfigurato()) throw new Error('Backend non configurato');
-  // Google Apps Script reindirizza le POST causando errori CORS.
-  // Usiamo una GET con il payload codificato come parametro: non ha redirect
-  // e non richiede preflight CORS.
   const url = BACKEND_URL + '?invio=' + encodeURIComponent(JSON.stringify(payload));
   const res = await fetch(url, { method: 'GET', cache: 'no-store', redirect: 'follow' });
   const testo = await res.text();
@@ -1178,13 +1209,12 @@ async function avvia() {
   STATE.seggioAttivoId = loadJSON(LS.SEGGIO_ATTIVO, null) || (STATE.seggi[0] && STATE.seggi[0].id) || null;
   ricostruisciProfileDaSeggioAttivo();
 
-  // Controlla se c'è un accesso completo salvato (codice + persona + almeno un seggio)
+  // Controlla se c'è un accesso completo salvato
   const codiceEsistente = loadJSON(LS.CODICE, null);
   const personaEsistente = loadJSON(LS.PERSONA, null);
   const seggiEsistenti = loadJSON(LS.SEGGI, []);
 
   if (!codiceEsistente || !personaEsistente || !personaEsistente.nome || !seggiEsistenti.length) {
-    // Dati incompleti: mostra sempre la schermata di login
     localStorage.removeItem(LS.CODICE);
     localStorage.removeItem(LS.PERSONA);
     $('#screen-login').classList.add('active');
@@ -1196,7 +1226,6 @@ async function avvia() {
       STATE.municipioData = await caricaDatiMunicipio(STATE.profile.municipio);
       mostraDashboard();
     } catch (e) {
-      // dati municipio non disponibili (mai aperta con connessione): resta sulla schermata di setup
       predisponiSchermataSetup(false);
     }
   } else {
@@ -1204,12 +1233,10 @@ async function avvia() {
   }
 
   provaSvuotaCode();
-  setInterval(provaSvuotaCode, 45000); // riprova periodica in background, utile su connessioni instabili
+  setInterval(provaSvuotaCode, 45000);
 }
 
 // Compatibilità: chi aveva già usato l'app prima dell'aggiornamento multi-seggio
-// aveva un unico oggetto "rs_profile". Lo convertiamo automaticamente, una sola
-// volta, nel nuovo formato persona + elenco seggi, senza perdere nulla.
 function migraDaProfiloSingolo() {
   const vecchio = loadJSON('rs_profile', null);
   if (!vecchio) return;
