@@ -253,7 +253,7 @@ async function onLogin() {
       return;
     }
 
-    // Codice valido: salvo il nome inserito dall'utente
+    // Codice valido: uso il nome inserito dall'utente
     saveJSON(LS.CODICE, codice);
     STATE.persona = { nome: nomeInput, telefono: '' };
     saveJSON(LS.PERSONA, STATE.persona);
@@ -299,14 +299,7 @@ async function onLogin() {
 function vaiAlSetupPrecompilato(data) {
   $('#screen-login').classList.remove('active');
   $('#screen-setup').classList.add('active');
-  
-  // Precompila i dati personali dal login e nascondi la card
-  if (STATE.persona) {
-    $('#inputNome').value = STATE.persona.nome || '';
-    $('#inputTelefono').value = STATE.persona.telefono || '';
-  }
   if (data.nome) $('#inputNome').value = data.nome;
-  
   predisponiSchermataSetup(false);
 }
 
@@ -482,7 +475,6 @@ function predisponiSchermataSetup(modalitaAggiungi) {
   $('#btnAnnullaAggiungiSeggio').hidden = !haSeggi;
   renderElencoSeggi();
 
-  // Se l'utente ha già una persona (login effettuato o dati salvati), nascondi la card dati personali
   if (haPersona && (modalitaAggiungi || loadJSON(LS.CODICE, null))) {
     $('#cardDatiPersona').hidden = true;
     $('#titoloNuovoSeggio').textContent = haSeggi ? 'Aggiungi un nuovo seggio' : 'Il tuo seggio';
