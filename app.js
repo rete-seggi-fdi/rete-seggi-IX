@@ -640,7 +640,6 @@ let affluenzaCorrente = null;
 let modalitaAffluenzaCorrente = 'rapido';
 
 function apriFormAffluenza(giorno, orario) {
-  // PROTEZIONE: elettori obbligatori
   if (!STATE.profile.elettori) {
     showToast('⚠️ Inserisci prima il numero di elettori aventi diritto al voto');
     $('#elettoriBanner').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -648,20 +647,22 @@ function apriFormAffluenza(giorno, orario) {
   }
   
   affluenzaCorrente = { giorno, orario };
-  $('#affluenzaOrarioTitolo').textContent = 'Rilevazione: ' + (giorno ? giorno + ' ' : '') + orario;
   
-  // MOSTRA RIEPILOGO SEGGIO ATTIVO
-  let infoBox = $('#affluenzaSeggioInfo');
-  if (!infoBox) {
-    infoBox = document.createElement('div');
-    infoBox.id = 'affluenzaSeggioInfo';
-    infoBox.className = 'info-box';
-    infoBox.style.marginBottom = '16px';
-    $('#affluenzaOrarioTitolo').parentNode.insertBefore(infoBox, $('#affluenzaOrarioTitolo').nextSibling);
-  }
+  const titolo = $('#affluenzaOrarioTitolo');
+  titolo.textContent = 'Rilevazione: ' + (giorno ? giorno + ' ' : '') + orario;
+  
+  const vecchioInfo = $('#affluenzaSeggioInfo');
+  if (vecchioInfo) vecchioInfo.remove();
+  
+  const infoBox = document.createElement('div');
+  infoBox.id = 'affluenzaSeggioInfo';
+  infoBox.className = 'info-box';
+  infoBox.style.marginBottom = '16px';
   infoBox.innerHTML = '<strong>📍 Seggio attivo:</strong> Sezione ' + STATE.profile.sezione + 
     ' · ' + (NOMI_MUNICIPI[STATE.profile.municipio] || STATE.profile.municipio) +
     '<br><small>' + escapeHtml(STATE.profile.addr) + '</small>';
+  
+  titolo.parentNode.insertBefore(infoBox, titolo.nextSibling);
   
   $('#affTotaleVotanti').value = '';
   $('#affMaschi').value = '';
@@ -717,7 +718,6 @@ function invitiAffluenzaSezione() {
 async function onInviaAffluenza() {
   if (!affluenzaCorrente) return;
   
-  // DOPPIO CONTROLLO: elettori obbligatori
   if (!STATE.profile.elettori) {
     showToast('⚠️ Impossibile inviare: inserisci prima il numero di elettori');
     chiudiFormAffluenza();
@@ -1263,4 +1263,3 @@ function migraDaProfiloSingolo() {
 }
 
 document.addEventListener('DOMContentLoaded', avvia);
- 
