@@ -4,7 +4,7 @@
    RETE SEGGI FdI — app.js
    ===================================================================== */
 
-const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbwf9NvqzbHjywmqu7IyfEUQUAX4zFB_uoN248xXBEpDMYBsflB7qPOowWl6hC1I0eaZUA/exec';
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzD-1v2jkLi-R9dHNre8Kom3fDx8-j3hIZt5DsqF8rBZ3Y3cHJZn4WHnomJul6Kbl_avg/exec';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -1038,8 +1038,13 @@ function accodaInvio(queueKey, payload) {
 
 async function inviaAlBackend(payload) {
   if (!backendConfigurato()) throw new Error('Backend non configurato');
-  const url = BACKEND_URL + '?invio=' + encodeURIComponent(JSON.stringify(payload));
-  const res = await fetch(url, { method: 'GET', cache: 'no-store', redirect: 'follow' });
+  const res = await fetch(BACKEND_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    cache: 'no-store',
+    redirect: 'follow'
+  });
   const testo = await res.text();
   let data;
   try { data = JSON.parse(testo); } catch (e) { throw new Error('Risposta non valida: ' + testo.substring(0, 100)); }
