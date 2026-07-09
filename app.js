@@ -4,7 +4,7 @@
    RETE SEGGI FdI — app.js
    ===================================================================== */
 
-const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzD-1v2jkLi-R9dHNre8Kom3fDx8-j3hIZt5DsqF8rBZ3Y3cHJZn4WHnomJul6Kbl_avg/exec';
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyLy1qeNdKHWObCMlmv_m5yiPAoJVp0QvzXTeAdT3UCvvFZPNGVp3bYSfNcTYT2IHuHXA/exec';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
