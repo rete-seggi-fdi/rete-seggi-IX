@@ -2,9 +2,17 @@
 
 /* =====================================================================
    RETE SEGGI FdI — app.js
+   Tutta la logica dell'applicazione. Nessuna libreria esterna: scelta
+   voluta per restare leggeri e avere il minimo possibile che si possa
+   rompere su un telefono datato o con connessione scarsa al seggio.
    ===================================================================== */
 
-const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyLy1qeNdKHWObCMlmv_m5yiPAoJVp0QvzXTeAdT3UCvvFZPNGVp3bYSfNcTYT2IHuHXA/exec';
+// ---------------------------------------------------------------------
+// CONFIGURAZIONE DA PERSONALIZZARE AL MOMENTO DEL DEPLOY
+// Sostituire con l'URL del tuo Web App di Google Apps Script
+// (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
+// ---------------------------------------------------------------------
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbz_dCjIA9SKcEKgEjFyXen7ZwrS2ZNYC6DLEFQgAUN_BgZoYoxdpKWWfiwGHFWQxm2ceg/exec';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -27,16 +35,17 @@ const LS = {
 };
 
 let STATE = {
-  profile: null,
-  persona: null,
-  seggi: [],
+  profile: null,       // persona + seggio attivo, fusi insieme (compatibilità col resto del codice)
+  persona: null,       // { nome, telefono }
+  seggi: [],           // [{ id, municipio, sezione, addr, cap, elettori }, ...]
   seggioAttivoId: null,
   municipioData: null,
   config: null,
-  modalitaAggiungiSeggio: false,
+  modalitaAggiungiSeggio: false, // true quando si torna al setup per aggiungere un seggio in più (persona già nota)
 };
 
 function idSeggio(municipio, sezione) { return municipio + '-' + sezione; }
+
 function trovaSeggio(id) { return STATE.seggi.find((s) => s.id === id) || null; }
 
 function ricostruisciProfileDaSeggioAttivo() {
@@ -45,6 +54,9 @@ function ricostruisciProfileDaSeggioAttivo() {
   STATE.profile = Object.assign({}, STATE.persona, seg);
 }
 
+// ---------------------------------------------------------------------
+// UTILITY DI BASE
+// ---------------------------------------------------------------------
 function $(sel, root) { return (root || document).querySelector(sel); }
 function $$(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
 function $all(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
@@ -83,6 +95,9 @@ function numOr0(v) {
   return isNaN(n) ? 0 : n;
 }
 
+// ---------------------------------------------------------------------
+// STATO CONNESSIONE
+// ---------------------------------------------------------------------
 function aggiornaStatoConnessione() {
   const pill = $('#connStatus');
   if (navigator.onLine) {
@@ -96,6 +111,9 @@ function aggiornaStatoConnessione() {
 window.addEventListener('online', () => { aggiornaStatoConnessione(); provaSvuotaCode(); });
 window.addEventListener('offline', aggiornaStatoConnessione);
 
+// ---------------------------------------------------------------------
+// CARICAMENTO DATI SEZIONI/VIE (file statici per municipio)
+// ---------------------------------------------------------------------
 async function caricaDatiMunicipio(mu) {
   const cacheKey = LS.MUN_DATA(mu);
   try {
@@ -125,7 +143,7 @@ function codiceCivicoMatch(codice, da, a, civico) {
     case 'CD': return civico % 2 === 1 && civico >= daEff && civico <= aEff;
     case 'CP': return civico % 2 === 0 && civico >= daEff && civico <= aEff;
     case 'CQ': return civico >= daEff && civico <= aEff;
-    default: return false;
+    default: return false; // CS, LX, PX, K: caso speciale, non verificabile su un civico singolo
   }
 }
 
@@ -150,6 +168,9 @@ function cercaPerVia(data, via, civicoStr) {
   return trovati;
 }
 
+// ---------------------------------------------------------------------
+// CONFIGURAZIONE DAL BACKEND (Google Sheet via Apps Script)
+// ---------------------------------------------------------------------
 function backendConfigurato() {
   return BACKEND_URL && BACKEND_URL.indexOf('http') === 0;
 }
@@ -197,7 +218,7 @@ function presidentiMunicipioAttuale() {
 function orariAffluenza() { return (STATE.config && STATE.config.orari) || []; }
 
 // =======================================================================
-// SCHERMATA 0 — LOGIN
+// SCHERMATA 0 — LOGIN CON CODICE ACCESSO
 // =======================================================================
 async function onLogin() {
   const nomeInput = $('#loginNome').value.trim();
@@ -225,39 +246,19 @@ async function onLogin() {
     const data = JSON.parse(testo);
 
     if (!data.ok) {
-      errBox.innerHTML = '<p>❌ ' + escapeHtml(data.error && data.error.message ? data.error.message : 'Codice non valido.') + '</p>';
+      errBox.innerHTML = '<p>❌ ' + escapeHtml(data.error || 'Codice non valido.') + '</p>';
       errBox.hidden = false;
       btn.textContent = 'Accedi';
       btn.disabled = false;
       return;
     }
 
-    // 🔒 SICUREZZA: verifica che il nome inserito corrisponda a quello nel database
-    const nomeBackend = (data.nome || '').trim();
-    const nomeInseritoNormalizzato = normalizza(nomeInput);
-    const nomeBackendNormalizzato = normalizza(nomeBackend);
-
-    if (!nomeBackend) {
-      errBox.innerHTML = '<p>❌ Errore: nome non trovato nel sistema. Contatta il coordinamento.</p>';
-      errBox.hidden = false;
-      btn.textContent = 'Accedi';
-      btn.disabled = false;
-      return;
-    }
-
-    if (nomeInseritoNormalizzato !== nomeBackendNormalizzato) {
-      errBox.innerHTML = '<p>❌ Nome e cognome non corrispondono al codice inserito. Verifica di aver scritto correttamente nome e cognome come registrati dal coordinamento.</p>';
-      errBox.hidden = false;
-      btn.textContent = 'Accedi';
-      btn.disabled = false;
-      return;
-    }
-
-    // ✅ Nome verificato — usa quello del backend (più affidabile)
+    // Codice valido: uso il nome inserito dall'utente
     saveJSON(LS.CODICE, codice);
-    STATE.persona = { nome: nomeBackend, telefono: '' };
+    STATE.persona = { nome: nomeInput, telefono: '' };
     saveJSON(LS.PERSONA, STATE.persona);
 
+    // Carico tutte le sezioni assegnate a questo codice
     if (data.sezioni && data.sezioni.length > 0) {
       for (const s of data.sezioni) {
         try {
@@ -268,6 +269,7 @@ async function onLogin() {
             STATE.seggi.push({ id, municipio: s.municipio, sezione: sezInfo.s, addr: sezInfo.addr, cap: sezInfo.cap, elettori: null });
           }
         } catch (e) {
+          // Se non riesce a caricare i dati del municipio, aggiunge il seggio senza indirizzo
           const id = idSeggio(s.municipio, s.sezione);
           if (!STATE.seggi.some((seg) => seg.id === id)) {
             STATE.seggi.push({ id, municipio: s.municipio, sezione: s.sezione, addr: '', cap: '', elettori: null });
@@ -280,15 +282,10 @@ async function onLogin() {
         saveJSON(LS.SEGGIO_ATTIVO, STATE.seggioAttivoId);
       }
       ricostruisciProfileDaSeggioAttivo();
-
-      if (!STATE.persona.telefono) {
-        vaiAlSetupPrecompilato(data);
-        return;
-      }
-
       $('#screen-login').classList.remove('active');
       mostraDashboard();
     } else {
+      // Nessuna sezione assegnata: va al setup per inserirla manualmente
       vaiAlSetupPrecompilato(data);
     }
   } catch (e) {
@@ -302,13 +299,7 @@ async function onLogin() {
 function vaiAlSetupPrecompilato(data) {
   $('#screen-login').classList.remove('active');
   $('#screen-setup').classList.add('active');
-  
-  if (STATE.persona) {
-    $('#inputNome').value = STATE.persona.nome || '';
-    $('#inputTelefono').value = STATE.persona.telefono || '';
-  }
-  if (data && data.nome) $('#inputNome').value = data.nome;
-  
+  if (data.nome) $('#inputNome').value = data.nome;
   predisponiSchermataSetup(false);
 }
 
@@ -322,7 +313,7 @@ function mostraLoginSeNecessario() {
 }
 
 // =======================================================================
-// SCHERMATA 1 — SETUP
+// SCHERMATA 1 — SETUP PROFILO E SEZIONE
 // =======================================================================
 function popolaSelectMunicipi() {
   const sel = $('#selectMunicipio');
@@ -460,6 +451,7 @@ async function onConfermaSetup() {
   saveJSON(LS.SEGGIO_ATTIVO, id);
   ricostruisciProfileDaSeggioAttivo();
 
+  // pulizia campi del form "aggiungi seggio" per un eventuale prossimo utilizzo
   $('#selectMunicipio').value = '';
   $('#inputSezione').value = '';
   $('#inputSezione').disabled = true;
@@ -470,7 +462,7 @@ async function onConfermaSetup() {
 }
 
 // =======================================================================
-// GESTIONE SEGGI
+// GESTIONE ELENCO SEGGI (un rappresentante può seguirne più di uno)
 // =======================================================================
 function predisponiSchermataSetup(modalitaAggiungi) {
   $('#screen-login').classList.remove('active');
@@ -484,30 +476,14 @@ function predisponiSchermataSetup(modalitaAggiungi) {
   renderElencoSeggi();
 
   if (haPersona && (modalitaAggiungi || loadJSON(LS.CODICE, null))) {
-    $('#inputNome').value = STATE.persona.nome;
-    $('#inputTelefono').value = STATE.persona.telefono || '';
-    
-    if (STATE.persona.telefono) {
-      $('#cardDatiPersona').hidden = true;
-      $('#titoloNuovoSeggio').textContent = haSeggi ? 'Aggiungi un nuovo seggio' : 'Il tuo seggio';
-    } else {
-      $('#cardDatiPersona').hidden = false;
-      $('#titoloDatiPersona').textContent = '1. Completa i tuoi dati';
-      $('#titoloNuovoSeggio').textContent = '2. Il tuo seggio';
-      $('#inputNome').disabled = true;
-      $('#inputNome').style.backgroundColor = '#f0f0f0';
-      $('#inputNome').style.opacity = '0.7';
-      $('#inputTelefono').focus();
-    }
+    $('#cardDatiPersona').hidden = true;
+    $('#titoloNuovoSeggio').textContent = haSeggi ? 'Aggiungi un nuovo seggio' : 'Il tuo seggio';
   } else {
     $('#cardDatiPersona').hidden = false;
     $('#titoloDatiPersona').textContent = '1. I tuoi dati';
     $('#titoloNuovoSeggio').textContent = '2. Il tuo seggio';
     $('#inputNome').value = (STATE.persona && STATE.persona.nome) || '';
     $('#inputTelefono').value = (STATE.persona && STATE.persona.telefono) || '';
-    $('#inputNome').disabled = false;
-    $('#inputNome').style.backgroundColor = '';
-    $('#inputNome').style.opacity = '';
   }
 }
 
@@ -567,7 +543,7 @@ function onAnnullaAggiungiSeggio() {
     saveJSON(LS.SEGGIO_ATTIVO, STATE.seggioAttivoId);
     ricostruisciProfileDaSeggioAttivo();
   }
-  if (!STATE.profile) return;
+  if (!STATE.profile) return; // nessun seggio disponibile: resta sul setup
   $('#screen-setup').classList.remove('active');
   $('#screen-dashboard').classList.add('active');
   mostraDashboard();
@@ -590,7 +566,7 @@ function onCambiaSeggioAttivo() {
 }
 
 // =======================================================================
-// DASHBOARD
+// SCHERMATA 2 — DASHBOARD
 // =======================================================================
 function mostraDashboard() {
   $('#screen-login').classList.remove('active');
@@ -662,30 +638,8 @@ let affluenzaCorrente = null;
 let modalitaAffluenzaCorrente = 'rapido';
 
 function apriFormAffluenza(giorno, orario) {
-  if (!STATE.profile.elettori) {
-    showToast('⚠️ Inserisci prima il numero di elettori aventi diritto al voto');
-    $('#elettoriBanner').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return;
-  }
-  
   affluenzaCorrente = { giorno, orario };
-  
-  const titolo = $('#affluenzaOrarioTitolo');
-  titolo.textContent = 'Rilevazione: ' + (giorno ? giorno + ' ' : '') + orario;
-  
-  const vecchioInfo = $('#affluenzaSeggioInfo');
-  if (vecchioInfo) vecchioInfo.remove();
-  
-  const infoBox = document.createElement('div');
-  infoBox.id = 'affluenzaSeggioInfo';
-  infoBox.className = 'info-box';
-  infoBox.style.marginBottom = '16px';
-  infoBox.innerHTML = '<strong>📍 Seggio attivo:</strong> Sezione ' + STATE.profile.sezione + 
-    ' · ' + (NOMI_MUNICIPI[STATE.profile.municipio] || STATE.profile.municipio) +
-    '<br><small>' + escapeHtml(STATE.profile.addr) + '</small>';
-  
-  titolo.parentNode.insertBefore(infoBox, titolo.nextSibling);
-  
+  $('#affluenzaOrarioTitolo').textContent = 'Rilevazione: ' + (giorno ? giorno + ' ' : '') + orario;
   $('#affTotaleVotanti').value = '';
   $('#affMaschi').value = '';
   $('#affFemmine').value = '';
@@ -694,13 +648,7 @@ function apriFormAffluenza(giorno, orario) {
   aggiornaTotaleAffluenza();
   $('#formAffluenza').hidden = false;
 }
-
-function chiudiFormAffluenza() { 
-  $('#formAffluenza').hidden = true; 
-  affluenzaCorrente = null; 
-  const infoBox = $('#affluenzaSeggioInfo');
-  if (infoBox) infoBox.remove();
-}
+function chiudiFormAffluenza() { $('#formAffluenza').hidden = true; affluenzaCorrente = null; }
 
 function impostaModalitaAffluenza(modo) {
   modalitaAffluenzaCorrente = modo;
@@ -720,7 +668,6 @@ function aggiornaTotaleAffluenza() {
   const el = STATE.profile.elettori;
   let testo = 'Totale votanti: ' + tot;
   if (el) testo += ' &nbsp;·&nbsp; Affluenza: ' + percentuale(tot, el) + '%';
-  else testo += ' &nbsp;·&nbsp; <span style="color:#c0392b">⚠️ Inserisci gli elettori nel banner sopra</span>';
   $('#affTotaleBox').innerHTML = testo;
 }
 
@@ -739,26 +686,10 @@ function invitiAffluenzaSezione() {
 
 async function onInviaAffluenza() {
   if (!affluenzaCorrente) return;
-  
-  if (!STATE.profile.elettori) {
-    showToast('⚠️ Impossibile inviare: inserisci prima il numero di elettori');
-    chiudiFormAffluenza();
-    return;
-  }
-  
   const dettaglio = modalitaAffluenzaCorrente === 'dettaglio';
   const maschi = dettaglio ? numOr0($('#affMaschi').value) : null;
   const femmine = dettaglio ? numOr0($('#affFemmine').value) : null;
   const totale = totaleAffluenzaCorrente();
-  
-  if (totale === 0) {
-    if (!confirm('Hai inserito 0 votanti. Sei sicuro di voler inviare questa rilevazione?')) return;
-  }
-  
-  if (totale > STATE.profile.elettori) {
-    if (!confirm('I votanti (' + totale + ') superano gli elettori iscritti (' + STATE.profile.elettori + '). Sei sicuro?')) return;
-  }
-  
   const payload = {
     tipo: 'affluenza',
     idInvio: uuid(),
@@ -769,7 +700,7 @@ async function onInviaAffluenza() {
     telefono: STATE.profile.telefono,
     giorno: affluenzaCorrente.giorno,
     orario: affluenzaCorrente.orario,
-    elettori: STATE.profile.elettori,
+    elettori: STATE.profile.elettori || null,
     maschi, femmine, totale,
     note: $('#affNote').value.trim(),
   };
@@ -1028,7 +959,7 @@ async function onConfermaInvioScrutinio() {
 }
 
 // =======================================================================
-// CODA OFFLINE
+// CODA OFFLINE E INVIO AL BACKEND
 // =======================================================================
 function accodaInvio(queueKey, payload) {
   const coda = loadJSON(queueKey, []);
@@ -1038,13 +969,11 @@ function accodaInvio(queueKey, payload) {
 
 async function inviaAlBackend(payload) {
   if (!backendConfigurato()) throw new Error('Backend non configurato');
-  const res = await fetch(BACKEND_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    cache: 'no-store',
-    redirect: 'follow'
-  });
+  // Google Apps Script reindirizza le POST causando errori CORS.
+  // Usiamo una GET con il payload codificato come parametro: non ha redirect
+  // e non richiede preflight CORS.
+  const url = BACKEND_URL + '?invio=' + encodeURIComponent(JSON.stringify(payload));
+  const res = await fetch(url, { method: 'GET', cache: 'no-store', redirect: 'follow' });
   const testo = await res.text();
   let data;
   try { data = JSON.parse(testo); } catch (e) { throw new Error('Risposta non valida: ' + testo.substring(0, 100)); }
@@ -1114,7 +1043,7 @@ function renderTabellaInvii() {
 }
 
 // =======================================================================
-// CONDIVIDI
+// CONDIVIDI RIEPILOGO (backup manuale, sempre disponibile)
 // =======================================================================
 function generaTestoRiepilogo() {
   if (!STATE.profile) return '';
@@ -1159,14 +1088,14 @@ async function onCondividi() {
   if (!testo) { showToast('Compila prima i dati della sezione.'); return; }
   if (navigator.share) {
     try { await navigator.share({ title: 'Riepilogo sezione', text: testo }); return; }
-    catch (e) { }
+    catch (e) { /* utente ha annullato: prosegue con fallback sotto */ }
   }
   const url = 'https://wa.me/?text=' + encodeURIComponent(testo);
   window.open(url, '_blank');
 }
 
 // =======================================================================
-// PWA
+// INSTALLAZIONE PWA (Android / iOS)
 // =======================================================================
 let deferredInstallEvent = null;
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -1199,7 +1128,7 @@ function initInstallBanner() {
 }
 
 // =======================================================================
-// AVVIO
+// AVVIO APP
 // =======================================================================
 async function avvia() {
   aggiornaStatoConnessione();
@@ -1249,11 +1178,13 @@ async function avvia() {
   STATE.seggioAttivoId = loadJSON(LS.SEGGIO_ATTIVO, null) || (STATE.seggi[0] && STATE.seggi[0].id) || null;
   ricostruisciProfileDaSeggioAttivo();
 
+  // Controlla se c'è un accesso completo salvato (codice + persona + almeno un seggio)
   const codiceEsistente = loadJSON(LS.CODICE, null);
   const personaEsistente = loadJSON(LS.PERSONA, null);
   const seggiEsistenti = loadJSON(LS.SEGGI, []);
 
   if (!codiceEsistente || !personaEsistente || !personaEsistente.nome || !seggiEsistenti.length) {
+    // Dati incompleti: mostra sempre la schermata di login
     localStorage.removeItem(LS.CODICE);
     localStorage.removeItem(LS.PERSONA);
     $('#screen-login').classList.add('active');
@@ -1265,6 +1196,7 @@ async function avvia() {
       STATE.municipioData = await caricaDatiMunicipio(STATE.profile.municipio);
       mostraDashboard();
     } catch (e) {
+      // dati municipio non disponibili (mai aperta con connessione): resta sulla schermata di setup
       predisponiSchermataSetup(false);
     }
   } else {
@@ -1272,9 +1204,12 @@ async function avvia() {
   }
 
   provaSvuotaCode();
-  setInterval(provaSvuotaCode, 45000);
+  setInterval(provaSvuotaCode, 45000); // riprova periodica in background, utile su connessioni instabili
 }
 
+// Compatibilità: chi aveva già usato l'app prima dell'aggiornamento multi-seggio
+// aveva un unico oggetto "rs_profile". Lo convertiamo automaticamente, una sola
+// volta, nel nuovo formato persona + elenco seggi, senza perdere nulla.
 function migraDaProfiloSingolo() {
   const vecchio = loadJSON('rs_profile', null);
   if (!vecchio) return;
