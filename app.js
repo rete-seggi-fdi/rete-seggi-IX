@@ -13,7 +13,7 @@
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbx78tvql-_GwosG23g17bhTkjZZALCTMPgM2sC4HRwbiekMW0eDAdZ-13sjYnkKU01icQ/exec';
-const APP_VERSION = '5.3.0';
+const APP_VERSION = '5.4.0';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -1146,6 +1146,20 @@ let tentativoScrutinioDaSostituireId = null;
 async function onInviaScrutinio() {
   const errBox = $('#scrutinioErrori');
   errBox.hidden = true;
+
+  // Uno scrutinio già ricevuto non può essere reinviato come nuovo record.
+  // Per modificarlo è obbligatorio entrare dal pulsante “Correggi ultimo invio”,
+  // così il backend può marcare il precedente come SUPERATO.
+  const ultimoRicevuto = ultimoScrutinioAttivo();
+  if (ultimoRicevuto && ultimoRicevuto.status === 'synced' && !correzioneScrutinioId) {
+    errBox.innerHTML = 'Esiste già uno scrutinio ricevuto per questa sezione. Usa <strong>Correggi ultimo invio</strong> per modificarlo senza creare duplicati.';
+    errBox.hidden = false;
+    aggiornaPulsanteCorrezioneScrutinio();
+    const btnCorreggi = $('#btnCorreggiScrutinio');
+    if (btnCorreggi && !btnCorreggi.hidden) btnCorreggi.focus();
+    return;
+  }
+
   const s = raccogliScrutinio();
   const { errori, avvisi } = validaScrutinio(s);
   if (errori.length) {
