@@ -201,6 +201,10 @@
           <label class="field"><span>Votanti totali</span><input id="scVotanti" type="number" min="0" inputmode="numeric" step="1" /></label>
         </div>
         <div id="scrutinioAvviso" class="warnings" hidden></div>
+        <div id="bozzaScrutinioStatus" class="draft-status" role="status" aria-live="polite">
+          <span id="bozzaScrutinioTesto">Bozza pronta per il salvataggio automatico.</span>
+          <button id="btnEliminaBozzaScrutinio" class="link-btn draft-link" type="button" hidden>Elimina bozza</button>
+        </div>
       </article>
 
       <article class="card">
@@ -211,6 +215,7 @@
           <label class="field"><span>Schede nulle</span><input id="comNulle" type="number" min="0" inputmode="numeric" step="1" /></label>
         </div>
         <label class="field"><span>Contestate/non assegnate</span><input id="comContestate" type="number" min="0" inputmode="numeric" step="1" /></label>
+        <div id="comTotaleLive" class="count-check neutral" role="status" aria-live="polite">Totale schede Comune: 0</div>
         <h3>Voti ai candidati Sindaco</h3>
         <p class="muted-text">Un campo per ogni candidato Sindaco in competizione, come configurato dal coordinamento.</p>
         <div id="sindaciContainer" class="dynamic-list"></div>
@@ -228,6 +233,7 @@
           <label class="field"><span>Schede nulle</span><input id="munNulle" type="number" min="0" inputmode="numeric" step="1" /></label>
         </div>
         <label class="field"><span>Contestate/non assegnate</span><input id="munContestate" type="number" min="0" inputmode="numeric" step="1" /></label>
+        <div id="munTotaleLive" class="count-check neutral" role="status" aria-live="polite">Totale schede Municipio: 0</div>
         <h3>Voti ai candidati Presidente di Municipio</h3>
         <p class="muted-text">Un campo per ogni candidato Presidente in competizione, come configurato dal coordinamento.</p>
         <div id="presidentiContainer" class="dynamic-list"></div>
@@ -280,8 +286,12 @@
     <h2 id="modalTitolo">Conferma invio scrutinio</h2>
     <p class="muted-text">Controlla tutti i dati prima di inviare. Dopo l’invio potrai effettuare una correzione tracciata, senza cancellare lo storico.</p>
     <div id="riepilogoContenuto" class="riepilogo-grid"></div>
+    <label class="confirm-check">
+      <input id="checkConfermaScrutinio" type="checkbox" />
+      <span>Ho confrontato questi totali con il verbale e confermo che i dati sono corretti.</span>
+    </label>
     <div class="button-row modal-actions">
-      <button id="btnConfermaInvio" class="btn primary">Invia ora</button>
+      <button id="btnConfermaInvio" class="btn primary" disabled>Invia ora</button>
       <button id="btnAnnullaInvio" class="btn ghost">Torna indietro e correggi</button>
     </div>
   </div>

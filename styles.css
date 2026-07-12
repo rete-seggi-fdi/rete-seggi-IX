@@ -281,3 +281,33 @@ tr:last-child td{border-bottom:0}
   .status-cluster{min-width:118px}
   th,td{padding:8px 7px}
 }
+
+/* ---------- Migliorie v5: bozza automatica e controllo conteggi ---------- */
+.draft-status{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  border:1px solid var(--line); border-radius:12px; padding:9px 11px;
+  background:#f7f9fc; color:var(--muted); font-size:12.5px; margin-top:10px;
+}
+.draft-status.saving{background:#fff7df; border-color:#ead49d; color:#6f5100}
+.draft-status.saved{background:#eaf6ef; border-color:#c8e6d4; color:#13583a}
+.draft-status.sent{background:#e7ecfa; border-color:#cbd6f0; color:#2c3a64}
+.draft-link{color:inherit; padding:2px 0; flex:none}
+.count-check{
+  margin:-2px 0 16px; border-radius:12px; padding:10px 12px;
+  font-size:13px; font-weight:750; border:1px solid var(--line); background:#f7f9fc;
+}
+.count-check.good{background:#eaf6ef; border-color:#c8e6d4; color:#13583a}
+.count-check.warn{background:#fff7df; border-color:#ead49d; color:#6f5100}
+.count-check.bad{background:#fbe9ea; border-color:#f1c4c6; color:#7a1217}
+.count-check.neutral{color:var(--muted)}
+.confirm-check{
+  display:flex; align-items:flex-start; gap:10px; margin-top:16px; padding:12px 13px;
+  border:1px solid #cbd6f0; border-radius:13px; background:#f7f9fc;
+  font-size:14px; font-weight:650; line-height:1.35;
+}
+.confirm-check input{width:22px; min-height:22px; height:22px; margin:0; flex:none}
+.riepilogo-row.total-row{font-weight:800; border-top:2px solid #cbd6f0; margin-top:4px; padding-top:7px}
+.riepilogo-row.mismatch span:last-child{color:var(--bad)}
+@media(max-width:430px){
+  .draft-status{align-items:flex-start; flex-direction:column}
+}

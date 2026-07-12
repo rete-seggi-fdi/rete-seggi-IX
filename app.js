@@ -13,7 +13,7 @@
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbz_dCjIA9SKcEKgEjFyXen7ZwrS2ZNYC6DLEFQgAUN_BgZoYoxdpKWWfiwGHFWQxm2ceg/exec';
-const APP_VERSION = '4.3.0';
+const APP_VERSION = '5.2.0';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -338,6 +338,7 @@ function mostraLoginSeNecessario() {
 }
 
 function onLogout() {
+  if (STATE.profile && timerBozzaScrutinio) salvaBozzaScrutinio(false, 'bozza');
   if (!confirm('Uscire da Rete Seggi su questo dispositivo? Gli invii già sincronizzati restano nel foglio; le bozze e gli invii in coda resteranno sul telefono.')) return;
   [LS.CODICE, LS.TOKEN, LS.TOKEN_EXPIRES, LS.PERSONA, LS.SEGGI, LS.SEGGIO_ATTIVO].forEach((key) => localStorage.removeItem(key));
   STATE.persona = null; STATE.seggi = []; STATE.seggioAttivoId = null; STATE.profile = null;
@@ -543,6 +544,7 @@ function renderElencoSeggi() {
 
 function apriSeggio(id) {
   if (!trovaSeggio(id)) return;
+  if (STATE.profile && timerBozzaScrutinio) salvaBozzaScrutinio(false, 'bozza');
   STATE.seggioAttivoId = id;
   saveJSON(LS.SEGGIO_ATTIVO, id);
   ricostruisciProfileDaSeggioAttivo();
@@ -917,6 +919,14 @@ function raccogliScrutinio() {
   };
 }
 
+function sommaVoci(voci) {
+  return (voci || []).reduce((tot, voce) => tot + numOr0(voce && voce.voti), 0);
+}
+
+function totaleScheda(blocco) {
+  return numOr0(blocco.valide) + numOr0(blocco.bianche) + numOr0(blocco.nulle) + numOr0(blocco.contestate);
+}
+
 function validaScrutinio(s) {
   const errori = [], avvisi = [];
   const numerici = $all('#tab-scrutinio input[type="number"]');
@@ -930,51 +940,189 @@ function validaScrutinio(s) {
   ['comune', 'municipio'].forEach((k) => {
     const blocco = s[k];
     const nomeScheda = k === 'comune' ? 'Comune' : 'Municipio';
-    const sommaSchede = blocco.valide + blocco.bianche + blocco.nulle + blocco.contestate;
+    const sommaSchede = totaleScheda(blocco);
+    const sommaListe = sommaVoci(blocco.liste);
+    const prefixCandidati = k === 'comune' ? 'si' : 'pr';
+    const campiCandidati = $all('[id^="' + prefixCandidati + '_"]');
+    const sommaCandidati = sommaVoci(leggiDynList(prefixCandidati));
+
     if (sommaSchede > s.votanti) {
       errori.push('Scheda ' + nomeScheda + ': valide + bianche + nulle + contestate (' + sommaSchede + ') supera i votanti (' + s.votanti + ').');
     } else if (sommaSchede < s.votanti) {
-      avvisi.push('Scheda ' + nomeScheda + ': il totale delle schede (' + sommaSchede + ') è inferiore ai votanti (' + s.votanti + '). Verifica eventuali schede non consegnate o dati mancanti.');
+      avvisi.push('Scheda ' + nomeScheda + ': il totale delle schede (' + sommaSchede + ') è inferiore ai votanti (' + s.votanti + ') di ' + (s.votanti - sommaSchede) + '.');
+    }
+    if (sommaListe > blocco.valide) {
+      errori.push('Scheda ' + nomeScheda + ': la somma dei voti di lista (' + sommaListe + ') supera le schede valide (' + blocco.valide + ').');
+    }
+    if (sommaCandidati > blocco.valide) {
+      errori.push('Scheda ' + nomeScheda + ': la somma dei voti ai candidati (' + sommaCandidati + ') supera le schede valide (' + blocco.valide + ').');
+    } else if (campiCandidati.length && blocco.valide > 0 && sommaCandidati !== blocco.valide) {
+      avvisi.push('Scheda ' + nomeScheda + ': i voti complessivi ai candidati sono ' + sommaCandidati + ', mentre le schede valide sono ' + blocco.valide + '.');
     }
   });
   return { errori, avvisi };
 }
 
+function aggiornaContatoreScheda(id, nome, blocco, votanti) {
+  const box = $(id);
+  if (!box) return;
+  const totale = totaleScheda(blocco);
+  const differenza = votanti - totale;
+  box.className = 'count-check ' + (!votanti && !totale ? 'neutral' : differenza === 0 ? 'good' : differenza > 0 ? 'warn' : 'bad');
+  if (!votanti) box.textContent = 'Totale schede ' + nome + ': ' + totale + ' · inserisci i votanti per il confronto';
+  else if (differenza === 0) box.textContent = 'Totale schede ' + nome + ': ' + totale + ' · coincide con i votanti';
+  else if (differenza > 0) box.textContent = 'Totale schede ' + nome + ': ' + totale + ' · mancano ' + differenza + ' rispetto ai votanti';
+  else box.textContent = 'Totale schede ' + nome + ': ' + totale + ' · supera i votanti di ' + Math.abs(differenza);
+}
+
+function aggiornaRiepiloghiLive() {
+  if (!STATE.profile) return;
+  const s = raccogliScrutinio();
+  aggiornaContatoreScheda('#comTotaleLive', 'Comune', s.comune, s.votanti);
+  aggiornaContatoreScheda('#munTotaleLive', 'Municipio', s.municipio, s.votanti);
+}
+
 function aggiornaAvvisiScrutinio() {
   const s = raccogliScrutinio();
   const { avvisi } = validaScrutinio(s);
+  aggiornaRiepiloghiLive();
   const box = $('#scrutinioAvviso');
   if (avvisi.length) {
-    box.innerHTML = '<strong>Promemoria</strong><ul>' + avvisi.map((a) => '<li>' + escapeHtml(a) + '</li>').join('') + '</ul>';
+    box.innerHTML = '<strong>Controlli da verificare</strong><ul>' + avvisi.map((a) => '<li>' + escapeHtml(a) + '</li>').join('') + '</ul>';
     box.hidden = false;
   } else { box.hidden = true; }
 }
 
-function chiaveBozza() { return LS.SCR_DRAFT(STATE.profile.municipio, STATE.profile.sezione); }
+function chiaveBozza() {
+  return STATE.profile ? LS.SCR_DRAFT(STATE.profile.municipio, STATE.profile.sezione) : '';
+}
 
-function salvaBozzaScrutinio(manuale) {
-  saveJSON(chiaveBozza(), raccogliScrutinio());
-  if (manuale) showToast('Bozza salvata sul telefono.');
+let timerBozzaScrutinio = null;
+let caricamentoBozzaInCorso = false;
+
+function estraiDocumentoBozza(documento) {
+  if (!documento) return null;
+  if (documento.payload && documento.salvataIl) return documento;
+  return { versione: 1, salvataIl: '', stato: 'bozza', idInvio: '', payload: documento };
+}
+
+function bozzaHaContenuto(p) {
+  if (!p) return false;
+  const base = [p.elettori, p.votanti, p.comune && p.comune.valide, p.comune && p.comune.bianche,
+    p.comune && p.comune.nulle, p.comune && p.comune.contestate, p.municipio && p.municipio.valide,
+    p.municipio && p.municipio.bianche, p.municipio && p.municipio.nulle, p.municipio && p.municipio.contestate];
+  return base.some((v) => numOr0(v) > 0) || !!String(p.note || '').trim() ||
+    sommaVoci(p.comune && p.comune.liste) > 0 || sommaVoci(p.comune && p.comune.preferenze) > 0 ||
+    sommaVoci(p.municipio && p.municipio.liste) > 0 || sommaVoci(p.municipio && p.municipio.preferenze) > 0;
+}
+
+function aggiornaStatoBozzaScrutinio(stato, dataIso) {
+  const box = $('#bozzaScrutinioStatus');
+  const testo = $('#bozzaScrutinioTesto');
+  const elimina = $('#btnEliminaBozzaScrutinio');
+  if (!box || !testo) return;
+  box.className = 'draft-status ' + (stato || '');
+  if (stato === 'saving') testo.textContent = 'Salvataggio automatico delle modifiche…';
+  else if (stato === 'sent') testo.textContent = 'Dati sincronizzati con il coordinamento' + (dataIso ? ' alle ' + new Date(dataIso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '') + '.';
+  else if (stato === 'queued') testo.textContent = 'Dati salvati sul telefono e in attesa di sincronizzazione.';
+  else if (stato === 'error') testo.textContent = 'Bozza salvata. L’ultimo invio richiede attenzione nella scheda “I miei invii”.';
+  else if (dataIso) testo.textContent = 'Bozza salvata automaticamente alle ' + new Date(dataIso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) + '.';
+  else testo.textContent = 'Bozza pronta per il salvataggio automatico.';
+  if (elimina) elimina.hidden = !dataIso;
+}
+
+function salvaBozzaScrutinio(manuale, stato, idInvio) {
+  if (!STATE.profile || caricamentoBozzaInCorso) return false;
+  clearTimeout(timerBozzaScrutinio);
+  timerBozzaScrutinio = null;
+  const payload = raccogliScrutinio();
+  const adesso = new Date().toISOString();
+  const documentoPrecedente = estraiDocumentoBozza(loadJSON(chiaveBozza(), null));
+  const documento = {
+    versione: 2,
+    salvataIl: adesso,
+    stato: stato || (documentoPrecedente && documentoPrecedente.stato) || 'bozza',
+    idInvio: idInvio || (documentoPrecedente && documentoPrecedente.idInvio) || '',
+    sincronizzatoIl: documentoPrecedente && documentoPrecedente.sincronizzatoIl || '',
+    payload,
+  };
+  const ok = saveJSON(chiaveBozza(), documento);
+  if (ok) aggiornaStatoBozzaScrutinio(documento.stato === 'sincronizzato' ? 'sent' : documento.stato === 'in_coda' ? 'queued' : 'saved', documento.stato === 'sincronizzato' ? documento.sincronizzatoIl : adesso);
+  if (manuale) showToast(ok ? 'Bozza salvata sul telefono.' : 'Impossibile salvare la bozza sul telefono.');
+  return ok;
+}
+
+function pianificaSalvataggioBozzaScrutinio() {
+  if (!STATE.profile || caricamentoBozzaInCorso) return;
+  aggiornaStatoBozzaScrutinio('saving', '');
+  clearTimeout(timerBozzaScrutinio);
+  timerBozzaScrutinio = setTimeout(() => {
+    timerBozzaScrutinio = null;
+    salvaBozzaScrutinio(false, 'bozza');
+  }, 650);
+}
+
+function resetCampiScrutinio() {
+  caricamentoBozzaInCorso = true;
+  ['#scElettori','#scVotanti','#comValide','#comBianche','#comNulle','#comContestate','#munValide','#munBianche','#munNulle','#munContestate'].forEach((sel) => {
+    const el = $(sel); if (el) el.value = '';
+  });
+  $('#scNote').value = '';
+  $all('#tab-scrutinio .dynamic-list input[type="number"]').forEach((el) => { el.value = '0'; });
+  caricamentoBozzaInCorso = false;
 }
 
 function caricaBozzaScrutinio() {
-  const bozza = loadJSON(chiaveBozza(), null);
-  if (!bozza) return;
-  $('#scElettori').value = bozza.elettori || '';
-  $('#scVotanti').value = bozza.votanti || '';
-  $('#comValide').value = bozza.comune.valide || '';
-  $('#comBianche').value = bozza.comune.bianche || '';
-  $('#comNulle').value = bozza.comune.nulle || '';
-  $('#comContestate').value = bozza.comune.contestate || '';
-  $('#munValide').value = bozza.municipio.valide || '';
-  $('#munBianche').value = bozza.municipio.bianche || '';
-  $('#munNulle').value = bozza.municipio.nulle || '';
-  $('#munContestate').value = bozza.municipio.contestate || '';
+  clearTimeout(timerBozzaScrutinio);
+  resetCampiScrutinio();
+  const documento = estraiDocumentoBozza(loadJSON(chiaveBozza(), null));
+  if (!documento || !documento.payload) {
+    if (STATE.profile && STATE.profile.elettori) $('#scElettori').value = STATE.profile.elettori;
+    aggiornaStatoBozzaScrutinio('', '');
+    aggiornaAvvisiScrutinio();
+    return;
+  }
+  const bozza = documento.payload;
+  caricamentoBozzaInCorso = true;
+  $('#scElettori').value = bozza.elettori ?? '';
+  $('#scVotanti').value = bozza.votanti ?? '';
+  $('#comValide').value = (bozza.comune && bozza.comune.valide) ?? '';
+  $('#comBianche').value = (bozza.comune && bozza.comune.bianche) ?? '';
+  $('#comNulle').value = (bozza.comune && bozza.comune.nulle) ?? '';
+  $('#comContestate').value = (bozza.comune && bozza.comune.contestate) ?? '';
+  $('#munValide').value = (bozza.municipio && bozza.municipio.valide) ?? '';
+  $('#munBianche').value = (bozza.municipio && bozza.municipio.bianche) ?? '';
+  $('#munNulle').value = (bozza.municipio && bozza.municipio.nulle) ?? '';
+  $('#munContestate').value = (bozza.municipio && bozza.municipio.contestate) ?? '';
   $('#scNote').value = bozza.note || '';
-  (bozza.comune.liste || []).forEach((l, i) => { const el = $('#lc_' + i); if (el) el.value = l.voti; });
-  (bozza.municipio.liste || []).forEach((l, i) => { const el = $('#lm_' + i); if (el) el.value = l.voti; });
-  (bozza.comune.preferenze || []).forEach((p, i) => { const el = $('#pc_' + i); if (el) el.value = p.voti; });
-  (bozza.municipio.preferenze || []).forEach((p, i) => { const el = $('#pm_' + i); if (el) el.value = p.voti; });
+  impostaDynPerNome('lc', bozza.comune && bozza.comune.liste || []);
+  impostaDynPerNome('lm', bozza.municipio && bozza.municipio.liste || []);
+  impostaDynPerNome('pc', bozza.comune && bozza.comune.preferenze || []);
+  impostaDynPerNome('pm', bozza.municipio && bozza.municipio.preferenze || []);
+  caricamentoBozzaInCorso = false;
+  const statoVisuale = documento.stato === 'sincronizzato' ? 'sent' : documento.stato === 'in_coda' ? 'queued' : documento.stato === 'errore' ? 'error' : 'saved';
+  aggiornaStatoBozzaScrutinio(statoVisuale, documento.stato === 'sincronizzato' ? documento.sincronizzatoIl : documento.salvataIl);
+  aggiornaAvvisiScrutinio();
+}
+
+function eliminaBozzaScrutinio() {
+  if (!STATE.profile || !confirm('Eliminare la bozza salvata per questa sezione? Gli invii già ricevuti dal coordinamento non verranno cancellati.')) return;
+  localStorage.removeItem(chiaveBozza());
+  resetCampiScrutinio();
+  if (STATE.profile.elettori) $('#scElettori').value = STATE.profile.elettori;
+  aggiornaStatoBozzaScrutinio('', '');
+  aggiornaAvvisiScrutinio();
+  showToast('Bozza eliminata dal telefono.');
+}
+
+function aggiornaDocumentoBozzaDaInvio(item, stato) {
+  if (!item || !item.payload) return;
+  const key = LS.SCR_DRAFT(item.payload.municipio, item.payload.sezione);
+  const documento = estraiDocumentoBozza(loadJSON(key, null));
+  if (!documento || documento.idInvio !== item.idInvio) return;
+  documento.stato = stato;
+  if (stato === 'sincronizzato') documento.sincronizzatoIl = item.sincronizzatoIl || new Date().toISOString();
+  saveJSON(key, documento);
 }
 
 function scrutinioGiaInviato() {
@@ -1008,7 +1156,6 @@ async function onInviaScrutinio() {
   if (correzioneScrutinioId && !$('#scMotivoCorrezione').value.trim()) {
     errBox.textContent = 'Indica il motivo della correzione.'; errBox.hidden = false; return;
   }
-  if (avvisi.length && !confirm('Ci sono alcuni promemoria sui numeri inseriti:\n\n' + avvisi.join('\n') + '\n\nVuoi procedere comunque?')) return;
 
   const idInvio = tentativoScrutinioDaSostituireId || uuid();
   payloadScrutinioPronto = {
@@ -1034,21 +1181,26 @@ async function onInviaScrutinio() {
     ),
   };
 
-  mostraRiepilogoScrutinio(s);
+  mostraRiepilogoScrutinio(s, avvisi);
 }
 
-function mostraRiepilogoScrutinio(s) {
+function mostraRiepilogoScrutinio(s, avvisi) {
   const cont = $('#riepilogoContenuto');
   cont.innerHTML = '';
 
   function sezioneRiep(titolo, righe) {
     const div = document.createElement('div');
     div.className = 'riepilogo-sezione';
-    div.innerHTML = '<h3>' + titolo + '</h3>' + righe.map(([label, val]) =>
-      '<div class="riepilogo-row"><span>' + escapeHtml(label) + '</span><span>' +
-      escapeHtml(String(val !== null && val !== undefined ? val : '—')) + '</span></div>'
-    ).join('');
+    div.innerHTML = '<h3>' + titolo + '</h3>' + righe.map(([label, val]) => {
+      const classe = String(label).indexOf('Totale schede') === 0 ? ' total-row' : '';
+      return '<div class="riepilogo-row' + classe + '"><span>' + escapeHtml(label) + '</span><span>' +
+        escapeHtml(String(val !== null && val !== undefined ? val : '—')) + '</span></div>';
+    }).join('');
     cont.appendChild(div);
+  }
+
+  if (avvisi && avvisi.length) {
+    sezioneRiep('Controlli da verificare', avvisi.map((testo, i) => ['Avviso ' + (i + 1), testo]));
   }
 
   sezioneRiep('Seggio', [
@@ -1069,6 +1221,7 @@ function mostraRiepilogoScrutinio(s) {
   sezioneRiep('Scheda Comune', [
     ['Valide', s.comune.valide], ['Bianche', s.comune.bianche],
     ['Nulle', s.comune.nulle], ['Contestate', s.comune.contestate],
+    ['Totale schede Comune', totaleScheda(s.comune) + ' / ' + s.votanti],
     ...s.comune.liste.filter((l) => l.voti).map((l) => [l.nome, l.voti]),
     ...s.comune.preferenze.filter((p) => p.voti).map((p) => ['Pref. ' + p.nome, p.voti]),
   ]);
@@ -1079,17 +1232,24 @@ function mostraRiepilogoScrutinio(s) {
   sezioneRiep('Scheda Municipio', [
     ['Valide', s.municipio.valide], ['Bianche', s.municipio.bianche],
     ['Nulle', s.municipio.nulle], ['Contestate', s.municipio.contestate],
+    ['Totale schede Municipio', totaleScheda(s.municipio) + ' / ' + s.votanti],
     ...s.municipio.liste.filter((l) => l.voti).map((l) => [l.nome, l.voti]),
     ...s.municipio.preferenze.filter((p) => p.voti).map((p) => ['Pref. ' + p.nome, p.voti]),
   ]);
 
   if (s.note) sezioneRiep('Note', [['', s.note]]);
 
+  $('#checkConfermaScrutinio').checked = false;
+  $('#btnConfermaInvio').disabled = true;
   $('#modalRiepilogo').hidden = false;
-  requestAnimationFrame(() => $('#btnConfermaInvio').focus());
+  requestAnimationFrame(() => $('#checkConfermaScrutinio').focus());
 }
 
 async function onConfermaInvioScrutinio() {
+  if (!$('#checkConfermaScrutinio').checked) {
+    showToast('Conferma prima di aver confrontato i dati con il verbale.');
+    return;
+  }
   $('#modalRiepilogo').hidden = true;
   if (!payloadScrutinioPronto) return;
   const id = payloadScrutinioPronto.idInvio;
@@ -1101,7 +1261,7 @@ async function onConfermaInvioScrutinio() {
     showToast('Impossibile salvare sul telefono: spazio non disponibile.', 4500);
     return;
   }
-  salvaBozzaScrutinio(false);
+  salvaBozzaScrutinio(false, 'in_coda', id);
   correzioneScrutinioId = null;
   tentativoScrutinioDaSostituireId = null;
   $('#scCorrezioneBox').hidden = true;
@@ -1156,6 +1316,7 @@ function correggiUltimoScrutinio() {
   impostaDynPerNome('pm', (p.preferenze || []).filter((x) => x.livello === 'Municipio'), 'candidato');
   document.querySelector('.tab[data-tab="scrutinio"]').click();
   $('#scCorrezioneBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  aggiornaAvvisiScrutinio();
   $('#scMotivoCorrezione').focus();
 }
 
@@ -1249,12 +1410,20 @@ async function provaSvuotaCode() {
           item.sincronizzatoIl = new Date().toISOString();
           item.ultimoErrore = '';
           item.rispostaServer = { duplicato: !!risposta.duplicato, correzione: !!risposta.correzione };
+          if (queueKey === LS.QUEUE_SCR) {
+            aggiornaDocumentoBozzaDaInvio(item, 'sincronizzato');
+            if (STATE.profile && item.payload.municipio === STATE.profile.municipio && item.payload.sezione === STATE.profile.sezione) aggiornaStatoBozzaScrutinio('sent', item.sincronizzatoIl);
+          }
           almenoUnSuccesso = true;
         } catch (e) {
           item.status = 'error';
           item.tentativi = (item.tentativi || 0) + 1;
           item.ultimoErrore = e && e.message ? e.message : 'Errore di rete';
           item.codiceErrore = e && e.code ? e.code : '';
+          if (queueKey === LS.QUEUE_SCR) {
+            aggiornaDocumentoBozzaDaInvio(item, 'errore');
+            if (STATE.profile && item.payload.municipio === STATE.profile.municipio && item.payload.sezione === STATE.profile.sezione) aggiornaStatoBozzaScrutinio('error', item.ultimoTentativo);
+          }
         }
         cambiato = true;
         saveJSON(queueKey, coda);
@@ -1428,14 +1597,23 @@ async function avvia() {
   $('#btnInviaAffluenza').addEventListener('click', onInviaAffluenza);
   $('#btnAnnullaAffluenza').addEventListener('click', chiudiFormAffluenza);
 
-  $all('#tab-scrutinio input, #tab-scrutinio textarea').forEach((el) => {
-    el.addEventListener('input', () => { aggiornaAvvisiScrutinio(); });
+  $('#tab-scrutinio').addEventListener('input', (e) => {
+    if (!e.target.matches('input, textarea')) return;
+    aggiornaAvvisiScrutinio();
+    pianificaSalvataggioBozzaScrutinio();
   });
-  $('#btnSalvaBozzaScrutinio').addEventListener('click', () => salvaBozzaScrutinio(true));
+  $('#btnSalvaBozzaScrutinio').addEventListener('click', () => salvaBozzaScrutinio(true, 'bozza'));
+  $('#btnEliminaBozzaScrutinio').addEventListener('click', eliminaBozzaScrutinio);
   $('#btnInviaScrutinio').addEventListener('click', onInviaScrutinio);
   $('#btnCorreggiScrutinio').addEventListener('click', correggiUltimoScrutinio);
+  $('#checkConfermaScrutinio').addEventListener('change', () => { $('#btnConfermaInvio').disabled = !$('#checkConfermaScrutinio').checked; });
   $('#btnConfermaInvio').addEventListener('click', onConfermaInvioScrutinio);
-  $('#btnAnnullaInvio').addEventListener('click', () => { $('#modalRiepilogo').hidden = true; payloadScrutinioPronto = null; });
+  $('#btnAnnullaInvio').addEventListener('click', () => {
+    $('#modalRiepilogo').hidden = true;
+    $('#checkConfermaScrutinio').checked = false;
+    $('#btnConfermaInvio').disabled = true;
+    payloadScrutinioPronto = null;
+  });
   $('#btnRiprovaInvii').addEventListener('click', async () => { showToast('Provo a sincronizzare…'); const ok = await provaSvuotaCode(); showToast(ok ? 'Sincronizzazione completata.' : (navigator.onLine ? 'Nessun invio ricevuto: controlla i dettagli.' : 'Sei offline: riproverò automaticamente.')); });
   $('#btnCondividi').addEventListener('click', onCondividi);
 
@@ -1479,6 +1657,9 @@ async function avvia() {
 
   provaSvuotaCode();
   setInterval(provaSvuotaCode, 45000); // riprova periodica in background, utile su connessioni instabili
+  window.addEventListener('pagehide', () => {
+    if (STATE.profile && timerBozzaScrutinio) salvaBozzaScrutinio(false, 'bozza');
+  });
 }
 
 // Compatibilità: chi aveva già usato l'app prima dell'aggiornamento multi-seggio
