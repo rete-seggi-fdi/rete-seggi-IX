@@ -12,8 +12,8 @@
 // Sostituire con l'URL del tuo Web App di Google Apps Script
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
-const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbz_dCjIA9SKcEKgEjFyXen7ZwrS2ZNYC6DLEFQgAUN_BgZoYoxdpKWWfiwGHFWQxm2ceg/exec';
-const APP_VERSION = '5.2.0';
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbx78tvql-_GwosG23g17bhTkjZZALCTMPgM2sC4HRwbiekMW0eDAdZ-13sjYnkKU01icQ/exec';
+const APP_VERSION = '5.3.0';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
