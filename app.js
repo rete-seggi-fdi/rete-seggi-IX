@@ -13,7 +13,7 @@
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbx78tvql-_GwosG23g17bhTkjZZALCTMPgM2sC4HRwbiekMW0eDAdZ-13sjYnkKU01icQ/exec';
-const APP_VERSION = '6.0.0';
+const APP_VERSION = '6.3.0';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -337,18 +337,53 @@ function mostraLoginSeNecessario() {
   return false;
 }
 
+let focusPrimaLogout = null;
+
 function onLogout() {
+  const modal = $('#modalLogout');
+  if (!modal) return;
+  focusPrimaLogout = document.activeElement;
+  modal.hidden = false;
+  requestAnimationFrame(() => {
+    const btn = $('#btnAnnullaLogout');
+    if (btn) btn.focus();
+  });
+}
+
+function chiudiModalLogout() {
+  const modal = $('#modalLogout');
+  if (modal) modal.hidden = true;
+  if (focusPrimaLogout && typeof focusPrimaLogout.focus === 'function') {
+    focusPrimaLogout.focus();
+  }
+  focusPrimaLogout = null;
+}
+
+function confermaLogout() {
+  // Salva l'eventuale bozza prima di rimuovere i dati di accesso.
   if (STATE.profile && timerBozzaScrutinio) salvaBozzaScrutinio(false, 'bozza');
-  if (!confirm('Uscire da Rete Seggi su questo dispositivo? Gli invii già sincronizzati restano nel foglio; le bozze e gli invii in coda resteranno sul telefono.')) return;
+  clearTimeout(timerBozzaScrutinio);
+  timerBozzaScrutinio = null;
+
   [LS.CODICE, LS.TOKEN, LS.TOKEN_EXPIRES, LS.PERSONA, LS.SEGGI, LS.SEGGIO_ATTIVO].forEach((key) => localStorage.removeItem(key));
-  STATE.persona = null; STATE.seggi = []; STATE.seggioAttivoId = null; STATE.profile = null;
+  STATE.persona = null;
+  STATE.seggi = [];
+  STATE.seggioAttivoId = null;
+  STATE.profile = null;
+  STATE.municipioData = null;
+  STATE.modalitaAggiungiSeggio = false;
+
+  chiudiModalLogout();
   $('#screen-dashboard').classList.remove('active');
   $('#screen-setup').classList.remove('active');
   $('#screen-login').classList.add('active');
   $('#btnLogout').hidden = true;
   $('#inputCodice').value = '';
   $('#loginTelefono').value = '';
-  $('#inputCodice').focus();
+  $('#loginError').hidden = true;
+  window.scrollTo({ top: 0, behavior: 'auto' });
+  requestAnimationFrame(() => $('#loginTelefono').focus());
+  showToast('Sessione chiusa su questo dispositivo.');
 }
 
 // =======================================================================
@@ -628,22 +663,74 @@ function renderElettoriBanner() {
   const el = STATE.profile.elettori;
   $('#elettoriValore').textContent = el ? el : 'non indicati';
   $('#elettoriBanner').classList.toggle('warnings', !el);
+  $('#btnModificaElettori').textContent = el ? 'modifica' : 'imposta';
+}
+
+let focusPrimaModalElettori = null;
+
+function apriModalElettori() {
+  if (!STATE.profile) return;
+  focusPrimaModalElettori = document.activeElement;
+  const input = $('#inputModificaElettori');
+  const errore = $('#modificaElettoriErrore');
+  input.value = STATE.profile.elettori || '';
+  errore.hidden = true;
+  errore.textContent = '';
+  $('#modalElettori').hidden = false;
+  requestAnimationFrame(() => {
+    input.focus();
+    input.select();
+  });
+}
+
+function chiudiModalElettori() {
+  const modal = $('#modalElettori');
+  if (modal) modal.hidden = true;
+  const errore = $('#modificaElettoriErrore');
+  if (errore) {
+    errore.hidden = true;
+    errore.textContent = '';
+  }
+  if (focusPrimaModalElettori && typeof focusPrimaModalElettori.focus === 'function') {
+    focusPrimaModalElettori.focus();
+  }
+  focusPrimaModalElettori = null;
+}
+
+function salvaElettoriDaModal() {
+  if (!STATE.profile) return;
+  const input = $('#inputModificaElettori');
+  const errore = $('#modificaElettoriErrore');
+  const n = interoNonNegativo(String(input.value || '').trim());
+  if (n === null || n === 0) {
+    errore.textContent = 'Inserisci un numero intero maggiore di zero.';
+    errore.hidden = false;
+    input.focus();
+    return;
+  }
+
+  STATE.profile.elettori = n;
+  const seg = trovaSeggio(STATE.seggioAttivoId);
+  if (seg) {
+    seg.elettori = n;
+    saveJSON(LS.SEGGI, STATE.seggi);
+  }
+
+  // Elettori e votanti sono dati condivisi fra affluenza e scrutinio:
+  // aggiorna anche il campo dello scrutinio e la relativa bozza.
+  const scElettori = $('#scElettori');
+  if (scElettori) scElettori.value = n;
+
+  renderElettoriBanner();
+  renderAffluenza();
+  aggiornaAvvisiScrutinio();
+  pianificaSalvataggioBozzaScrutinio();
+  chiudiModalElettori();
+  showToast('Elettori aventi diritto aggiornati: ' + n + '.');
 }
 
 function onModificaElettori() {
-  const attuale = STATE.profile.elettori || '';
-  const v = prompt('Elettori aventi diritto al voto in questa sezione (numero fisso, te lo conferma il presidente di seggio):', attuale);
-  if (v === null) return;
-  const n = interoNonNegativo(v.trim());
-  if (n === null || n === 0) {
-    showToast('Inserisci un numero intero maggiore di zero.');
-    return;
-  }
-  STATE.profile.elettori = n;
-  const seg = trovaSeggio(STATE.seggioAttivoId);
-  if (seg) { seg.elettori = n; saveJSON(LS.SEGGI, STATE.seggi); }
-  renderElettoriBanner();
-  renderAffluenza();
+  apriModalElettori();
 }
 
 function initTabs() {
@@ -1534,16 +1621,109 @@ function generaTestoRiepilogo() {
   return righe.join('\n');
 }
 
-async function onCondividi() {
-  salvaBozzaScrutinio(false);
-  const testo = generaTestoRiepilogo();
-  if (!testo) { showToast('Compila prima i dati della sezione.'); return; }
-  if (navigator.share) {
-    try { await navigator.share({ title: 'Riepilogo sezione', text: testo }); return; }
-    catch (e) { /* utente ha annullato: prosegue con fallback sotto */ }
+let testoCondivisioneCorrente = '';
+
+function chiudiModalCondivisione() {
+  const modal = $('#modalCondivisione');
+  if (modal) modal.hidden = true;
+  testoCondivisioneCorrente = '';
+}
+
+function apriModalCondivisione(testo, messaggio) {
+  testoCondivisioneCorrente = testo;
+  const anteprima = $('#condividiAnteprima');
+  const nota = $('#condividiNota');
+  if (anteprima) anteprima.textContent = testo;
+  if (nota) nota.textContent = messaggio || 'Scegli come inviare il riepilogo.';
+  const modal = $('#modalCondivisione');
+  if (modal) {
+    modal.hidden = false;
+    const primoPulsante = $('#btnShareWhatsApp');
+    if (primoPulsante) primoPulsante.focus();
   }
-  const url = 'https://wa.me/?text=' + encodeURIComponent(testo);
-  window.open(url, '_blank');
+}
+
+async function copiaNegliAppunti(testo) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(testo);
+      return true;
+    } catch (e) { /* usa il metodo compatibile sotto */ }
+  }
+  const area = document.createElement('textarea');
+  area.value = testo;
+  area.setAttribute('readonly', '');
+  area.style.position = 'fixed';
+  area.style.opacity = '0';
+  area.style.pointerEvents = 'none';
+  document.body.appendChild(area);
+  area.select();
+  area.setSelectionRange(0, area.value.length);
+  let copiato = false;
+  try { copiato = document.execCommand('copy'); } catch (e) { copiato = false; }
+  area.remove();
+  return copiato;
+}
+
+async function onCondividi() {
+  try { salvaBozzaScrutinio(false); } catch (e) { console.warn('Salvataggio bozza prima della condivisione non riuscito', e); }
+
+  let testo = '';
+  try { testo = generaTestoRiepilogo(); }
+  catch (e) {
+    console.error('Errore durante la creazione del riepilogo', e);
+    showToast('Non riesco a creare il riepilogo. Riapri la sezione e riprova.');
+    return;
+  }
+
+  if (!testo || !testo.trim()) {
+    showToast('Compila prima i dati della sezione.');
+    return;
+  }
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Riepilogo sezione', text: testo });
+      return;
+    } catch (e) {
+      // Se l'utente chiude volontariamente il pannello, non aprire WhatsApp a sorpresa.
+      if (e && e.name === 'AbortError') return;
+      console.warn('Condivisione nativa non disponibile, mostro le alternative', e);
+      apriModalCondivisione(testo, 'Il pannello di condivisione del telefono non si è aperto. Scegli una delle alternative.');
+      return;
+    }
+  }
+
+  apriModalCondivisione(testo);
+}
+
+function condividiConWhatsApp() {
+  if (!testoCondivisioneCorrente) return;
+  window.location.href = 'https://wa.me/?text=' + encodeURIComponent(testoCondivisioneCorrente);
+}
+
+function condividiConEmail() {
+  if (!testoCondivisioneCorrente) return;
+  const oggetto = 'Riepilogo sezione elettorale';
+  window.location.href = 'mailto:?subject=' + encodeURIComponent(oggetto) + '&body=' + encodeURIComponent(testoCondivisioneCorrente);
+}
+
+function condividiConSms() {
+  if (!testoCondivisioneCorrente) return;
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const separatore = ios ? '&' : '?';
+  window.location.href = 'sms:' + separatore + 'body=' + encodeURIComponent(testoCondivisioneCorrente);
+}
+
+async function copiaRiepilogo() {
+  if (!testoCondivisioneCorrente) return;
+  const ok = await copiaNegliAppunti(testoCondivisioneCorrente);
+  if (ok) {
+    showToast('Riepilogo copiato. Ora puoi incollarlo dove preferisci.');
+    chiudiModalCondivisione();
+  } else {
+    showToast('Copia non riuscita: seleziona il testo nell’anteprima.');
+  }
 }
 
 // =======================================================================
@@ -1594,6 +1774,10 @@ async function avvia() {
   $('#inputCodice').addEventListener('keydown', (e) => { if (e.key === 'Enter') onLogin(); });
   $('#loginTelefono').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#inputCodice').focus(); });
   $('#btnLogout').addEventListener('click', onLogout);
+  $('#btnConfermaLogout').addEventListener('click', confermaLogout);
+  $('#btnAnnullaLogout').addEventListener('click', chiudiModalLogout);
+  $('#btnChiudiLogout').addEventListener('click', chiudiModalLogout);
+  $('#modalLogout').addEventListener('click', (e) => { if (e.target.id === 'modalLogout') chiudiModalLogout(); });
 
   $('#selectMunicipio').addEventListener('change', onCambiaMunicipioSetup);
   $('#inputSezione').addEventListener('input', onCambiaSezioneSetup);
@@ -1608,6 +1792,18 @@ async function avvia() {
   $('#affTotaleVotanti').addEventListener('input', aggiornaTotaleAffluenza);
   $$('#modalitaAffluenza .chip').forEach((c) => c.addEventListener('click', () => impostaModalitaAffluenza(c.dataset.modalita)));
   $('#btnModificaElettori').addEventListener('click', onModificaElettori);
+  $('#btnSalvaElettori').addEventListener('click', salvaElettoriDaModal);
+  $('#btnAnnullaModificaElettori').addEventListener('click', chiudiModalElettori);
+  $('#btnChiudiModificaElettori').addEventListener('click', chiudiModalElettori);
+  $('#inputModificaElettori').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      salvaElettoriDaModal();
+    }
+  });
+  $('#modalElettori').addEventListener('click', (e) => {
+    if (e.target.id === 'modalElettori') chiudiModalElettori();
+  });
   $('#btnInviaAffluenza').addEventListener('click', onInviaAffluenza);
   $('#btnAnnullaAffluenza').addEventListener('click', chiudiFormAffluenza);
 
@@ -1630,6 +1826,18 @@ async function avvia() {
   });
   $('#btnRiprovaInvii').addEventListener('click', async () => { showToast('Provo a sincronizzare…'); const ok = await provaSvuotaCode(); showToast(ok ? 'Sincronizzazione completata.' : (navigator.onLine ? 'Nessun invio ricevuto: controlla i dettagli.' : 'Sei offline: riproverò automaticamente.')); });
   $('#btnCondividi').addEventListener('click', onCondividi);
+  $('#btnShareWhatsApp').addEventListener('click', condividiConWhatsApp);
+  $('#btnShareSms').addEventListener('click', condividiConSms);
+  $('#btnShareEmail').addEventListener('click', condividiConEmail);
+  $('#btnCopySummary').addEventListener('click', copiaRiepilogo);
+  $('#btnChiudiCondivisione').addEventListener('click', chiudiModalCondivisione);
+  $('#modalCondivisione').addEventListener('click', (e) => { if (e.target.id === 'modalCondivisione') chiudiModalCondivisione(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!$('#modalLogout').hidden) chiudiModalLogout();
+    else if (!$('#modalElettori').hidden) chiudiModalElettori();
+    else if (!$('#modalCondivisione').hidden) chiudiModalCondivisione();
+  });
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').catch(() => {});

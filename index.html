@@ -306,6 +306,28 @@
 
 </main>
 
+<div id="modalElettori" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modificaElettoriTitolo" hidden>
+  <div class="modal-box compact-modal" tabindex="-1">
+    <div class="share-modal-heading">
+      <div>
+        <p class="section-kicker">Dati della sezione</p>
+        <h2 id="modificaElettoriTitolo">Elettori aventi diritto</h2>
+      </div>
+      <button id="btnChiudiModificaElettori" class="icon-close" type="button" aria-label="Chiudi">×</button>
+    </div>
+    <p class="muted-text">Inserisci il numero fisso comunicato dal presidente di seggio. Verrà usato sia per l’affluenza sia per lo scrutinio.</p>
+    <label class="field modal-number-field">
+      <span>Numero di elettori iscritti</span>
+      <input id="inputModificaElettori" type="number" min="1" step="1" inputmode="numeric" autocomplete="off" placeholder="Es. 950" />
+    </label>
+    <div id="modificaElettoriErrore" class="errors" role="alert" hidden></div>
+    <div class="button-row modal-actions">
+      <button id="btnSalvaElettori" class="btn primary" type="button">Salva numero</button>
+      <button id="btnAnnullaModificaElettori" class="btn ghost" type="button">Annulla</button>
+    </div>
+  </div>
+</div>
+
 <div id="modalRiepilogo" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitolo" hidden>
   <div class="modal-box" tabindex="-1">
     <h2 id="modalTitolo">Conferma invio scrutinio</h2>
@@ -318,6 +340,51 @@
     <div class="button-row modal-actions">
       <button id="btnConfermaInvio" class="btn primary" disabled>Invia ora</button>
       <button id="btnAnnullaInvio" class="btn ghost">Torna indietro e correggi</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="modalCondivisione" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="condividiTitolo" hidden>
+  <div class="modal-box share-modal" tabindex="-1">
+    <div class="share-modal-heading">
+      <div>
+        <p class="section-kicker">Riepilogo sezione</p>
+        <h2 id="condividiTitolo">Condividi i dati</h2>
+      </div>
+      <button id="btnChiudiCondivisione" class="icon-close" type="button" aria-label="Chiudi">×</button>
+    </div>
+    <p id="condividiNota" class="muted-text">Scegli come inviare il riepilogo.</p>
+    <div class="share-options" role="group" aria-label="Opzioni di condivisione">
+      <button id="btnShareWhatsApp" class="share-option" type="button"><span aria-hidden="true">💬</span><strong>WhatsApp</strong></button>
+      <button id="btnShareSms" class="share-option" type="button"><span aria-hidden="true">✉</span><strong>SMS</strong></button>
+      <button id="btnShareEmail" class="share-option" type="button"><span aria-hidden="true">@</span><strong>Email</strong></button>
+      <button id="btnCopySummary" class="share-option" type="button"><span aria-hidden="true">⧉</span><strong>Copia testo</strong></button>
+    </div>
+    <details class="share-preview-wrap">
+      <summary>Mostra anteprima</summary>
+      <pre id="condividiAnteprima" class="share-preview" tabindex="0"></pre>
+    </details>
+  </div>
+</div>
+
+<div id="modalLogout" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="logoutTitolo" hidden>
+  <div class="modal-box compact-modal logout-modal" tabindex="-1">
+    <div class="share-modal-heading">
+      <div>
+        <p class="section-kicker">Sessione sul dispositivo</p>
+        <h2 id="logoutTitolo">Vuoi uscire?</h2>
+      </div>
+      <button id="btnChiudiLogout" class="icon-close" type="button" aria-label="Chiudi">×</button>
+    </div>
+    <p class="muted-text">Verrai riportato alla schermata di accesso. Gli invii già ricevuti restano nel foglio del coordinamento.</p>
+    <div class="logout-note">
+      <strong>Non perderai il lavoro non inviato.</strong>
+      <span>Le bozze e gli invii ancora in coda resteranno salvati su questo dispositivo.</span>
+    </div>
+    <div class="button-row modal-actions">
+      <button id="btnConfermaLogout" class="btn danger" type="button">Esci dall’app</button>
+      <button id="btnAnnullaLogout" class="btn ghost" type="button">Resta nell’app</button>
     </div>
   </div>
 </div>

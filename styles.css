@@ -448,3 +448,54 @@ tbody tr:hover{background:#fbfcfe}
 @media(prefers-reduced-motion:reduce){
   *{scroll-behavior:auto!important; transition:none!important; animation:none!important}
 }
+
+
+/* Condivisione riepilogo */
+.share-modal{max-width:620px}
+.share-modal-heading{display:flex; align-items:flex-start; justify-content:space-between; gap:16px}
+.share-modal-heading h2{margin:2px 0 0}
+.icon-close{
+  width:40px; height:40px; min-height:40px; padding:0; flex:none;
+  border:1px solid var(--line); border-radius:50%; background:#fff; color:var(--ink);
+  font-size:25px; line-height:1; cursor:pointer;
+}
+.share-options{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:17px 0}
+.share-option{
+  min-height:70px; padding:12px; display:flex; align-items:center; gap:11px;
+  border:1px solid #cbd6e6; border-radius:15px; background:#fff; color:var(--ink);
+  font:inherit; text-align:left; cursor:pointer; box-shadow:0 4px 14px rgba(16,41,87,.05);
+}
+.share-option:hover,.share-option:focus-visible{border-color:var(--brand); background:var(--brand-soft); outline:none}
+.share-option span{display:grid; place-items:center; width:36px; height:36px; border-radius:11px; background:var(--brand-soft); font-size:19px; flex:none}
+.share-option strong{font-size:15px}
+.share-preview-wrap{margin-top:4px; border-top:1px solid var(--line); padding-top:12px}
+.share-preview-wrap summary{cursor:pointer; color:var(--brand); font-weight:750}
+.share-preview{
+  margin:12px 0 0; padding:13px; max-height:260px; overflow:auto; white-space:pre-wrap; word-break:break-word;
+  border:1px solid var(--line); border-radius:12px; background:#f7f9fc; color:var(--ink); font:13px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+@media(max-width:480px){
+  .share-options{grid-template-columns:1fr 1fr}
+  .share-option{min-height:62px; padding:10px; gap:8px}
+  .share-option span{width:32px; height:32px}
+}
+
+
+/* Modifica elettori aventi diritto */
+.compact-modal{max-width:480px}
+.modal-number-field{margin-top:16px}
+.modal-number-field input{font-size:22px; font-weight:800; letter-spacing:.01em}
+#elettoriBanner .inline-link{min-height:32px; padding:4px 7px!important; margin:-4px -3px -4px 2px!important; border-radius:8px}
+#elettoriBanner .inline-link:focus-visible{outline:3px solid rgba(31,111,235,.28); outline-offset:1px}
+
+
+/* Conferma uscita: modale interna, affidabile anche in modalità PWA */
+.logout-modal{max-width:500px}
+.logout-note{
+  display:flex; flex-direction:column; gap:3px; margin-top:16px; padding:13px 14px;
+  border:1px solid #f0cf8c; border-radius:14px; background:#fff8e8; color:#5f4308;
+  font-size:13px; line-height:1.4;
+}
+.logout-note strong{font-size:14px}
+.btn.danger{background:#b42318; border-color:#b42318; color:#fff}
+.btn.danger:hover,.btn.danger:focus-visible{background:#8f1c13; border-color:#8f1c13}
