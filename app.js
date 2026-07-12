@@ -13,7 +13,7 @@
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbx78tvql-_GwosG23g17bhTkjZZALCTMPgM2sC4HRwbiekMW0eDAdZ-13sjYnkKU01icQ/exec';
-const APP_VERSION = '5.4.0';
+const APP_VERSION = '6.0.0';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -136,7 +136,7 @@ function aggiornaStatoConnessione() {
     pill.textContent = 'Online';
     pill.className = 'status-pill online';
   } else {
-    pill.textContent = 'Offline · i dati restano in coda';
+    pill.textContent = 'Offline · dati in coda';
     pill.className = 'status-pill offline';
   }
 }
@@ -1462,7 +1462,7 @@ function contaInCoda() {
 function aggiornaBadgeInCoda() {
   const n = contaInCoda();
   const badge = $('#pendingBadge');
-  if (n > 0) { badge.hidden = false; badge.textContent = n + (n === 1 ? ' invio da sincronizzare' : ' invii da sincronizzare'); }
+  if (n > 0) { badge.hidden = false; badge.textContent = n + (n === 1 ? ' invio in coda' : ' invii in coda'); }
   else { badge.hidden = true; }
 }
 
