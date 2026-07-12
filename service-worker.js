@@ -7,7 +7,7 @@
    Le richieste verso il backend (Apps Script, altro dominio) non vengono
    mai intercettate: passano sempre direttamente alla rete. */
 
-const VERSIONE = 'rete-seggi-v3';
+const VERSIONE = 'rete-seggi-v4';
 const CACHE_SHELL = 'shell-' + VERSIONE;
 const CACHE_DATI = 'dati-' + VERSIONE;
 
@@ -17,6 +17,7 @@ const FILE_APP = [
   './styles.css',
   './app.js',
   './manifest.json',
+  './data/indice-sezioni.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
@@ -67,6 +68,14 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_SHELL).then((cache) => cache.put(event.request, copia));
       }
       return res;
-    }).catch(() => caches.match(event.request))
+    }).catch(async () => {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+      if (event.request.mode === 'navigate') return caches.match('./index.html');
+      return new Response('Contenuto non disponibile offline.', {
+        status: 503,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    })
   );
 });
