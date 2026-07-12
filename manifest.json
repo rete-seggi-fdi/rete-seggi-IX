@@ -1,14 +1,14 @@
 {
-  "name": "Rete Seggi FdI - Roma Capitale",
+  "name": "Rete Seggi FdI · Municipio Roma IX",
   "short_name": "Rete Seggi",
-  "description": "Raccolta affluenza e scrutinio per i rappresentanti di lista",
+  "description": "App operativa per affluenza e scrutinio dei rappresentanti di lista di Fratelli d’Italia nel Municipio Roma IX",
   "start_url": "./index.html",
   "scope": "./",
   "id": "./index.html",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#f5f7fb",
-  "theme_color": "#102957",
+  "background_color": "#f3f5f9",
+  "theme_color": "#0b2148",
   "lang": "it",
   "icons": [
     {
@@ -42,8 +42,8 @@
   ],
   "shortcuts": [
     {
-      "name": "Apri raccolta dati",
-      "short_name": "Raccolta dati",
+      "name": "Apri Rete Seggi",
+      "short_name": "Rete Seggi",
       "url": "./index.html",
       "icons": [
         {

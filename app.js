@@ -13,7 +13,7 @@
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbx78tvql-_GwosG23g17bhTkjZZALCTMPgM2sC4HRwbiekMW0eDAdZ-13sjYnkKU01icQ/exec';
-const APP_VERSION = '6.3.0';
+const APP_VERSION = '7.0.0';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -132,12 +132,15 @@ function aggiornaTokenInviiInCoda(token) {
 // ---------------------------------------------------------------------
 function aggiornaStatoConnessione() {
   const pill = $('#connStatus');
+  const home = $('#homeConnStatus');
   if (navigator.onLine) {
     pill.textContent = 'Online';
     pill.className = 'status-pill online';
+    if (home) { home.textContent = 'Online · pronto a inviare'; home.className = 'home-status online'; }
   } else {
     pill.textContent = 'Offline · dati in coda';
     pill.className = 'status-pill offline';
+    if (home) { home.textContent = 'Offline · i dati restano sul telefono'; home.className = 'home-status offline'; }
   }
 }
 window.addEventListener('online', () => { aggiornaStatoConnessione(); provaSvuotaCode(); });
@@ -380,10 +383,51 @@ function confermaLogout() {
   $('#btnLogout').hidden = true;
   $('#inputCodice').value = '';
   $('#loginTelefono').value = '';
-  $('#loginError').hidden = true;
+  $('#loginErrore').hidden = true;
   window.scrollTo({ top: 0, behavior: 'auto' });
   requestAnimationFrame(() => $('#loginTelefono').focus());
   showToast('Sessione chiusa su questo dispositivo.');
+}
+
+// =======================================================================
+// CONFERMAZIONI INTERNE (affidabili anche in modalità PWA)
+// =======================================================================
+let azioneConfermataCorrente = null;
+let focusPrimaConfermaAzione = null;
+
+function apriConfermaAzione(opzioni) {
+  const modal = $('#modalConfermaAzione');
+  if (!modal) return;
+  focusPrimaConfermaAzione = document.activeElement;
+  azioneConfermataCorrente = typeof opzioni.onConfirm === 'function' ? opzioni.onConfirm : null;
+  $('#confermaAzioneKicker').textContent = opzioni.kicker || 'Conferma operazione';
+  $('#confermaAzioneTitolo').textContent = opzioni.titolo || 'Sei sicuro?';
+  $('#confermaAzioneTesto').textContent = opzioni.testo || '';
+  const nota = $('#confermaAzioneNota');
+  nota.textContent = opzioni.nota || '';
+  nota.hidden = !opzioni.nota;
+  const btn = $('#btnEseguiConfermaAzione');
+  btn.textContent = opzioni.conferma || 'Conferma';
+  btn.className = 'btn ' + (opzioni.pericolosa === false ? 'primary' : 'danger');
+  modal.hidden = false;
+  requestAnimationFrame(() => $('#btnAnnullaConfermaAzione').focus());
+}
+
+function chiudiConfermaAzione() {
+  const modal = $('#modalConfermaAzione');
+  if (modal) modal.hidden = true;
+  azioneConfermataCorrente = null;
+  if (focusPrimaConfermaAzione && typeof focusPrimaConfermaAzione.focus === 'function') focusPrimaConfermaAzione.focus();
+  focusPrimaConfermaAzione = null;
+}
+
+function eseguiConfermaAzione() {
+  const azione = azioneConfermataCorrente;
+  const modal = $('#modalConfermaAzione');
+  if (modal) modal.hidden = true;
+  azioneConfermataCorrente = null;
+  focusPrimaConfermaAzione = null;
+  if (azione) azione();
 }
 
 // =======================================================================
@@ -589,7 +633,17 @@ function apriSeggio(id) {
 function rimuoviSeggio(id) {
   const seg = trovaSeggio(id);
   if (!seg) return;
-  if (!confirm('Rimuovere la Sezione ' + seg.sezione + ' (' + (NOMI_MUNICIPI[seg.municipio] || seg.municipio) + ') dal tuo elenco?\n\nI dati già inviati al coordinamento restano comunque salvati sul Google Sheet: questo rimuove solo il seggio dal tuo telefono.')) return;
+  apriConfermaAzione({
+    kicker: 'Gestione seggi',
+    titolo: 'Rimuovere la Sezione ' + seg.sezione + '?',
+    testo: 'La sezione verrà rimossa soltanto da questo telefono.',
+    nota: 'I dati già inviati al coordinamento restano salvati nel Google Sheet.',
+    conferma: 'Rimuovi sezione',
+    onConfirm: () => eseguiRimozioneSeggio(id),
+  });
+}
+
+function eseguiRimozioneSeggio(id) {
   STATE.seggi = STATE.seggi.filter((s) => s.id !== id);
   saveJSON(LS.SEGGI, STATE.seggi);
   if (STATE.seggioAttivoId === id) {
@@ -604,6 +658,7 @@ function rimuoviSeggio(id) {
     $('#screen-setup').classList.add('active');
     predisponiSchermataSetup(false);
   }
+  showToast('Sezione rimossa da questo dispositivo.');
 }
 
 function onGestisciSeggi() {
@@ -649,7 +704,8 @@ function mostraDashboard() {
   $('#screen-setup').classList.remove('active');
   $('#screen-dashboard').classList.add('active');
   popolaSelectSeggioAttivo();
-  $('#seggioIndirizzo').textContent = STATE.profile.addr + ' · CAP ' + STATE.profile.cap;
+  const indirizzo = [STATE.profile.addr, STATE.profile.cap ? 'CAP ' + STATE.profile.cap : ''].filter(Boolean).join(' · ');
+  $('#seggioIndirizzo').textContent = indirizzo || 'Municipio Roma IX';
   renderElettoriBanner();
   renderAffluenza();
   renderScrutinioListeECandidati();
@@ -657,6 +713,7 @@ function mostraDashboard() {
   renderTabellaInvii();
   aggiornaBadgeInCoda();
   aggiornaPulsanteCorrezioneScrutinio();
+  renderHomeDashboard();
 }
 
 function renderElettoriBanner() {
@@ -664,6 +721,83 @@ function renderElettoriBanner() {
   $('#elettoriValore').textContent = el ? el : 'non indicati';
   $('#elettoriBanner').classList.toggle('warnings', !el);
   $('#btnModificaElettori').textContent = el ? 'modifica' : 'imposta';
+  renderHomeDashboard();
+}
+
+function attivaTabPerNome(nome) {
+  const tab = document.querySelector('.tab[data-tab="' + nome + '"]');
+  if (!tab) return;
+  tab.click();
+  const dashboard = $('#screen-dashboard');
+  if (dashboard) dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function inviiCorrenti(queueKey) {
+  if (!STATE.profile) return [];
+  return loadJSON(queueKey, []).filter((it) => it.payload && it.payload.sezione === STATE.profile.sezione && it.payload.municipio === STATE.profile.municipio);
+}
+
+function ultimoInvioAttivo(queueKey) {
+  const sostituiti = idsSostituiti(queueKey);
+  return inviiCorrenti(queueKey).filter((it) => !sostituiti.has(it.idInvio)).sort((a, b) => (a.creato < b.creato ? 1 : -1))[0] || null;
+}
+
+function statoTimelineDaInvio(item) {
+  if (!item) return { classe: 'todo', etichetta: 'Da inviare' };
+  if (item.status === 'synced') return { classe: 'done', etichetta: 'Ricevuto' };
+  if (item.status === 'error') return { classe: 'error', etichetta: 'Da controllare' };
+  return { classe: 'queued', etichetta: 'Sul telefono' };
+}
+
+function renderHomeDashboard() {
+  if (!STATE.profile) return;
+  const nome = (STATE.profile.nome || 'rappresentante').trim().split(/\s+/)[0];
+  const nomeEl = $('#homeNome');
+  const seggioEl = $('#homeSeggio');
+  if (nomeEl) nomeEl.textContent = nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
+  if (seggioEl) seggioEl.textContent = 'Municipio Roma IX · Sezione ' + STATE.profile.sezione;
+  const elettori = $('#homeElettori');
+  if (elettori) elettori.textContent = STATE.profile.elettori || '—';
+
+  const aff = inviiCorrenti(LS.QUEUE_AFF);
+  const scr = inviiCorrenti(LS.QUEUE_SCR);
+  const pending = [...aff, ...scr].filter((it) => it.status !== 'synced').length;
+  const pendingEl = $('#homePending');
+  if (pendingEl) pendingEl.textContent = pending;
+
+  const timeline = $('#homeTimeline');
+  if (timeline) {
+    timeline.innerHTML = '';
+    const mappaAff = invitiAffluenzaSezione();
+    const orari = orariAffluenza();
+    const voci = orari.length ? orari.map((o) => {
+      const status = mappaAff[chiaveAffluenza(o.giorno, o.orario)];
+      const stato = statoTimelineDaInvio(status ? { status } : null);
+      return { titolo: 'Affluenza ' + (o.orario || ''), sottotitolo: o.giorno || 'Rilevazione', ...stato };
+    }) : [{ titolo: 'Affluenze', sottotitolo: 'Orari non ancora configurati', classe: aff.length ? statoTimelineDaInvio(ultimoInvioAttivo(LS.QUEUE_AFF)).classe : 'todo', etichetta: aff.length ? statoTimelineDaInvio(ultimoInvioAttivo(LS.QUEUE_AFF)).etichetta : 'Da programmare' }];
+    const scrStato = statoTimelineDaInvio(ultimoInvioAttivo(LS.QUEUE_SCR));
+    voci.push({ titolo: 'Scrutinio', sottotitolo: 'Risultati finali della sezione', ...scrStato });
+    voci.forEach((voce) => {
+      const row = document.createElement('div');
+      row.className = 'timeline-item ' + voce.classe;
+      row.innerHTML = '<span class="timeline-dot" aria-hidden="true"></span><div><strong>' + escapeHtml(voce.titolo) + '</strong><small>' + escapeHtml(voce.sottotitolo) + '</small></div><span class="timeline-state">' + escapeHtml(voce.etichetta) + '</span>';
+      timeline.appendChild(row);
+    });
+  }
+
+  const ultimo = [...aff.map((x) => ({ ...x, tipoHome: 'Affluenza' })), ...scr.map((x) => ({ ...x, tipoHome: 'Scrutinio' }))].sort((a, b) => (a.creato < b.creato ? 1 : -1))[0];
+  const ultimoEl = $('#homeUltimoInvio');
+  if (ultimoEl) {
+    if (!ultimo) {
+      ultimoEl.innerHTML = '<span class="latest-empty">Nessun dato ancora salvato per questa sezione.</span>';
+    } else {
+      const quando = new Date(ultimo.creato).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' });
+      const stato = statoTimelineDaInvio(ultimo);
+      let dettaglio = ultimo.tipoHome === 'Affluenza' ? (ultimo.payload.orario + ' · ' + ultimo.payload.totale + ' votanti') : ((ultimo.payload.votanti || 0) + ' votanti · risultati scrutinio');
+      ultimoEl.innerHTML = '<div class="latest-icon ' + stato.classe + '" aria-hidden="true">' + (ultimo.tipoHome === 'Affluenza' ? '%' : '▣') + '</div><div><strong>' + ultimo.tipoHome + '</strong><span>' + escapeHtml(dettaglio) + '</span><small>' + escapeHtml(quando) + ' · ' + escapeHtml(stato.etichetta) + '</small></div>';
+    }
+  }
+  aggiornaStatoConnessione();
 }
 
 let focusPrimaModalElettori = null;
@@ -745,6 +879,8 @@ function initTabs() {
       panel.classList.toggle('active', active);
       panel.hidden = !active;
     });
+    const dashboard = $('#screen-dashboard');
+    if (dashboard) dashboard.dataset.activeTab = tab.dataset.tab;
     if (spostaFocus) tab.focus();
   }
   tabs.forEach((tab, index) => {
@@ -1193,12 +1329,24 @@ function caricaBozzaScrutinio() {
 }
 
 function eliminaBozzaScrutinio() {
-  if (!STATE.profile || !confirm('Eliminare la bozza salvata per questa sezione? Gli invii già ricevuti dal coordinamento non verranno cancellati.')) return;
+  if (!STATE.profile) return;
+  apriConfermaAzione({
+    kicker: 'Bozza scrutinio',
+    titolo: 'Eliminare la bozza?',
+    testo: 'I campi non ancora inviati verranno svuotati su questo dispositivo.',
+    nota: 'Gli invii già ricevuti dal coordinamento non verranno cancellati.',
+    conferma: 'Elimina bozza',
+    onConfirm: eseguiEliminazioneBozzaScrutinio,
+  });
+}
+
+function eseguiEliminazioneBozzaScrutinio() {
   localStorage.removeItem(chiaveBozza());
   resetCampiScrutinio();
   if (STATE.profile.elettori) $('#scElettori').value = STATE.profile.elettori;
   aggiornaStatoBozzaScrutinio('', '');
   aggiornaAvvisiScrutinio();
+  renderHomeDashboard();
   showToast('Bozza eliminata dal telefono.');
 }
 
@@ -1551,6 +1699,7 @@ function aggiornaBadgeInCoda() {
   const badge = $('#pendingBadge');
   if (n > 0) { badge.hidden = false; badge.textContent = n + (n === 1 ? ' invio in coda' : ' invii in coda'); }
   else { badge.hidden = true; }
+  renderHomeDashboard();
 }
 
 function renderTabellaInvii() {
@@ -1604,8 +1753,9 @@ function generaTestoRiepilogo() {
     righe.push('');
   }
 
-  const bozza = loadJSON(chiaveBozza(), null);
-  if (bozza) {
+  const documentoBozza = estraiDocumentoBozza(loadJSON(chiaveBozza(), null));
+  const bozza = documentoBozza && documentoBozza.payload;
+  if (bozza && bozzaHaContenuto(bozza)) {
     righe.push('SCRUTINIO:');
     righe.push('Elettori: ' + (bozza.elettori || 0) + ' — Votanti: ' + (bozza.votanti || 0));
     righe.push('');
@@ -1778,6 +1928,10 @@ async function avvia() {
   $('#btnAnnullaLogout').addEventListener('click', chiudiModalLogout);
   $('#btnChiudiLogout').addEventListener('click', chiudiModalLogout);
   $('#modalLogout').addEventListener('click', (e) => { if (e.target.id === 'modalLogout') chiudiModalLogout(); });
+  $('#btnEseguiConfermaAzione').addEventListener('click', eseguiConfermaAzione);
+  $('#btnAnnullaConfermaAzione').addEventListener('click', chiudiConfermaAzione);
+  $('#btnChiudiConfermaAzione').addEventListener('click', chiudiConfermaAzione);
+  $('#modalConfermaAzione').addEventListener('click', (e) => { if (e.target.id === 'modalConfermaAzione') chiudiConfermaAzione(); });
 
   $('#selectMunicipio').addEventListener('change', onCambiaMunicipioSetup);
   $('#inputSezione').addEventListener('input', onCambiaSezioneSetup);
@@ -1786,6 +1940,16 @@ async function avvia() {
   $('#btnGestisciSeggi').addEventListener('click', onGestisciSeggi);
   $('#btnAnnullaAggiungiSeggio').addEventListener('click', onAnnullaAggiungiSeggio);
   $('#selectSeggioAttivo').addEventListener('change', onCambiaSeggioAttivo);
+  $('#btnVaiAffluenza').addEventListener('click', () => attivaTabPerNome('affluenza'));
+  $('#btnVaiScrutinio').addEventListener('click', () => attivaTabPerNome('scrutinio'));
+  $('#btnVaiInvii').addEventListener('click', () => attivaTabPerNome('invii'));
+  $('#btnHomeModificaElettori').addEventListener('click', onModificaElettori);
+  $('#btnHomeCondividi').addEventListener('click', onCondividi);
+  $$('.scrutiny-step').forEach((btn) => btn.addEventListener('click', () => {
+    $$('.scrutiny-step').forEach((b) => b.classList.toggle('active', b === btn));
+    const target = document.getElementById(btn.dataset.scrollStep);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
 
   $('#affMaschi').addEventListener('input', aggiornaTotaleAffluenza);
   $('#affFemmine').addEventListener('input', aggiornaTotaleAffluenza);
@@ -1834,7 +1998,8 @@ async function avvia() {
   $('#modalCondivisione').addEventListener('click', (e) => { if (e.target.id === 'modalCondivisione') chiudiModalCondivisione(); });
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    if (!$('#modalLogout').hidden) chiudiModalLogout();
+    if (!$('#modalConfermaAzione').hidden) chiudiConfermaAzione();
+    else if (!$('#modalLogout').hidden) chiudiModalLogout();
     else if (!$('#modalElettori').hidden) chiudiModalElettori();
     else if (!$('#modalCondivisione').hidden) chiudiModalCondivisione();
   });

@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#102957" />
+<meta name="theme-color" content="#0b2148" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Rete Seggi" />
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 <link rel="icon" href="icons/icon-192.png" />
-<title>Rete Seggi · Roma Capitale</title>
+<title>Rete Seggi · Fratelli d’Italia · Municipio Roma IX</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -21,7 +21,7 @@
     <div class="brand">
       <img src="icons/icon-192.png" alt="" class="brand-icon" />
       <div class="brand-copy">
-        <p class="eyebrow">Rappresentanti di lista</p>
+        <p class="eyebrow">Fratelli d’Italia · Municipio Roma IX</p>
         <h1>Rete Seggi</h1>
       </div>
     </div>
@@ -55,9 +55,15 @@
   <section id="screen-login" class="screen active" aria-labelledby="loginTitolo">
     <article class="card login-card">
       <div class="login-intro">
-        <img src="icons/icon-192.png" alt="" class="login-logo" />
+        <div class="login-mark">
+          <img src="icons/icon-192.png" alt="" class="login-logo" />
+          <div class="login-identity">
+            <span>Coordinamento Rete Seggi</span>
+            <strong>Fratelli d’Italia · Municipio Roma IX</strong>
+          </div>
+        </div>
         <h2 id="loginTitolo">Accedi al tuo seggio</h2>
-        <p class="muted-text">Usa il codice personale fornito dal coordinamento. Il nome e le sezioni assegnate vengono verificati automaticamente.</p>
+        <p class="muted-text">Usa il codice personale fornito dal coordinamento. Nome e sezioni assegnate vengono verificati automaticamente.</p>
       </div>
       <label class="field">
         <span>Numero di telefono</span>
@@ -147,7 +153,11 @@
     </div>
 
     <nav class="tabs" aria-label="Sezioni app">
-      <button class="tab active" data-tab="affluenza" type="button">
+      <button class="tab active" data-tab="home" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5.5 10v10h13V10M9.5 20v-6h5v6"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="tab" data-tab="affluenza" type="button">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/></svg>
         <span>Affluenza</span>
       </button>
@@ -161,8 +171,62 @@
       </button>
     </nav>
 
+    <!-- --- HOME OPERATIVA --- -->
+    <div id="tab-home" class="tabpanel active">
+      <article class="home-hero">
+        <div class="home-hero-copy">
+          <p class="section-kicker light">Giornata elettorale</p>
+          <h2>Buon lavoro, <span id="homeNome">rappresentante</span></h2>
+          <p id="homeSeggio">Municipio Roma IX · Sezione —</p>
+        </div>
+        <div id="homeConnStatus" class="home-status" aria-live="polite">Verifico la connessione…</div>
+      </article>
+
+      <section class="home-actions" aria-labelledby="homeAzioniTitolo">
+        <div class="home-section-title">
+          <div><p class="section-kicker">Azioni principali</p><h2 id="homeAzioniTitolo">Cosa devi comunicare?</h2></div>
+        </div>
+        <div class="action-grid">
+          <button id="btnVaiAffluenza" class="action-card action-affluenza" type="button">
+            <span class="action-card-icon" aria-hidden="true">%</span>
+            <span class="action-card-copy"><strong>Affluenza</strong><small>Comunica i votanti dell’orario corrente</small></span>
+            <span class="action-card-arrow" aria-hidden="true">›</span>
+          </button>
+          <button id="btnVaiScrutinio" class="action-card action-scrutinio" type="button">
+            <span class="action-card-icon" aria-hidden="true">▣</span>
+            <span class="action-card-copy"><strong>Scrutinio</strong><small>Inserisci risultati e preferenze</small></span>
+            <span class="action-card-arrow" aria-hidden="true">›</span>
+          </button>
+        </div>
+      </section>
+
+      <article class="card home-section-card">
+        <div class="home-section-title">
+          <div><p class="section-kicker">Stato della sezione</p><h2>Giornata elettorale</h2></div>
+          <button id="btnVaiInvii" class="text-action" type="button">Vedi invii</button>
+        </div>
+        <div id="homeTimeline" class="election-timeline" aria-live="polite"></div>
+      </article>
+
+      <article class="card home-section-card">
+        <div class="home-section-title">
+          <div><p class="section-kicker">Ultima attività</p><h2>Riepilogo rapido</h2></div>
+        </div>
+        <div id="homeUltimoInvio" class="latest-activity">Nessun dato ancora salvato per questa sezione.</div>
+        <div class="home-summary-grid">
+          <div class="summary-stat"><span>Elettori</span><strong id="homeElettori">—</strong><button id="btnHomeModificaElettori" type="button">Modifica</button></div>
+          <div class="summary-stat"><span>Invii in attesa</span><strong id="homePending">0</strong><button id="btnHomeCondividi" type="button">Condividi</button></div>
+        </div>
+      </article>
+
+      <article class="support-card">
+        <div class="support-mark" aria-hidden="true">IX</div>
+        <div><strong>Coordinamento Municipio Roma IX</strong><p>In caso di dubbi sui dati, conserva l’invio sul telefono e contatta il coordinamento.</p></div>
+      </article>
+    </div>
+
     <!-- --- AFFLUENZA --- -->
-    <div id="tab-affluenza" class="tabpanel active">
+    <div id="tab-affluenza" class="tabpanel">
       <article class="card feature-card">
         <div class="section-heading"><div><p class="section-kicker">Durante la giornata</p><h2>Rilevazione affluenza</h2></div><span class="section-icon" aria-hidden="true">%</span></div>
         <div id="elettoriBanner" class="info-box">Elettori aventi diritto: <strong id="elettoriValore">—</strong> <button id="btnModificaElettori" class="link-btn inline-link" type="button">modifica</button></div>
@@ -212,7 +276,13 @@
 
     <!-- --- SCRUTINIO --- -->
     <div id="tab-scrutinio" class="tabpanel">
-      <article class="card">
+      <div class="scrutiny-progress" aria-label="Passaggi dello scrutinio">
+        <button type="button" class="scrutiny-step active" data-scroll-step="scrStepGenerali"><span>1</span>Dati generali</button>
+        <button type="button" class="scrutiny-step" data-scroll-step="scrStepComune"><span>2</span>Comune</button>
+        <button type="button" class="scrutiny-step" data-scroll-step="scrStepMunicipio"><span>3</span>Municipio</button>
+        <button type="button" class="scrutiny-step" data-scroll-step="scrStepRiepilogo"><span>4</span>Conferma</button>
+      </div>
+      <article id="scrStepGenerali" class="card scrutiny-card" data-step-number="1">
         <div class="section-title-row">
           <h2>Elettori e votanti</h2>
           <span id="scrutinioBadge" class="pill neutral">non inviato</span>
@@ -229,7 +299,7 @@
         </div>
       </article>
 
-      <article class="card">
+      <article id="scrStepComune" class="card scrutiny-card" data-step-number="2">
         <div class="section-title-row"><h2>Scheda Comune</h2><span class="pill neutral">Sindaco e Assemblea Capitolina</span></div>
         <div class="grid three">
           <label class="field"><span>Schede valide</span><input id="comValide" type="number" min="0" inputmode="numeric" step="1" /></label>
@@ -247,7 +317,7 @@
         <div id="preferenzeCapitolinaContainer" class="dynamic-list"></div>
       </article>
 
-      <article class="card">
+      <article id="scrStepMunicipio" class="card scrutiny-card" data-step-number="3">
         <div class="section-title-row"><h2>Scheda Municipio</h2><span class="pill neutral">Presidente e Consiglio</span></div>
         <div class="grid three">
           <label class="field"><span>Schede valide</span><input id="munValide" type="number" min="0" inputmode="numeric" step="1" /></label>
@@ -265,7 +335,8 @@
         <div id="preferenzeMunicipioContainer" class="dynamic-list"></div>
       </article>
 
-      <article class="card">
+      <article id="scrStepRiepilogo" class="card scrutiny-card final-step" data-step-number="4">
+        <div class="final-step-heading"><p class="section-kicker">Passaggio finale</p><h2>Note, controllo e invio</h2></div>
         <div id="scCorrezioneBox" class="correction-box" hidden>
           <strong>Correzione dell'ultimo scrutinio inviato</strong>
           <label class="field"><span>Motivo della correzione</span><input id="scMotivoCorrezione" type="text" maxlength="200" placeholder="Es. verbale ricontrollato" /></label>
@@ -385,6 +456,25 @@
     <div class="button-row modal-actions">
       <button id="btnConfermaLogout" class="btn danger" type="button">Esci dall’app</button>
       <button id="btnAnnullaLogout" class="btn ghost" type="button">Resta nell’app</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="modalConfermaAzione" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confermaAzioneTitolo" hidden>
+  <div class="modal-box compact-modal" tabindex="-1">
+    <div class="share-modal-heading">
+      <div>
+        <p id="confermaAzioneKicker" class="section-kicker">Conferma operazione</p>
+        <h2 id="confermaAzioneTitolo">Sei sicuro?</h2>
+      </div>
+      <button id="btnChiudiConfermaAzione" class="icon-close" type="button" aria-label="Chiudi">×</button>
+    </div>
+    <p id="confermaAzioneTesto" class="muted-text"></p>
+    <div id="confermaAzioneNota" class="confirmation-note" hidden></div>
+    <div class="button-row modal-actions">
+      <button id="btnEseguiConfermaAzione" class="btn danger" type="button">Conferma</button>
+      <button id="btnAnnullaConfermaAzione" class="btn ghost" type="button">Annulla</button>
     </div>
   </div>
 </div>
