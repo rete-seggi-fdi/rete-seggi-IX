@@ -12,8 +12,8 @@
 // Sostituire con l'URL del tuo Web App di Google Apps Script
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
-const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzL7HuHmf5CDNwbMhYDySBRLcEWsC-GcxSmkpZoVHsKK83hvhTFGPaJQx32iSXL-EJYDQ/exec';
-const APP_VERSION = '4.0.0';
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbz_dCjIA9SKcEKgEjFyXen7ZwrS2ZNYC6DLEFQgAUN_BgZoYoxdpKWWfiwGHFWQxm2ceg/exec';
+const APP_VERSION = '4.3.0';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -929,9 +929,12 @@ function validaScrutinio(s) {
 
   ['comune', 'municipio'].forEach((k) => {
     const blocco = s[k];
+    const nomeScheda = k === 'comune' ? 'Comune' : 'Municipio';
     const sommaSchede = blocco.valide + blocco.bianche + blocco.nulle + blocco.contestate;
-    if (sommaSchede && s.votanti && sommaSchede !== s.votanti) {
-      avvisi.push('Scheda ' + (k === 'comune' ? 'Comune' : 'Municipio') + ': valide+bianche+nulle+contestate (' + sommaSchede + ') non coincide con i votanti (' + s.votanti + '). Con il voto disgiunto può succedere: verifica comunque.');
+    if (sommaSchede > s.votanti) {
+      errori.push('Scheda ' + nomeScheda + ': valide + bianche + nulle + contestate (' + sommaSchede + ') supera i votanti (' + s.votanti + ').');
+    } else if (sommaSchede < s.votanti) {
+      avvisi.push('Scheda ' + nomeScheda + ': il totale delle schede (' + sommaSchede + ') è inferiore ai votanti (' + s.votanti + '). Verifica eventuali schede non consegnate o dati mancanti.');
     }
   });
   return { errori, avvisi };
@@ -990,6 +993,7 @@ function aggiornaBadgeScrutinio() {
 
 let payloadScrutinioPronto = null;
 let correzioneScrutinioId = null;
+let tentativoScrutinioDaSostituireId = null;
 
 async function onInviaScrutinio() {
   const errBox = $('#scrutinioErrori');
@@ -1006,7 +1010,7 @@ async function onInviaScrutinio() {
   }
   if (avvisi.length && !confirm('Ci sono alcuni promemoria sui numeri inseriti:\n\n' + avvisi.join('\n') + '\n\nVuoi procedere comunque?')) return;
 
-  const idInvio = uuid();
+  const idInvio = tentativoScrutinioDaSostituireId || uuid();
   payloadScrutinioPronto = {
     tipo: 'scrutinio', idInvio, sessionToken: sessionToken(),
     municipio: STATE.profile.municipio, sezione: STATE.profile.sezione,
@@ -1089,12 +1093,17 @@ async function onConfermaInvioScrutinio() {
   $('#modalRiepilogo').hidden = true;
   if (!payloadScrutinioPronto) return;
   const id = payloadScrutinioPronto.idInvio;
-  if (!accodaInvio(LS.QUEUE_SCR, payloadScrutinioPronto)) {
+  const tentativoDaSostituire = tentativoScrutinioDaSostituireId;
+  const salvato = tentativoDaSostituire
+    ? sostituisciInvioInCoda(LS.QUEUE_SCR, tentativoDaSostituire, payloadScrutinioPronto)
+    : accodaInvio(LS.QUEUE_SCR, payloadScrutinioPronto);
+  if (!salvato) {
     showToast('Impossibile salvare sul telefono: spazio non disponibile.', 4500);
     return;
   }
   salvaBozzaScrutinio(false);
   correzioneScrutinioId = null;
+  tentativoScrutinioDaSostituireId = null;
   $('#scCorrezioneBox').hidden = true;
   $('#scMotivoCorrezione').value = '';
   aggiornaBadgeScrutinio(); renderTabellaInvii(); aggiornaBadgeInCoda();
@@ -1114,7 +1123,10 @@ function ultimoScrutinioAttivo() {
 }
 
 function aggiornaPulsanteCorrezioneScrutinio() {
-  $('#btnCorreggiScrutinio').hidden = !ultimoScrutinioAttivo();
+  const btn = $('#btnCorreggiScrutinio');
+  const ultimo = ultimoScrutinioAttivo();
+  btn.hidden = !ultimo;
+  if (ultimo) btn.textContent = ultimo.status === 'synced' ? 'Correggi ultimo invio' : 'Correggi tentativo non inviato';
 }
 
 function impostaDynPerNome(prefix, valori, campoNome) {
@@ -1126,8 +1138,10 @@ function correggiUltimoScrutinio() {
   const item = ultimoScrutinioAttivo();
   if (!item) return;
   const p = item.payload;
-  correzioneScrutinioId = item.idInvio;
-  $('#scCorrezioneBox').hidden = false;
+  const giaRicevuto = item.status === 'synced';
+  correzioneScrutinioId = giaRicevuto ? item.idInvio : null;
+  tentativoScrutinioDaSostituireId = giaRicevuto ? null : item.idInvio;
+  $('#scCorrezioneBox').hidden = !giaRicevuto;
   $('#scMotivoCorrezione').value = '';
   $('#scElettori').value = p.elettori ?? '';
   $('#scVotanti').value = p.votanti ?? '';
@@ -1156,6 +1170,22 @@ function accodaInvio(queueKey, payload) {
     idInvio: payload.idInvio, payload, status: 'pending', creato: new Date().toISOString(),
     tentativi: 0, ultimoTentativo: null, ultimoErrore: '', sincronizzatoIl: null,
   });
+  return saveJSON(queueKey, coda);
+}
+
+function sostituisciInvioInCoda(queueKey, idInvio, payload) {
+  const coda = loadJSON(queueKey, []);
+  const item = coda.find((x) => x.idInvio === idInvio);
+  if (!item || item.status === 'synced') return false;
+  item.payload = payload;
+  item.idInvio = payload.idInvio;
+  item.status = 'pending';
+  item.tentativi = 0;
+  item.ultimoTentativo = null;
+  item.ultimoErrore = '';
+  item.codiceErrore = '';
+  item.sincronizzatoIl = null;
+  item.rispostaServer = null;
   return saveJSON(queueKey, coda);
 }
 
