@@ -12,7 +12,8 @@
 // Sostituire con l'URL del tuo Web App di Google Apps Script
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
-const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbz_dCjIA9SKcEKgEjFyXen7ZwrS2ZNYC6DLEFQgAUN_BgZoYoxdpKWWfiwGHFWQxm2ceg/exec';
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzL7HuHmf5CDNwbMhYDySBRLcEWsC-GcxSmkpZoVHsKK83hvhTFGPaJQx32iSXL-EJYDQ/exec';
+const APP_VERSION = '4.0.0';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -23,6 +24,8 @@ const NOMI_MUNICIPI = {
 
 const LS = {
   CODICE: 'rs_codice',
+  TOKEN: 'rs_session_token',
+  TOKEN_EXPIRES: 'rs_session_expires',
   PERSONA: 'rs_persona',
   SEGGI: 'rs_seggi',
   SEGGIO_ATTIVO: 'rs_seggio_attivo',
@@ -30,7 +33,7 @@ const LS = {
   MUN_DATA: (mu) => 'rs_mun_data_' + mu,
   QUEUE_AFF: 'rs_queue_affluenza',
   QUEUE_SCR: 'rs_queue_scrutinio',
-  SCR_DRAFT: (sez) => 'rs_scrutinio_draft_' + sez,
+  SCR_DRAFT: (mu, sez) => 'rs_scrutinio_draft_' + mu + '_' + sez,
   INSTALL_DISMISSED: 'rs_install_dismissed',
 };
 
@@ -93,6 +96,35 @@ function normalizza(s) {
 function numOr0(v) {
   const n = Number(v);
   return isNaN(n) ? 0 : n;
+}
+
+function haValore(v) { return v !== undefined && v !== null && String(v).trim() !== ''; }
+function interoNonNegativo(v) {
+  if (!haValore(v)) return null;
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 0 ? n : null;
+}
+function sessionToken() { return loadJSON(LS.TOKEN, ''); }
+function impostaNonValido(el, invalido) {
+  if (!el) return;
+  if (invalido) el.setAttribute('aria-invalid', 'true');
+  else el.removeAttribute('aria-invalid');
+}
+function trovaItem(queueKey, idInvio) {
+  return loadJSON(queueKey, []).find((it) => it.idInvio === idInvio) || null;
+}
+function idsSostituiti(queueKey) {
+  return new Set(loadJSON(queueKey, []).map((it) => it.payload && it.payload.correzioneDi).filter(Boolean));
+}
+function aggiornaTokenInviiInCoda(token) {
+  [LS.QUEUE_AFF, LS.QUEUE_SCR].forEach((queueKey) => {
+    const coda = loadJSON(queueKey, []);
+    let changed = false;
+    coda.forEach((item) => {
+      if (item.status !== 'synced' && item.payload) { item.payload.sessionToken = token; changed = true; }
+    });
+    if (changed) saveJSON(queueKey, coda);
+  });
 }
 
 // ---------------------------------------------------------------------
@@ -221,76 +253,69 @@ function orariAffluenza() { return (STATE.config && STATE.config.orari) || []; }
 // SCHERMATA 0 — LOGIN CON CODICE ACCESSO
 // =======================================================================
 async function onLogin() {
-  const nomeInput = $('#loginNome').value.trim();
+  const telefono = $('#loginTelefono').value.trim();
   const codice = $('#inputCodice').value.trim().toUpperCase();
   const errBox = $('#loginErrore');
   errBox.hidden = true;
 
   const errori = [];
-  if (!nomeInput) errori.push('Inserisci il tuo nome e cognome.');
+  if (!telefono || telefono.replace(/\D/g, '').length < 8) errori.push('Inserisci un numero di telefono valido.');
   if (!codice) errori.push('Inserisci il tuo codice di accesso.');
   if (errori.length) {
-    errBox.innerHTML = errori.map((e) => '<p>⚠️ ' + escapeHtml(e) + '</p>').join('');
+    errBox.innerHTML = '<ul>' + errori.map((e) => '<li>' + escapeHtml(e) + '</li>').join('') + '</ul>';
     errBox.hidden = false;
     return;
   }
 
   const btn = $('#btnLogin');
-  btn.textContent = 'Verifico...';
+  btn.textContent = 'Verifico…';
   btn.disabled = true;
 
   try {
     const url = BACKEND_URL + '?action=verifica_codice&codice=' + encodeURIComponent(codice);
     const res = await fetch(url, { cache: 'no-store', redirect: 'follow' });
-    const testo = await res.text();
-    const data = JSON.parse(testo);
+    const data = JSON.parse(await res.text());
+    if (!data.ok || !data.sessionToken) throw new Error(data.error || 'Codice non valido.');
 
-    if (!data.ok) {
-      errBox.innerHTML = '<p>❌ ' + escapeHtml(data.error || 'Codice non valido.') + '</p>';
-      errBox.hidden = false;
-      btn.textContent = 'Accedi';
-      btn.disabled = false;
-      return;
-    }
-
-    // Codice valido: uso il nome inserito dall'utente
     saveJSON(LS.CODICE, codice);
-    STATE.persona = { nome: nomeInput, telefono: '' };
+    saveJSON(LS.TOKEN, data.sessionToken);
+    saveJSON(LS.TOKEN_EXPIRES, data.sessionExpiresAt || null);
+    aggiornaTokenInviiInCoda(data.sessionToken);
+    STATE.persona = { nome: data.nome || 'Rappresentante', telefono };
     saveJSON(LS.PERSONA, STATE.persona);
+    STATE.seggi = [];
 
-    // Carico tutte le sezioni assegnate a questo codice
     if (data.sezioni && data.sezioni.length > 0) {
-      for (const s of data.sezioni) {
+      for (const assegnazione of data.sezioni) {
         try {
-          const munData = await caricaDatiMunicipio(s.municipio);
-          const sezInfo = trovaSezione(munData, s.sezione) || { s: s.sezione, addr: '', cap: '' };
-          const id = idSeggio(s.municipio, sezInfo.s);
+          const munData = await caricaDatiMunicipio(assegnazione.municipio);
+          const sezInfo = trovaSezione(munData, assegnazione.sezione) || { s: assegnazione.sezione, addr: '', cap: '' };
+          const id = idSeggio(assegnazione.municipio, sezInfo.s);
           if (!STATE.seggi.some((seg) => seg.id === id)) {
-            STATE.seggi.push({ id, municipio: s.municipio, sezione: sezInfo.s, addr: sezInfo.addr, cap: sezInfo.cap, elettori: null });
+            STATE.seggi.push({ id, municipio: assegnazione.municipio, sezione: sezInfo.s, addr: sezInfo.addr, cap: sezInfo.cap, elettori: null });
           }
         } catch (e) {
-          // Se non riesce a caricare i dati del municipio, aggiunge il seggio senza indirizzo
-          const id = idSeggio(s.municipio, s.sezione);
+          const id = idSeggio(assegnazione.municipio, assegnazione.sezione);
           if (!STATE.seggi.some((seg) => seg.id === id)) {
-            STATE.seggi.push({ id, municipio: s.municipio, sezione: s.sezione, addr: '', cap: '', elettori: null });
+            STATE.seggi.push({ id, municipio: assegnazione.municipio, sezione: assegnazione.sezione, addr: '', cap: '', elettori: null });
           }
         }
       }
       saveJSON(LS.SEGGI, STATE.seggi);
-      if (!STATE.seggioAttivoId && STATE.seggi.length) {
-        STATE.seggioAttivoId = STATE.seggi[0].id;
-        saveJSON(LS.SEGGIO_ATTIVO, STATE.seggioAttivoId);
-      }
+      STATE.seggioAttivoId = STATE.seggi[0].id;
+      saveJSON(LS.SEGGIO_ATTIVO, STATE.seggioAttivoId);
       ricostruisciProfileDaSeggioAttivo();
-      $('#screen-login').classList.remove('active');
       mostraDashboard();
+      showToast('Accesso effettuato come ' + STATE.persona.nome + '.');
     } else {
-      // Nessuna sezione assegnata: va al setup per inserirla manualmente
       vaiAlSetupPrecompilato(data);
     }
   } catch (e) {
-    errBox.textContent = 'Errore di connessione. Verifica la rete e riprova.';
+    errBox.textContent = e.message === 'Failed to fetch'
+      ? 'Connessione non disponibile. Il primo accesso richiede la rete.'
+      : (e.message || 'Impossibile verificare il codice.');
     errBox.hidden = false;
+  } finally {
     btn.textContent = 'Accedi';
     btn.disabled = false;
   }
@@ -310,6 +335,19 @@ function mostraLoginSeNecessario() {
     return true;
   }
   return false;
+}
+
+function onLogout() {
+  if (!confirm('Uscire da Rete Seggi su questo dispositivo? Gli invii già sincronizzati restano nel foglio; le bozze e gli invii in coda resteranno sul telefono.')) return;
+  [LS.CODICE, LS.TOKEN, LS.TOKEN_EXPIRES, LS.PERSONA, LS.SEGGI, LS.SEGGIO_ATTIVO].forEach((key) => localStorage.removeItem(key));
+  STATE.persona = null; STATE.seggi = []; STATE.seggioAttivoId = null; STATE.profile = null;
+  $('#screen-dashboard').classList.remove('active');
+  $('#screen-setup').classList.remove('active');
+  $('#screen-login').classList.add('active');
+  $('#btnLogout').hidden = true;
+  $('#inputCodice').value = '';
+  $('#loginTelefono').value = '';
+  $('#inputCodice').focus();
 }
 
 // =======================================================================
@@ -368,7 +406,7 @@ function onCambiaSezioneSetup() {
 }
 
 function escapeHtml(s) {
-  return (s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  return String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 }
 
 function numOrNull(v) {
@@ -569,6 +607,7 @@ function onCambiaSeggioAttivo() {
 // SCHERMATA 2 — DASHBOARD
 // =======================================================================
 function mostraDashboard() {
+  $('#btnLogout').hidden = false;
   $('#screen-login').classList.remove('active');
   $('#screen-setup').classList.remove('active');
   $('#screen-dashboard').classList.add('active');
@@ -580,6 +619,7 @@ function mostraDashboard() {
   caricaBozzaScrutinio();
   renderTabellaInvii();
   aggiornaBadgeInCoda();
+  aggiornaPulsanteCorrezioneScrutinio();
 }
 
 function renderElettoriBanner() {
@@ -592,7 +632,11 @@ function onModificaElettori() {
   const attuale = STATE.profile.elettori || '';
   const v = prompt('Elettori aventi diritto al voto in questa sezione (numero fisso, te lo conferma il presidente di seggio):', attuale);
   if (v === null) return;
-  const n = numOrNull(v.trim());
+  const n = interoNonNegativo(v.trim());
+  if (n === null || n === 0) {
+    showToast('Inserisci un numero intero maggiore di zero.');
+    return;
+  }
   STATE.profile.elettori = n;
   const seg = trovaSeggio(STATE.seggioAttivoId);
   if (seg) { seg.elettori = n; saveJSON(LS.SEGGI, STATE.seggi); }
@@ -601,14 +645,35 @@ function onModificaElettori() {
 }
 
 function initTabs() {
-  $all('.tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      $all('.tab').forEach((t) => t.classList.remove('active'));
-      $all('.tabpanel').forEach((p) => p.classList.remove('active'));
-      tab.classList.add('active');
-      $('#tab-' + tab.dataset.tab).classList.add('active');
+  const tabs = $all('.tab');
+  function attiva(tab, spostaFocus) {
+    tabs.forEach((t) => {
+      const active = t === tab;
+      t.classList.toggle('active', active);
+      t.setAttribute('aria-selected', active ? 'true' : 'false');
+      t.tabIndex = active ? 0 : -1;
+      const panel = $('#tab-' + t.dataset.tab);
+      panel.classList.toggle('active', active);
+      panel.hidden = !active;
+    });
+    if (spostaFocus) tab.focus();
+  }
+  tabs.forEach((tab, index) => {
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-controls', 'tab-' + tab.dataset.tab);
+    tab.addEventListener('click', () => attiva(tab, false));
+    tab.addEventListener('keydown', (e) => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+      e.preventDefault();
+      let next = index;
+      if (e.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+      if (e.key === 'ArrowRight') next = (index + 1) % tabs.length;
+      if (e.key === 'Home') next = 0;
+      if (e.key === 'End') next = tabs.length - 1;
+      attiva(tabs[next], true);
     });
   });
+  attiva(tabs.find((t) => t.classList.contains('active')) || tabs[0], false);
 }
 
 // ---------------------------- AFFLUENZA --------------------------------
@@ -636,6 +701,7 @@ function renderAffluenza() {
 
 let affluenzaCorrente = null;
 let modalitaAffluenzaCorrente = 'rapido';
+let correzioneAffluenzaId = null;
 
 function apriFormAffluenza(giorno, orario) {
   affluenzaCorrente = { giorno, orario };
@@ -644,11 +710,14 @@ function apriFormAffluenza(giorno, orario) {
   $('#affMaschi').value = '';
   $('#affFemmine').value = '';
   $('#affNote').value = '';
+  $('#affMotivoCorrezione').value = '';
+  $('#affCorrezioneBox').hidden = true;
+  correzioneAffluenzaId = null;
   impostaModalitaAffluenza('rapido');
   aggiornaTotaleAffluenza();
   $('#formAffluenza').hidden = false;
 }
-function chiudiFormAffluenza() { $('#formAffluenza').hidden = true; affluenzaCorrente = null; }
+function chiudiFormAffluenza() { $('#formAffluenza').hidden = true; affluenzaCorrente = null; correzioneAffluenzaId = null; $('#affCorrezioneBox').hidden = true; }
 
 function impostaModalitaAffluenza(modo) {
   modalitaAffluenzaCorrente = modo;
@@ -686,57 +755,117 @@ function invitiAffluenzaSezione() {
 
 async function onInviaAffluenza() {
   if (!affluenzaCorrente) return;
+  const errBox = $('#affluenzaErrori');
+  errBox.hidden = true;
   const dettaglio = modalitaAffluenzaCorrente === 'dettaglio';
-  const maschi = dettaglio ? numOr0($('#affMaschi').value) : null;
-  const femmine = dettaglio ? numOr0($('#affFemmine').value) : null;
-  const totale = totaleAffluenzaCorrente();
+  const totaleInput = dettaglio ? null : interoNonNegativo($('#affTotaleVotanti').value);
+  const maschi = dettaglio ? interoNonNegativo($('#affMaschi').value) : null;
+  const femmine = dettaglio ? interoNonNegativo($('#affFemmine').value) : null;
+  const totale = dettaglio && maschi !== null && femmine !== null ? maschi + femmine : totaleInput;
+  const errori = [];
+
+  impostaNonValido($('#affTotaleVotanti'), !dettaglio && totaleInput === null);
+  impostaNonValido($('#affMaschi'), dettaglio && maschi === null);
+  impostaNonValido($('#affFemmine'), dettaglio && femmine === null);
+  if (totale === null) errori.push('Inserisci votanti usando numeri interi uguali o maggiori di zero.');
+  if (STATE.profile.elettori && totale !== null && totale > STATE.profile.elettori) errori.push('I votanti non possono superare gli elettori iscritti.');
+  if (correzioneAffluenzaId && !$('#affMotivoCorrezione').value.trim()) errori.push('Indica il motivo della correzione.');
+
+  const precedenti = loadJSON(LS.QUEUE_AFF, []).filter((it) =>
+    it.payload.municipio === STATE.profile.municipio && it.payload.sezione === STATE.profile.sezione &&
+    it.payload.giorno === affluenzaCorrente.giorno && it.payload.orario === affluenzaCorrente.orario &&
+    !idsSostituiti(LS.QUEUE_AFF).has(it.idInvio)
+  );
+  if (precedenti.length && !correzioneAffluenzaId) errori.push('Esiste già una rilevazione per questo orario. Usa “Correggi” nella tabella.');
+  if (errori.length) {
+    errBox.innerHTML = '<ul>' + errori.map((e) => '<li>' + escapeHtml(e) + '</li>').join('') + '</ul>';
+    errBox.hidden = false;
+    return;
+  }
+
   const payload = {
-    tipo: 'affluenza',
-    idInvio: uuid(),
-    codice: loadJSON(LS.CODICE, ''),
-    municipio: STATE.profile.municipio,
-    sezione: STATE.profile.sezione,
-    rappresentante: STATE.profile.nome,
+    tipo: 'affluenza', idInvio: uuid(), sessionToken: sessionToken(),
+    municipio: STATE.profile.municipio, sezione: STATE.profile.sezione,
     telefono: STATE.profile.telefono,
-    giorno: affluenzaCorrente.giorno,
-    orario: affluenzaCorrente.orario,
-    elettori: STATE.profile.elettori || null,
-    maschi, femmine, totale,
+    giorno: affluenzaCorrente.giorno, orario: affluenzaCorrente.orario,
+    elettori: STATE.profile.elettori || null, maschi, femmine, totale,
     note: $('#affNote').value.trim(),
+    correzioneDi: correzioneAffluenzaId || '',
+    motivoCorrezione: correzioneAffluenzaId ? $('#affMotivoCorrezione').value.trim() : '',
+    versioneApp: APP_VERSION,
   };
-  accodaInvio(LS.QUEUE_AFF, payload);
+  if (!accodaInvio(LS.QUEUE_AFF, payload)) {
+    errBox.textContent = 'Spazio di archiviazione del telefono non disponibile. Non chiudere la pagina e libera spazio prima di riprovare.';
+    errBox.hidden = false;
+    return;
+  }
+  const id = payload.idInvio;
   chiudiFormAffluenza();
   renderAffluenza();
   aggiornaBadgeInCoda();
-  showToast('Rilevazione salvata. Invio in corso...');
-  provaSvuotaCode();
+  showToast(navigator.onLine ? 'Salvato sul telefono. Verifico la ricezione…' : 'Salvato sul telefono. Sarà inviato quando torna la rete.');
+  await provaSvuotaCode();
+  const item = trovaItem(LS.QUEUE_AFF, id);
+  if (item && item.status === 'synced') showToast('Rilevazione ricevuta dal coordinamento.');
+  else if (item && item.status === 'error') showToast('Salvata sul telefono, ma non ancora ricevuta. Controlla “I miei invii”.', 4500);
 }
 
 function renderTabellaAffluenza() {
   const tbody = $('#tabellaAffluenza tbody');
   tbody.innerHTML = '';
+  const sostituiti = idsSostituiti(LS.QUEUE_AFF);
   const tutti = loadJSON(LS.QUEUE_AFF, [])
     .filter((it) => it.payload.sezione === STATE.profile.sezione && it.payload.municipio === STATE.profile.municipio)
     .sort((a, b) => (a.creato < b.creato ? 1 : -1));
   if (!tutti.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="muted-text">Nessuna rilevazione ancora inviata.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="muted-text">Nessuna rilevazione ancora salvata.</td></tr>';
     return;
   }
   tutti.forEach((it) => {
     const p = it.payload;
     const el = p.elettori || STATE.profile.elettori;
     const perc = el ? percentuale(p.totale, el) + '%' : '—';
+    const superato = sostituiti.has(it.idInvio);
     const tr = document.createElement('tr');
     tr.innerHTML = '<td>' + escapeHtml((p.giorno ? p.giorno + ' ' : '') + p.orario) + '</td><td>' + (p.maschi ?? '—') +
-      '</td><td>' + (p.femmine ?? '—') + '</td><td>' + p.totale + '</td><td>' + perc + '</td><td>' + statoPillHtml(it.status) + '</td>';
+      '</td><td>' + (p.femmine ?? '—') + '</td><td>' + p.totale + '</td><td>' + perc + '</td><td>' +
+      (superato ? '<span class="pill neutral">sostituito</span>' : statoPillHtml(it.status)) + '</td><td></td>';
+    if (!superato) {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'btn ghost small'; btn.textContent = 'Correggi';
+      btn.addEventListener('click', () => correggiAffluenza(it.idInvio));
+      tr.lastElementChild.appendChild(btn);
+    }
     tbody.appendChild(tr);
   });
 }
 
+function correggiAffluenza(idInvio) {
+  const item = trovaItem(LS.QUEUE_AFF, idInvio);
+  if (!item || !item.payload) return;
+  const p = item.payload;
+  apriFormAffluenza(p.giorno, p.orario);
+  correzioneAffluenzaId = idInvio;
+  $('#affCorrezioneBox').hidden = false;
+  $('#affNote').value = p.note || '';
+  if (p.maschi !== null && p.maschi !== undefined && p.femmine !== null && p.femmine !== undefined) {
+    impostaModalitaAffluenza('dettaglio');
+    $('#affMaschi').value = p.maschi;
+    $('#affFemmine').value = p.femmine;
+  } else {
+    impostaModalitaAffluenza('rapido');
+    $('#affTotaleVotanti').value = p.totale;
+  }
+  aggiornaTotaleAffluenza();
+  $('#formAffluenza').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('#affMotivoCorrezione').focus();
+}
+
 function statoPillHtml(status) {
   if (status === 'synced') return '<span class="pill good">inviato</span>';
-  if (status === 'error') return '<span class="pill bad">errore</span>';
-  return '<span class="pill warn">in coda</span>';
+  if (status === 'syncing') return '<span class="pill warn">invio…</span>';
+  if (status === 'error') return '<span class="pill bad">da riprovare</span>';
+  return '<span class="pill warn">sul telefono</span>';
 }
 
 // ---------------------------- SCRUTINIO ---------------------------------
@@ -761,7 +890,7 @@ function renderDynList(selector, voci, prefix) {
     row.className = 'dyn-row';
     const id = prefix + '_' + idx;
     row.innerHTML = '<label for="' + id + '">' + escapeHtml(nome) + '</label>' +
-      '<input id="' + id + '" type="number" min="0" inputmode="numeric" data-nome="' + escapeHtml(nome) + '" value="0" />';
+      '<input id="' + id + '" type="number" min="0" step="1" inputmode="numeric" data-nome="' + escapeHtml(nome) + '" value="0" />';
     cont.appendChild(row);
   });
 }
@@ -790,9 +919,13 @@ function raccogliScrutinio() {
 
 function validaScrutinio(s) {
   const errori = [], avvisi = [];
-  if (!s.elettori) errori.push('Inserisci il numero di elettori iscritti.');
-  if (!s.votanti) errori.push('Inserisci il numero di votanti totali.');
-  if (s.votanti > s.elettori) avvisi.push('I votanti superano gli elettori iscritti: controlla i numeri.');
+  const numerici = $all('#tab-scrutinio input[type="number"]');
+  const invalidi = numerici.filter((el) => haValore(el.value) && interoNonNegativo(el.value) === null);
+  numerici.forEach((el) => impostaNonValido(el, invalidi.includes(el)));
+  if (invalidi.length) errori.push('Tutti i conteggi devono essere numeri interi non negativi.');
+  if (!haValore($('#scElettori').value) || s.elettori <= 0) errori.push('Inserisci il numero di elettori iscritti.');
+  if (!haValore($('#scVotanti').value)) errori.push('Inserisci il numero di votanti totali.');
+  if (s.votanti > s.elettori) errori.push('I votanti non possono superare gli elettori iscritti.');
 
   ['comune', 'municipio'].forEach((k) => {
     const blocco = s[k];
@@ -814,7 +947,7 @@ function aggiornaAvvisiScrutinio() {
   } else { box.hidden = true; }
 }
 
-function chiaveBozza() { return LS.SCR_DRAFT(STATE.profile.sezione); }
+function chiaveBozza() { return LS.SCR_DRAFT(STATE.profile.municipio, STATE.profile.sezione); }
 
 function salvaBozzaScrutinio(manuale) {
   saveJSON(chiaveBozza(), raccogliScrutinio());
@@ -848,14 +981,15 @@ function scrutinioGiaInviato() {
 
 function aggiornaBadgeScrutinio() {
   const badge = $('#scrutinioBadge');
-  const tutti = loadJSON(LS.QUEUE_SCR, []).filter((it) => it.payload.sezione === STATE.profile.sezione && it.payload.municipio === STATE.profile.municipio);
-  if (!tutti.length) { badge.textContent = 'non inviato'; badge.className = 'pill neutral'; return; }
-  const ultimo = tutti[tutti.length - 1];
-  if (ultimo.status === 'synced') { badge.textContent = 'inviato e sincronizzato'; badge.className = 'pill good'; }
-  else { badge.textContent = 'inviato, in coda di sincronizzazione'; badge.className = 'pill warn'; }
+  const ultimo = ultimoScrutinioAttivo();
+  if (!ultimo) { badge.textContent = 'non inviato'; badge.className = 'pill neutral'; return; }
+  if (ultimo.status === 'synced') { badge.textContent = ultimo.payload.correzioneDi ? 'correzione sincronizzata' : 'inviato e sincronizzato'; badge.className = 'pill good'; }
+  else if (ultimo.status === 'error') { badge.textContent = 'salvato, da riprovare'; badge.className = 'pill bad'; }
+  else { badge.textContent = 'salvato sul telefono'; badge.className = 'pill warn'; }
 }
 
 let payloadScrutinioPronto = null;
+let correzioneScrutinioId = null;
 
 async function onInviaScrutinio() {
   const errBox = $('#scrutinioErrori');
@@ -867,18 +1001,23 @@ async function onInviaScrutinio() {
     errBox.hidden = false;
     return;
   }
+  if (correzioneScrutinioId && !$('#scMotivoCorrezione').value.trim()) {
+    errBox.textContent = 'Indica il motivo della correzione.'; errBox.hidden = false; return;
+  }
   if (avvisi.length && !confirm('Ci sono alcuni promemoria sui numeri inseriti:\n\n' + avvisi.join('\n') + '\n\nVuoi procedere comunque?')) return;
 
   const idInvio = uuid();
   payloadScrutinioPronto = {
-    tipo: 'scrutinio', idInvio,
-    codice: loadJSON(LS.CODICE, ''),
+    tipo: 'scrutinio', idInvio, sessionToken: sessionToken(),
     municipio: STATE.profile.municipio, sezione: STATE.profile.sezione,
     rappresentante: STATE.profile.nome, telefono: STATE.profile.telefono,
     elettori: s.elettori, votanti: s.votanti,
     schedaComune: { valide: s.comune.valide, bianche: s.comune.bianche, nulle: s.comune.nulle, contestate: s.comune.contestate },
     schedaMunicipio: { valide: s.municipio.valide, bianche: s.municipio.bianche, nulle: s.municipio.nulle, contestate: s.municipio.contestate },
     note: s.note,
+    correzioneDi: correzioneScrutinioId || '',
+    motivoCorrezione: correzioneScrutinioId ? $('#scMotivoCorrezione').value.trim() : '',
+    versioneApp: APP_VERSION,
     sindaci: leggiDynList('si').map((x) => ({ nome: x.nome, voti: x.voti })),
     presidenti: leggiDynList('pr').map((x) => ({ nome: x.nome, voti: x.voti })),
     liste: [].concat(
@@ -943,101 +1082,201 @@ function mostraRiepilogoScrutinio(s) {
   if (s.note) sezioneRiep('Note', [['', s.note]]);
 
   $('#modalRiepilogo').hidden = false;
+  requestAnimationFrame(() => $('#btnConfermaInvio').focus());
 }
 
 async function onConfermaInvioScrutinio() {
   $('#modalRiepilogo').hidden = true;
   if (!payloadScrutinioPronto) return;
-  accodaInvio(LS.QUEUE_SCR, payloadScrutinioPronto);
+  const id = payloadScrutinioPronto.idInvio;
+  if (!accodaInvio(LS.QUEUE_SCR, payloadScrutinioPronto)) {
+    showToast('Impossibile salvare sul telefono: spazio non disponibile.', 4500);
+    return;
+  }
   salvaBozzaScrutinio(false);
-  aggiornaBadgeScrutinio();
-  renderTabellaInvii();
-  aggiornaBadgeInCoda();
-  showToast('Scrutinio inviato con successo!');
+  correzioneScrutinioId = null;
+  $('#scCorrezioneBox').hidden = true;
+  $('#scMotivoCorrezione').value = '';
+  aggiornaBadgeScrutinio(); renderTabellaInvii(); aggiornaBadgeInCoda();
+  showToast(navigator.onLine ? 'Salvato sul telefono. Verifico la ricezione…' : 'Salvato sul telefono. Sarà inviato quando torna la rete.');
   payloadScrutinioPronto = null;
-  provaSvuotaCode();
+  await provaSvuotaCode();
+  const item = trovaItem(LS.QUEUE_SCR, id);
+  if (item && item.status === 'synced') showToast('Scrutinio ricevuto dal coordinamento.');
+  else if (item && item.status === 'error') showToast('Scrutinio salvato, ma non ancora ricevuto. Controlla “I miei invii”.', 4500);
+}
+
+function ultimoScrutinioAttivo() {
+  const sostituiti = idsSostituiti(LS.QUEUE_SCR);
+  return loadJSON(LS.QUEUE_SCR, []).filter((it) =>
+    it.payload && it.payload.municipio === STATE.profile.municipio && it.payload.sezione === STATE.profile.sezione && !sostituiti.has(it.idInvio)
+  ).sort((a, b) => a.creato < b.creato ? 1 : -1)[0] || null;
+}
+
+function aggiornaPulsanteCorrezioneScrutinio() {
+  $('#btnCorreggiScrutinio').hidden = !ultimoScrutinioAttivo();
+}
+
+function impostaDynPerNome(prefix, valori, campoNome) {
+  const mappa = new Map((valori || []).map((x) => [x[campoNome || 'nome'], x.voti]));
+  $all('[id^="' + prefix + '_"]').forEach((inp) => { inp.value = mappa.get(inp.dataset.nome) ?? 0; });
+}
+
+function correggiUltimoScrutinio() {
+  const item = ultimoScrutinioAttivo();
+  if (!item) return;
+  const p = item.payload;
+  correzioneScrutinioId = item.idInvio;
+  $('#scCorrezioneBox').hidden = false;
+  $('#scMotivoCorrezione').value = '';
+  $('#scElettori').value = p.elettori ?? '';
+  $('#scVotanti').value = p.votanti ?? '';
+  const sc = p.schedaComune || {}, sm = p.schedaMunicipio || {};
+  $('#comValide').value = sc.valide ?? ''; $('#comBianche').value = sc.bianche ?? ''; $('#comNulle').value = sc.nulle ?? ''; $('#comContestate').value = sc.contestate ?? '';
+  $('#munValide').value = sm.valide ?? ''; $('#munBianche').value = sm.bianche ?? ''; $('#munNulle').value = sm.nulle ?? ''; $('#munContestate').value = sm.contestate ?? '';
+  $('#scNote').value = p.note || '';
+  impostaDynPerNome('si', p.sindaci || []); impostaDynPerNome('pr', p.presidenti || []);
+  impostaDynPerNome('lc', (p.liste || []).filter((x) => x.livello === 'Comune'));
+  impostaDynPerNome('lm', (p.liste || []).filter((x) => x.livello === 'Municipio'));
+  impostaDynPerNome('pc', (p.preferenze || []).filter((x) => x.livello === 'Comune'), 'candidato');
+  impostaDynPerNome('pm', (p.preferenze || []).filter((x) => x.livello === 'Municipio'), 'candidato');
+  document.querySelector('.tab[data-tab="scrutinio"]').click();
+  $('#scCorrezioneBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  $('#scMotivoCorrezione').focus();
 }
 
 // =======================================================================
 // CODA OFFLINE E INVIO AL BACKEND
 // =======================================================================
+let sincronizzazioneInCorso = false;
+
 function accodaInvio(queueKey, payload) {
   const coda = loadJSON(queueKey, []);
-  coda.push({ idInvio: payload.idInvio, payload, status: 'pending', creato: new Date().toISOString(), tentativi: 0 });
-  saveJSON(queueKey, coda);
+  coda.push({
+    idInvio: payload.idInvio, payload, status: 'pending', creato: new Date().toISOString(),
+    tentativi: 0, ultimoTentativo: null, ultimoErrore: '', sincronizzatoIl: null,
+  });
+  return saveJSON(queueKey, coda);
 }
 
-async function inviaAlBackend(payload) {
-  if (!backendConfigurato()) throw new Error('Backend non configurato');
-  // Google Apps Script reindirizza le POST causando errori CORS.
-  // Usiamo una GET con il payload codificato come parametro: non ha redirect
-  // e non richiede preflight CORS.
-  const url = BACKEND_URL + '?invio=' + encodeURIComponent(JSON.stringify(payload));
-  const res = await fetch(url, { method: 'GET', cache: 'no-store', redirect: 'follow' });
+async function leggiRispostaBackend(res) {
   const testo = await res.text();
   let data;
-  try { data = JSON.parse(testo); } catch (e) { throw new Error('Risposta non valida: ' + testo.substring(0, 100)); }
-  if (!data.ok) throw new Error(data.error || 'Errore invio');
+  try { data = JSON.parse(testo); }
+  catch (e) { throw new Error('Risposta del coordinamento non valida.'); }
+  if (!data.ok) {
+    const err = new Error(data.error || 'Invio rifiutato dal coordinamento.');
+    err.code = data.code || '';
+    throw err;
+  }
   return data;
 }
 
+async function inviaAlBackend(payload) {
+  if (!backendConfigurato()) throw new Error('Backend non configurato.');
+  if (!payload.sessionToken) throw new Error('Sessione mancante: effettua nuovamente l’accesso.');
+  const body = JSON.stringify(payload);
+  let errorePost = null;
+
+  try {
+    const post = await fetch(BACKEND_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body, cache: 'no-store', redirect: 'follow',
+    });
+    return await leggiRispostaBackend(post);
+  } catch (e) {
+    errorePost = e;
+  }
+
+  // Compatibilità con alcune distribuzioni Apps Script che non espongono
+  // correttamente la risposta CORS delle POST. L'ID invio rende il fallback idempotente.
+  const url = BACKEND_URL + '?invio=' + encodeURIComponent(body);
+  if (url.length > 7800) throw new Error('Invio troppo grande per il canale di emergenza. Riprova con una connessione stabile.');
+  try {
+    const get = await fetch(url, { method: 'GET', cache: 'no-store', redirect: 'follow' });
+    return await leggiRispostaBackend(get);
+  } catch (e) {
+    throw e && e.message ? e : errorePost;
+  }
+}
+
 async function provaSvuotaCode() {
-  if (!navigator.onLine || !backendConfigurato()) return;
-  for (const queueKey of [LS.QUEUE_AFF, LS.QUEUE_SCR]) {
-    const coda = loadJSON(queueKey, []);
-    let cambiato = false;
-    for (const item of coda) {
-      if (item.status === 'synced') continue;
-      try {
-        await inviaAlBackend(item.payload);
-        item.status = 'synced';
+  if (sincronizzazioneInCorso || !navigator.onLine || !backendConfigurato()) return false;
+  sincronizzazioneInCorso = true;
+  let almenoUnSuccesso = false;
+  try {
+    for (const queueKey of [LS.QUEUE_AFF, LS.QUEUE_SCR]) {
+      const coda = loadJSON(queueKey, []);
+      let cambiato = false;
+      for (const item of coda) {
+        if (item.status === 'synced') continue;
+        item.status = 'syncing'; item.ultimoTentativo = new Date().toISOString(); cambiato = true;
+        saveJSON(queueKey, coda);
+        aggiornaBadgeInCoda();
+        try {
+          const risposta = await inviaAlBackend(item.payload);
+          item.status = 'synced';
+          item.sincronizzatoIl = new Date().toISOString();
+          item.ultimoErrore = '';
+          item.rispostaServer = { duplicato: !!risposta.duplicato, correzione: !!risposta.correzione };
+          almenoUnSuccesso = true;
+        } catch (e) {
+          item.status = 'error';
+          item.tentativi = (item.tentativi || 0) + 1;
+          item.ultimoErrore = e && e.message ? e.message : 'Errore di rete';
+          item.codiceErrore = e && e.code ? e.code : '';
+        }
         cambiato = true;
-      } catch (e) {
-        item.status = 'error';
-        item.tentativi = (item.tentativi || 0) + 1;
-        cambiato = true;
+        saveJSON(queueKey, coda);
       }
+      if (cambiato) saveJSON(queueKey, coda);
     }
-    if (cambiato) saveJSON(queueKey, coda);
+  } finally {
+    sincronizzazioneInCorso = false;
+    if (STATE.profile) {
+      renderTabellaAffluenza(); aggiornaBadgeScrutinio(); renderTabellaInvii(); aggiornaPulsanteCorrezioneScrutinio();
+    }
+    aggiornaBadgeInCoda();
   }
-  if (STATE.profile) {
-    renderTabellaAffluenza();
-    aggiornaBadgeScrutinio();
-    renderTabellaInvii();
-  }
-  aggiornaBadgeInCoda();
+  return almenoUnSuccesso;
 }
 
 function contaInCoda() {
-  const a = loadJSON(LS.QUEUE_AFF, []).filter((i) => i.status !== 'synced').length;
-  const s = loadJSON(LS.QUEUE_SCR, []).filter((i) => i.status !== 'synced').length;
-  return a + s;
+  const conta = (key) => loadJSON(key, []).filter((i) => i.status !== 'synced').length;
+  return conta(LS.QUEUE_AFF) + conta(LS.QUEUE_SCR);
 }
 
 function aggiornaBadgeInCoda() {
   const n = contaInCoda();
   const badge = $('#pendingBadge');
-  if (n > 0) { badge.hidden = false; badge.textContent = n + (n === 1 ? ' invio in coda' : ' invii in coda'); }
+  if (n > 0) { badge.hidden = false; badge.textContent = n + (n === 1 ? ' invio da sincronizzare' : ' invii da sincronizzare'); }
   else { badge.hidden = true; }
 }
 
 function renderTabellaInvii() {
   const tbody = $('#tabellaInvii tbody');
   tbody.innerHTML = '';
+  const sostAff = idsSostituiti(LS.QUEUE_AFF), sostScr = idsSostituiti(LS.QUEUE_SCR);
   const tutti = [
-    ...loadJSON(LS.QUEUE_AFF, []).map((i) => ({ ...i, tipo: 'Affluenza' })),
-    ...loadJSON(LS.QUEUE_SCR, []).map((i) => ({ ...i, tipo: 'Scrutinio' })),
+    ...loadJSON(LS.QUEUE_AFF, []).map((i) => ({ ...i, tipo: 'Affluenza', superato: sostAff.has(i.idInvio) })),
+    ...loadJSON(LS.QUEUE_SCR, []).map((i) => ({ ...i, tipo: 'Scrutinio', superato: sostScr.has(i.idInvio) })),
   ].filter((i) => STATE.profile && i.payload.sezione === STATE.profile.sezione && i.payload.municipio === STATE.profile.municipio)
    .sort((a, b) => (a.creato < b.creato ? 1 : -1));
 
   if (!tutti.length) {
-    tbody.innerHTML = '<tr><td colspan="3" class="muted-text">Nessun invio per questa sezione.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="muted-text">Nessun invio per questa sezione.</td></tr>';
     return;
   }
   tutti.forEach((it) => {
     const tr = document.createElement('tr');
     const quando = new Date(it.creato).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' });
-    tr.innerHTML = '<td>' + it.tipo + '</td><td>' + quando + '</td><td>' + statoPillHtml(it.status) + '</td>';
+    let dettagli = '';
+    if (it.payload.correzioneDi) dettagli += 'Correzione tracciata. ';
+    if (it.ultimoErrore) dettagli += it.ultimoErrore;
+    else if (it.sincronizzatoIl) dettagli += 'Ricevuto ' + new Date(it.sincronizzatoIl).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    else dettagli += 'Conservato sul dispositivo.';
+    const stato = it.superato ? '<span class="pill neutral">sostituito</span>' : statoPillHtml(it.status);
+    tr.innerHTML = '<td>' + it.tipo + '</td><td>' + quando + '</td><td>' + stato + '</td><td><span class="status-detail">' + escapeHtml(dettagli) + '</span></td>';
     tbody.appendChild(tr);
   });
 }
@@ -1140,7 +1379,8 @@ async function avvia() {
 
   $('#btnLogin').addEventListener('click', onLogin);
   $('#inputCodice').addEventListener('keydown', (e) => { if (e.key === 'Enter') onLogin(); });
-  $('#loginNome').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#inputCodice').focus(); });
+  $('#loginTelefono').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#inputCodice').focus(); });
+  $('#btnLogout').addEventListener('click', onLogout);
 
   $('#selectMunicipio').addEventListener('change', onCambiaMunicipioSetup);
   $('#inputSezione').addEventListener('input', onCambiaSezioneSetup);
@@ -1163,9 +1403,10 @@ async function avvia() {
   });
   $('#btnSalvaBozzaScrutinio').addEventListener('click', () => salvaBozzaScrutinio(true));
   $('#btnInviaScrutinio').addEventListener('click', onInviaScrutinio);
+  $('#btnCorreggiScrutinio').addEventListener('click', correggiUltimoScrutinio);
   $('#btnConfermaInvio').addEventListener('click', onConfermaInvioScrutinio);
   $('#btnAnnullaInvio').addEventListener('click', () => { $('#modalRiepilogo').hidden = true; payloadScrutinioPronto = null; });
-  $('#btnRiprovaInvii').addEventListener('click', () => { showToast('Provo a inviare...'); provaSvuotaCode(); });
+  $('#btnRiprovaInvii').addEventListener('click', async () => { showToast('Provo a sincronizzare…'); const ok = await provaSvuotaCode(); showToast(ok ? 'Sincronizzazione completata.' : (navigator.onLine ? 'Nessun invio ricevuto: controlla i dettagli.' : 'Sei offline: riproverò automaticamente.')); });
   $('#btnCondividi').addEventListener('click', onCondividi);
 
   if ('serviceWorker' in navigator) {
@@ -1180,13 +1421,16 @@ async function avvia() {
 
   // Controlla se c'è un accesso completo salvato (codice + persona + almeno un seggio)
   const codiceEsistente = loadJSON(LS.CODICE, null);
+  const tokenEsistente = loadJSON(LS.TOKEN, null);
   const personaEsistente = loadJSON(LS.PERSONA, null);
   const seggiEsistenti = loadJSON(LS.SEGGI, []);
 
-  if (!codiceEsistente || !personaEsistente || !personaEsistente.nome || !seggiEsistenti.length) {
+  if (!codiceEsistente || !tokenEsistente || !personaEsistente || !personaEsistente.nome || !seggiEsistenti.length) {
     // Dati incompleti: mostra sempre la schermata di login
     localStorage.removeItem(LS.CODICE);
     localStorage.removeItem(LS.PERSONA);
+    localStorage.removeItem(LS.TOKEN);
+    localStorage.removeItem(LS.TOKEN_EXPIRES);
     $('#screen-login').classList.add('active');
     return;
   }
