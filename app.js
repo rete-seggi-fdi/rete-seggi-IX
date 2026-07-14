@@ -13,7 +13,7 @@
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbx78tvql-_GwosG23g17bhTkjZZALCTMPgM2sC4HRwbiekMW0eDAdZ-13sjYnkKU01icQ/exec';
-const APP_VERSION = '7.1.0';
+const APP_VERSION = '7.2.0';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -915,6 +915,12 @@ function initTabs() {
     });
     const dashboard = $('#screen-dashboard');
     if (dashboard) dashboard.dataset.activeTab = tab.dataset.tab;
+    // La tabella deve riflettere sempre la coda locale corrente, anche quando
+    // l'invio è stato creato offline mentre la scheda Invii non era aperta.
+    if (tab.dataset.tab === 'invii' && STATE.profile) {
+      renderTabellaInvii();
+      aggiornaBadgeInCoda();
+    }
     if (spostaFocus) tab.focus();
   }
   tabs.forEach((tab, index) => {
@@ -1068,6 +1074,10 @@ async function onInviaAffluenza() {
   const id = payload.idInvio;
   chiudiFormAffluenza();
   renderAffluenza();
+  // Aggiorna subito anche lo storico locale. Quando il dispositivo è offline,
+  // provaSvuotaCode() termina prima del blocco finally e, senza questo render,
+  // il badge della coda si aggiornava ma la tabella “Stato invii” restava vuota.
+  renderTabellaInvii();
   aggiornaBadgeInCoda();
   showToast(navigator.onLine ? 'Salvato sul telefono. Verifico la ricezione…' : 'Salvato sul telefono. Sarà inviato quando torna la rete.');
   await provaSvuotaCode();
