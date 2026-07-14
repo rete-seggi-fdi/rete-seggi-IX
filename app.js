@@ -13,7 +13,7 @@
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbx78tvql-_GwosG23g17bhTkjZZALCTMPgM2sC4HRwbiekMW0eDAdZ-13sjYnkKU01icQ/exec';
-const APP_VERSION = '7.0.0';
+const APP_VERSION = '7.1.0';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -30,6 +30,7 @@ const LS = {
   SEGGI: 'rs_seggi',
   SEGGIO_ATTIVO: 'rs_seggio_attivo',
   CONFIG: 'rs_config_cache',
+  DATA_REVISION: 'rs_data_revision',
   MUN_DATA: (mu) => 'rs_mun_data_' + mu,
   QUEUE_AFF: 'rs_queue_affluenza',
   QUEUE_SCR: 'rs_queue_scrutinio',
@@ -76,6 +77,37 @@ function loadJSON(key, fallback) {
 function saveJSON(key, val) {
   try { localStorage.setItem(key, JSON.stringify(val)); return true; }
   catch (e) { return false; }
+}
+
+function rimuoviBozzeScrutinioLocali() {
+  const chiavi = [];
+  for (let i = 0; i < localStorage.length; i++) chiavi.push(localStorage.key(i));
+  chiavi.filter((key) => key && key.indexOf('rs_scrutinio_draft_') === 0)
+    .forEach((key) => localStorage.removeItem(key));
+}
+
+function pulisciDatiOperativiLocali() {
+  localStorage.removeItem(LS.QUEUE_AFF);
+  localStorage.removeItem(LS.QUEUE_SCR);
+  rimuoviBozzeScrutinioLocali();
+}
+
+// Il coordinamento incrementa questa revisione quando usa “Svuota dati di test”.
+// Al successivo avvio online il telefono elimina soltanto storico invii e bozze,
+// mantenendo accesso, seggi assegnati e numero di telefono.
+function gestisciRevisioneDati(revisione) {
+  const nuova = String(revisione || '').trim();
+  if (!nuova) return false;
+  const precedente = loadJSON(LS.DATA_REVISION, null);
+  if (!precedente) {
+    saveJSON(LS.DATA_REVISION, nuova);
+    return false;
+  }
+  if (String(precedente) === nuova) return false;
+  pulisciDatiOperativiLocali();
+  saveJSON(LS.DATA_REVISION, nuova);
+  setTimeout(() => showToast('Il coordinamento ha azzerato i dati di prova. Lo storico del telefono è stato riallineato.', 6000), 0);
+  return true;
 }
 
 let toastTimer = null;
@@ -221,6 +253,7 @@ async function caricaConfig() {
     const testo = await res.text();
     const data = JSON.parse(testo);
     if (!data.ok) throw new Error(data.error || 'Configurazione non valida');
+    gestisciRevisioneDati(data.dataRevision);
     saveJSON(LS.CONFIG, data);
     STATE.config = data;
     return data;
@@ -280,6 +313,7 @@ async function onLogin() {
     const data = JSON.parse(await res.text());
     if (!data.ok || !data.sessionToken) throw new Error(data.error || 'Codice non valido.');
 
+    gestisciRevisioneDati(data.dataRevision);
     saveJSON(LS.CODICE, codice);
     saveJSON(LS.TOKEN, data.sessionToken);
     saveJSON(LS.TOKEN_EXPIRES, data.sessionExpiresAt || null);
@@ -927,6 +961,7 @@ function renderAffluenza() {
 let affluenzaCorrente = null;
 let modalitaAffluenzaCorrente = 'rapido';
 let correzioneAffluenzaId = null;
+let tentativoAffluenzaDaSostituireId = null;
 
 function apriFormAffluenza(giorno, orario) {
   affluenzaCorrente = { giorno, orario };
@@ -938,11 +973,12 @@ function apriFormAffluenza(giorno, orario) {
   $('#affMotivoCorrezione').value = '';
   $('#affCorrezioneBox').hidden = true;
   correzioneAffluenzaId = null;
+  tentativoAffluenzaDaSostituireId = null;
   impostaModalitaAffluenza('rapido');
   aggiornaTotaleAffluenza();
   $('#formAffluenza').hidden = false;
 }
-function chiudiFormAffluenza() { $('#formAffluenza').hidden = true; affluenzaCorrente = null; correzioneAffluenzaId = null; $('#affCorrezioneBox').hidden = true; }
+function chiudiFormAffluenza() { $('#formAffluenza').hidden = true; affluenzaCorrente = null; correzioneAffluenzaId = null; tentativoAffluenzaDaSostituireId = null; $('#affCorrezioneBox').hidden = true; }
 
 function impostaModalitaAffluenza(modo) {
   modalitaAffluenzaCorrente = modo;
@@ -999,6 +1035,7 @@ async function onInviaAffluenza() {
   const precedenti = loadJSON(LS.QUEUE_AFF, []).filter((it) =>
     it.payload.municipio === STATE.profile.municipio && it.payload.sezione === STATE.profile.sezione &&
     it.payload.giorno === affluenzaCorrente.giorno && it.payload.orario === affluenzaCorrente.orario &&
+    it.idInvio !== tentativoAffluenzaDaSostituireId &&
     !idsSostituiti(LS.QUEUE_AFF).has(it.idInvio)
   );
   if (precedenti.length && !correzioneAffluenzaId) errori.push('Esiste già una rilevazione per questo orario. Usa “Correggi” nella tabella.');
@@ -1009,7 +1046,7 @@ async function onInviaAffluenza() {
   }
 
   const payload = {
-    tipo: 'affluenza', idInvio: uuid(), sessionToken: sessionToken(),
+    tipo: 'affluenza', idInvio: tentativoAffluenzaDaSostituireId || uuid(), sessionToken: sessionToken(),
     municipio: STATE.profile.municipio, sezione: STATE.profile.sezione,
     telefono: STATE.profile.telefono,
     giorno: affluenzaCorrente.giorno, orario: affluenzaCorrente.orario,
@@ -1019,7 +1056,11 @@ async function onInviaAffluenza() {
     motivoCorrezione: correzioneAffluenzaId ? $('#affMotivoCorrezione').value.trim() : '',
     versioneApp: APP_VERSION,
   };
-  if (!accodaInvio(LS.QUEUE_AFF, payload)) {
+  const tentativoDaSostituire = tentativoAffluenzaDaSostituireId;
+  const salvato = tentativoDaSostituire
+    ? sostituisciInvioInCoda(LS.QUEUE_AFF, tentativoDaSostituire, payload)
+    : accodaInvio(LS.QUEUE_AFF, payload);
+  if (!salvato) {
     errBox.textContent = 'Spazio di archiviazione del telefono non disponibile. Non chiudere la pagina e libera spazio prima di riprovare.';
     errBox.hidden = false;
     return;
@@ -1070,8 +1111,10 @@ function correggiAffluenza(idInvio) {
   if (!item || !item.payload) return;
   const p = item.payload;
   apriFormAffluenza(p.giorno, p.orario);
-  correzioneAffluenzaId = idInvio;
-  $('#affCorrezioneBox').hidden = false;
+  const giaRicevuto = item.status === 'synced';
+  correzioneAffluenzaId = giaRicevuto ? idInvio : null;
+  tentativoAffluenzaDaSostituireId = giaRicevuto ? null : idInvio;
+  $('#affCorrezioneBox').hidden = !giaRicevuto;
   $('#affNote').value = p.note || '';
   if (p.maschi !== null && p.maschi !== undefined && p.femmine !== null && p.femmine !== undefined) {
     impostaModalitaAffluenza('dettaglio');
@@ -1083,7 +1126,7 @@ function correggiAffluenza(idInvio) {
   }
   aggiornaTotaleAffluenza();
   $('#formAffluenza').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  $('#affMotivoCorrezione').focus();
+  (giaRicevuto ? $('#affMotivoCorrezione') : (modalitaAffluenzaCorrente === 'rapido' ? $('#affTotaleVotanti') : $('#affMaschi'))).focus();
 }
 
 function statoPillHtml(status) {
@@ -1650,6 +1693,9 @@ async function provaSvuotaCode() {
       let cambiato = false;
       for (const item of coda) {
         if (item.status === 'synced') continue;
+        // Errori logici non cambiano da soli: evita nuovi tentativi ogni 45 secondi.
+        // L'utente può correggere il tentativo oppure usare “Invia come nuovo”.
+        if (item.status === 'error' && ['CORRECTION_TARGET_NOT_FOUND', 'CORRECTION_NOT_ALLOWED', 'ALREADY_SUPERSEDED', 'ACTIVE_SCRUTINY_EXISTS', 'MULTIPLE_ACTIVE_SCRUTINIES', 'INVALID_DATA'].includes(item.codiceErrore)) continue;
         item.status = 'syncing'; item.ultimoTentativo = new Date().toISOString(); cambiato = true;
         saveJSON(queueKey, coda);
         aggiornaBadgeInCoda();
@@ -1707,8 +1753,8 @@ function renderTabellaInvii() {
   tbody.innerHTML = '';
   const sostAff = idsSostituiti(LS.QUEUE_AFF), sostScr = idsSostituiti(LS.QUEUE_SCR);
   const tutti = [
-    ...loadJSON(LS.QUEUE_AFF, []).map((i) => ({ ...i, tipo: 'Affluenza', superato: sostAff.has(i.idInvio) })),
-    ...loadJSON(LS.QUEUE_SCR, []).map((i) => ({ ...i, tipo: 'Scrutinio', superato: sostScr.has(i.idInvio) })),
+    ...loadJSON(LS.QUEUE_AFF, []).map((i) => ({ ...i, tipo: 'Affluenza', queueKey: LS.QUEUE_AFF, superato: sostAff.has(i.idInvio) })),
+    ...loadJSON(LS.QUEUE_SCR, []).map((i) => ({ ...i, tipo: 'Scrutinio', queueKey: LS.QUEUE_SCR, superato: sostScr.has(i.idInvio) })),
   ].filter((i) => STATE.profile && i.payload.sezione === STATE.profile.sezione && i.payload.municipio === STATE.profile.municipio)
    .sort((a, b) => (a.creato < b.creato ? 1 : -1));
 
@@ -1720,13 +1766,88 @@ function renderTabellaInvii() {
     const tr = document.createElement('tr');
     const quando = new Date(it.creato).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' });
     let dettagli = '';
-    if (it.payload.correzioneDi) dettagli += 'Correzione tracciata. ';
-    if (it.ultimoErrore) dettagli += it.ultimoErrore;
-    else if (it.sincronizzatoIl) dettagli += 'Ricevuto ' + new Date(it.sincronizzatoIl).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-    else dettagli += 'Conservato sul dispositivo.';
+    const targetMancante = it.codiceErrore === 'CORRECTION_TARGET_NOT_FOUND' && it.payload.correzioneDi;
+    if (targetMancante) dettagli = 'Il dato precedente è stato cancellato dal coordinamento. Puoi recuperare questi valori come nuovo invio.';
+    else {
+      if (it.payload.correzioneDi) dettagli += 'Correzione tracciata. ';
+      if (it.ultimoErrore) dettagli += it.ultimoErrore;
+      else if (it.sincronizzatoIl) dettagli += 'Ricevuto ' + new Date(it.sincronizzatoIl).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+      else dettagli += 'Conservato sul dispositivo.';
+    }
     const stato = it.superato ? '<span class="pill neutral">sostituito</span>' : statoPillHtml(it.status);
     tr.innerHTML = '<td>' + it.tipo + '</td><td>' + quando + '</td><td>' + stato + '</td><td><span class="status-detail">' + escapeHtml(dettagli) + '</span></td>';
+    if (targetMancante) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn primary small';
+      btn.textContent = 'Invia come nuovo';
+      btn.addEventListener('click', () => recuperaCorrezioneComeNuovo(it.queueKey, it.idInvio));
+      tr.lastElementChild.appendChild(document.createElement('br'));
+      tr.lastElementChild.appendChild(btn);
+    }
     tbody.appendChild(tr);
+  });
+}
+
+function recuperaCorrezioneComeNuovo(queueKey, idInvio) {
+  const tipo = queueKey === LS.QUEUE_AFF ? 'affluenza' : 'scrutinio';
+  apriConfermaAzione({
+    kicker: 'Dati di prova azzerati',
+    titolo: 'Inviare come nuovo dato?',
+    testo: 'Il record che volevi correggere non esiste più nel foglio del coordinamento. I valori appena inseriti possono essere inviati come un nuovo ' + tipo + '.',
+    nota: 'Il vecchio riferimento verrà rimosso solo dal telefono. I valori del nuovo invio resteranno invariati.',
+    conferma: 'Invia come nuovo',
+    pericolosa: false,
+    onConfirm: async () => {
+      const coda = loadJSON(queueKey, []);
+      const item = coda.find((x) => x.idInvio === idInvio);
+      if (!item || !item.payload) {
+        showToast('Invio non più presente sul telefono.');
+        return;
+      }
+      const vecchioTarget = item.payload.correzioneDi;
+      const nuovoId = uuid();
+      const nuovaCoda = coda.filter((x) => x.idInvio !== vecchioTarget || x.idInvio === idInvio);
+      const corrente = nuovaCoda.find((x) => x.idInvio === idInvio);
+      corrente.idInvio = nuovoId;
+      corrente.payload = Object.assign({}, corrente.payload, {
+        idInvio: nuovoId,
+        sessionToken: sessionToken(),
+        correzioneDi: '',
+        motivoCorrezione: '',
+        versioneApp: APP_VERSION,
+      });
+      corrente.status = 'pending';
+      corrente.creato = new Date().toISOString();
+      corrente.tentativi = 0;
+      corrente.ultimoTentativo = null;
+      corrente.ultimoErrore = '';
+      corrente.codiceErrore = '';
+      corrente.sincronizzatoIl = null;
+      corrente.rispostaServer = null;
+      if (!saveJSON(queueKey, nuovaCoda)) {
+        showToast('Non riesco ad aggiornare i dati sul telefono.', 4500);
+        return;
+      }
+      if (queueKey === LS.QUEUE_SCR) {
+        const key = LS.SCR_DRAFT(corrente.payload.municipio, corrente.payload.sezione);
+        const documento = estraiDocumentoBozza(loadJSON(key, null));
+        if (documento && documento.idInvio === idInvio) {
+          documento.idInvio = nuovoId;
+          documento.stato = 'in_coda';
+          documento.sincronizzatoIl = '';
+          saveJSON(key, documento);
+        }
+      }
+      renderTabellaInvii();
+      aggiornaBadgeInCoda();
+      showToast('Preparato come nuovo invio. Verifico la ricezione…');
+      await provaSvuotaCode();
+      const aggiornato = trovaItem(queueKey, nuovoId);
+      showToast(aggiornato && aggiornato.status === 'synced'
+        ? 'Dato ricevuto dal coordinamento.'
+        : 'Dato salvato sul telefono. Controlla “I miei invii”.', 4500);
+    },
   });
 }
 
