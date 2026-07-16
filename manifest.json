@@ -1,8 +1,8 @@
 {
-  "name": "Rete Seggi FdI · Municipio Roma IX · v9",
-  "short_name": "Rete Seggi",
-  "description": "App operativa v9 per affluenza, scrutinio, assistenza e comunicazioni dei rappresentanti di lista di Fratelli d’Italia nel Municipio Roma IX",
-  "start_url": "./index.html?v=90",
+  "name": "SeggioLink · Coordinamento Fratelli d’Italia · Municipio Roma IX",
+  "short_name": "SeggioLink",
+  "description": "SeggioLink, app operativa del Coordinamento Fratelli d’Italia del Municipio Roma IX per affluenza, scrutinio, assistenza e comunicazioni",
+  "start_url": "./index.html?v=94",
   "scope": "./",
   "id": "./index.html",
   "display": "standalone",
@@ -42,8 +42,8 @@
   ],
   "shortcuts": [
     {
-      "name": "Apri Rete Seggi",
-      "short_name": "Rete Seggi",
+      "name": "Apri SeggioLink",
+      "short_name": "SeggioLink",
       "url": "./index.html",
       "icons": [
         {

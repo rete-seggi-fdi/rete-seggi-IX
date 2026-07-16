@@ -7,7 +7,7 @@
    Le richieste verso il backend (Apps Script, altro dominio) non vengono
    mai intercettate: passano sempre direttamente alla rete. */
 
-const VERSIONE = 'rete-seggi-v9.2';
+const VERSIONE = 'seggiolink-v9.4';
 const CACHE_SHELL = 'shell-' + VERSIONE;
 const CACHE_DATI = 'dati-' + VERSIONE;
 
@@ -21,6 +21,7 @@ const FILE_APP = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
+  './icons/icon-1024.png',
 ];
 
 self.addEventListener('install', (event) => {
