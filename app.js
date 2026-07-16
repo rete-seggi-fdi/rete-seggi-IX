@@ -13,7 +13,7 @@
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbx78tvql-_GwosG23g17bhTkjZZALCTMPgM2sC4HRwbiekMW0eDAdZ-13sjYnkKU01icQ/exec';
-const APP_VERSION = '7.2.0';
+const APP_VERSION = '9.0.0';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -36,6 +36,10 @@ const LS = {
   QUEUE_SCR: 'rs_queue_scrutinio',
   SCR_DRAFT: (mu, sez) => 'rs_scrutinio_draft_' + mu + '_' + sez,
   INSTALL_DISMISSED: 'rs_install_dismissed',
+  MESSAGGI: 'rs_messaggi_cache',
+  DEVICE_CHECK_VERSION: 'rs_device_check_version',
+  ACCESSIBILITY: 'rs_accessibility_mode',
+  LAST_MESSAGE_CHECK: 'rs_last_message_check',
 };
 
 let STATE = {
@@ -46,6 +50,9 @@ let STATE = {
   municipioData: null,
   config: null,
   modalitaAggiungiSeggio: false, // true quando si torna al setup per aggiungere un seggio in più (persona già nota)
+  messaggi: [],
+  swRegistration: null,
+  swWaiting: null,
 };
 
 function idSeggio(municipio, sezione) { return municipio + '-' + sezione; }
@@ -175,8 +182,8 @@ function aggiornaStatoConnessione() {
     if (home) { home.textContent = 'Offline · i dati restano sul telefono'; home.className = 'home-status offline'; }
   }
 }
-window.addEventListener('online', () => { aggiornaStatoConnessione(); provaSvuotaCode(); });
-window.addEventListener('offline', aggiornaStatoConnessione);
+window.addEventListener('online', () => { aggiornaStatoConnessione(); provaSvuotaCode(); caricaMessaggi(true); });
+window.addEventListener('offline', () => { aggiornaStatoConnessione(); renderNotificheHome(); });
 
 // ---------------------------------------------------------------------
 // CARICAMENTO DATI SEZIONI/VIE (file statici per municipio)
@@ -265,7 +272,7 @@ async function caricaConfig() {
 }
 
 function configVuota() {
-  return { ok: false, municipi: [], liste: { capitolina: [], municipio: {} }, candidati: { capitolina: [], municipio: {} }, orari: [] };
+  return { ok: false, municipi: [], liste: { capitolina: [], municipio: {} }, candidati: { capitolina: [], municipio: {} }, orari: [], impostazioni: {}, app: {} };
 }
 
 function listeCapitolina() { return (STATE.config && STATE.config.liste && STATE.config.liste.capitolina) || []; }
@@ -284,6 +291,54 @@ function presidentiMunicipioAttuale() {
   return (STATE.config && STATE.config.presidenti && STATE.config.presidenti[mu]) || [];
 }
 function orariAffluenza() { return (STATE.config && STATE.config.orari) || []; }
+
+
+function impostazione(key, fallback) {
+  const cfg = STATE.config && STATE.config.impostazioni;
+  const value = cfg && cfg[key];
+  return value === undefined || value === null || String(value).trim() === '' ? fallback : String(value).trim();
+}
+
+function confrontaVersioni(a, b) {
+  const pa = String(a || '0').split('.').map((x) => parseInt(x, 10) || 0);
+  const pb = String(b || '0').split('.').map((x) => parseInt(x, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d) return d > 0 ? 1 : -1;
+  }
+  return 0;
+}
+
+function dataScadenza(giorno, orario) {
+  const g = normalizza(giorno);
+  const data = g.indexOf('DOMENICA') !== -1 ? impostazione('DATA_DOMENICA', '')
+    : (g.indexOf('LUNEDI') !== -1 ? impostazione('DATA_LUNEDI', '') : '');
+  if (!data || !/^\d{4}-\d{2}-\d{2}$/.test(data) || !/^\d{1,2}:\d{2}$/.test(String(orario || ''))) return null;
+  const d = new Date(data + 'T' + String(orario).padStart(5, '0') + ':00');
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function descriviTempo(ms) {
+  const abs = Math.abs(ms);
+  const minuti = Math.round(abs / 60000);
+  if (minuti < 60) return minuti + ' min';
+  const ore = Math.floor(minuti / 60);
+  const rest = minuti % 60;
+  return ore + ' h' + (rest ? ' ' + rest + ' min' : '');
+}
+
+function statoScadenza(giorno, orario, completato) {
+  if (completato) return null;
+  const d = dataScadenza(giorno, orario);
+  if (!d) return null;
+  const delta = d.getTime() - Date.now();
+  const ritardo = Number(impostazione('SOGLIA_RITARDO_MINUTI', '30')) || 30;
+  if (delta < -ritardo * 60000) return { classe: 'error', etichetta: 'In ritardo', testo: 'scaduta da ' + descriviTempo(delta) };
+  if (delta < 0) return { classe: 'queued', etichetta: 'Da inviare ora', testo: 'orario raggiunto' };
+  if (delta < 2 * 60 * 60000) return { classe: 'todo', etichetta: 'Tra ' + descriviTempo(delta), testo: 'prossima scadenza' };
+  return { classe: 'todo', etichetta: 'Da inviare', testo: d.toLocaleString('it-IT', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) };
+}
+
 
 // =======================================================================
 // SCHERMATA 0 — LOGIN CON CODICE ACCESSO
@@ -748,6 +803,12 @@ function mostraDashboard() {
   aggiornaBadgeInCoda();
   aggiornaPulsanteCorrezioneScrutinio();
   renderHomeDashboard();
+  const appLabel = $('#appVersionLabel');
+  const backendLabel = $('#backendVersionLabel');
+  if (appLabel) appLabel.textContent = APP_VERSION;
+  if (backendLabel) backendLabel.textContent = (STATE.config && STATE.config.app && STATE.config.app.backendVersion) || '—';
+  caricaMessaggi(true);
+  setTimeout(() => eseguiControlloDispositivo(false), 300);
 }
 
 function renderElettoriBanner() {
@@ -806,11 +867,18 @@ function renderHomeDashboard() {
     const orari = orariAffluenza();
     const voci = orari.length ? orari.map((o) => {
       const status = mappaAff[chiaveAffluenza(o.giorno, o.orario)];
-      const stato = statoTimelineDaInvio(status ? { status } : null);
-      return { titolo: 'Affluenza ' + (o.orario || ''), sottotitolo: o.giorno || 'Rilevazione', ...stato };
+      let stato = statoTimelineDaInvio(status ? { status } : null);
+      const scadenza = statoScadenza(o.giorno, o.orario, !!status);
+      if (scadenza) stato = { classe: scadenza.classe, etichetta: scadenza.etichetta };
+      const sotto = [o.giorno || 'Rilevazione', scadenza && scadenza.testo].filter(Boolean).join(' · ');
+      return { titolo: 'Affluenza ' + (o.orario || ''), sottotitolo: sotto, ...stato };
     }) : [{ titolo: 'Affluenze', sottotitolo: 'Orari non ancora configurati', classe: aff.length ? statoTimelineDaInvio(ultimoInvioAttivo(LS.QUEUE_AFF)).classe : 'todo', etichetta: aff.length ? statoTimelineDaInvio(ultimoInvioAttivo(LS.QUEUE_AFF)).etichetta : 'Da programmare' }];
-    const scrStato = statoTimelineDaInvio(ultimoInvioAttivo(LS.QUEUE_SCR));
-    voci.push({ titolo: 'Scrutinio', sottotitolo: 'Risultati finali della sezione', ...scrStato });
+    let scrStato = statoTimelineDaInvio(ultimoInvioAttivo(LS.QUEUE_SCR));
+    const scrData = impostazione('DATA_LUNEDI', '') || impostazione('DATA_DOMENICA', '');
+    const scrOra = impostazione('ORARIO_SCRUTINIO', '23:30');
+    const scrScadenza = scrData ? statoScadenza(scrData === impostazione('DATA_LUNEDI', '') ? 'Lunedì' : 'Domenica', scrOra, !!ultimoInvioAttivo(LS.QUEUE_SCR)) : null;
+    if (scrScadenza) scrStato = { classe: scrScadenza.classe, etichetta: scrScadenza.etichetta };
+    voci.push({ titolo: 'Scrutinio', sottotitolo: ['Risultati finali della sezione', scrScadenza && scrScadenza.testo].filter(Boolean).join(' · '), ...scrStato });
     voci.forEach((voce) => {
       const row = document.createElement('div');
       row.className = 'timeline-item ' + voce.classe;
@@ -1756,6 +1824,7 @@ function aggiornaBadgeInCoda() {
   if (n > 0) { badge.hidden = false; badge.textContent = n + (n === 1 ? ' invio in coda' : ' invii in coda'); }
   else { badge.hidden = true; }
   renderHomeDashboard();
+  renderNotificheHome();
 }
 
 function renderTabellaInvii() {
@@ -2017,6 +2086,259 @@ window.addEventListener('beforeinstallprompt', (e) => {
   $('#installBtn').hidden = false;
 });
 
+
+// =======================================================================
+// V9 — MESSAGGI, ASSISTENZA, CONTROLLO DISPOSITIVO E AGGIORNAMENTI
+// =======================================================================
+let messaggiTimer = null;
+let swReloading = false;
+
+function messaggiCacheCorrenti() {
+  if (!STATE.profile) return [];
+  const all = loadJSON(LS.MESSAGGI, {});
+  return all[STATE.profile.municipio + '-' + STATE.profile.sezione] || [];
+}
+
+function salvaMessaggiCache(items) {
+  if (!STATE.profile) return;
+  const all = loadJSON(LS.MESSAGGI, {});
+  all[STATE.profile.municipio + '-' + STATE.profile.sezione] = items || [];
+  saveJSON(LS.MESSAGGI, all);
+}
+
+async function caricaMessaggi(silent) {
+  if (!STATE.profile) return [];
+  STATE.messaggi = messaggiCacheCorrenti();
+  renderNotificheHome();
+  if (!navigator.onLine || !backendConfigurato() || !sessionToken()) return STATE.messaggi;
+  try {
+    const url = BACKEND_URL + '?action=messaggi&sessionToken=' + encodeURIComponent(sessionToken()) +
+      '&municipio=' + encodeURIComponent(STATE.profile.municipio) + '&sezione=' + encodeURIComponent(STATE.profile.sezione);
+    const res = await fetch(url, { cache: 'no-store', redirect: 'follow' });
+    const data = JSON.parse(await res.text());
+    if (!data.ok) throw new Error(data.error || 'Messaggi non disponibili');
+    const precedenti = new Set((STATE.messaggi || []).map((x) => x.id));
+    STATE.messaggi = data.items || [];
+    salvaMessaggiCache(STATE.messaggi);
+    saveJSON(LS.LAST_MESSAGE_CHECK, new Date().toISOString());
+    renderNotificheHome();
+    if (!silent && STATE.messaggi.some((x) => !precedenti.has(x.id) && x.stato === 'NUOVO')) showToast('Nuovo messaggio dal coordinamento.', 5000);
+    return STATE.messaggi;
+  } catch (e) {
+    if (!silent) showToast('Messaggi non aggiornati: ' + (e.message || 'connessione non disponibile'), 4500);
+    return STATE.messaggi;
+  }
+}
+
+async function aggiornaMessaggio(id, stato) {
+  if (!STATE.profile || !navigator.onLine) return showToast('Serve la connessione per aggiornare il messaggio.', 4000);
+  try {
+    const url = BACKEND_URL + '?action=messaggio_ack&sessionToken=' + encodeURIComponent(sessionToken()) +
+      '&municipio=' + encodeURIComponent(STATE.profile.municipio) + '&sezione=' + encodeURIComponent(STATE.profile.sezione) +
+      '&id=' + encodeURIComponent(id) + '&stato=' + encodeURIComponent(stato);
+    const res = await fetch(url, { cache: 'no-store', redirect: 'follow' });
+    const data = JSON.parse(await res.text());
+    if (!data.ok) throw new Error(data.error || 'Aggiornamento non riuscito');
+    await caricaMessaggi(true);
+    showToast(stato === 'RISOLTO' ? 'Richiesta segnata come risolta.' : 'Messaggio segnato come letto.');
+  } catch (e) { showToast(e.message || 'Aggiornamento non riuscito.', 4500); }
+}
+
+function creaNotificaDom(titolo, testo, meta, classe) {
+  const item = document.createElement('article');
+  item.className = 'notification-item ' + (classe || '');
+  const head = document.createElement('div'); head.className = 'notification-item-head';
+  const h = document.createElement('h3'); h.textContent = titolo;
+  head.appendChild(h); item.appendChild(head);
+  const p = document.createElement('p'); p.textContent = testo; item.appendChild(p);
+  if (meta) { const m = document.createElement('div'); m.className = 'notification-meta'; m.textContent = meta; item.appendChild(m); }
+  return item;
+}
+
+function renderNotificheHome() {
+  const card = $('#notificationsCard');
+  const list = $('#homeNotifications');
+  const count = $('#notificationsCount');
+  if (!card || !list || !count) return;
+  list.innerHTML = '';
+  const entries = [];
+  const pending = contaInCoda();
+  if (pending) {
+    const item = creaNotificaDom('Invii conservati sul telefono', pending + ' invio/i saranno trasmessi appena la connessione sarà disponibile.', navigator.onLine ? 'Puoi premere “Riprova ora” nella sezione Invii.' : 'Il dato non verrà perso.', '');
+    entries.push(item);
+  }
+  if (STATE.profile) {
+    const mappaAff = invitiAffluenzaSezione();
+    const ritardi = orariAffluenza().filter((o) => !mappaAff[chiaveAffluenza(o.giorno, o.orario)])
+      .map((o) => ({ slot: o, stato: statoScadenza(o.giorno, o.orario, false) }))
+      .filter((x) => x.stato && x.stato.classe === 'error');
+    if (ritardi.length) {
+      const r = ritardi[0];
+      entries.push(creaNotificaDom('Rilevazione in ritardo', 'L’affluenza delle ' + r.slot.orario + ' non risulta ancora ricevuta.', r.slot.giorno + ' · ' + r.stato.testo, 'urgent'));
+    }
+  }
+  (STATE.messaggi || messaggiCacheCorrenti()).forEach((m) => {
+    const item = creaNotificaDom(m.titolo || 'Messaggio dal coordinamento', m.messaggio || '', [m.priorita, m.creatoDa].filter(Boolean).join(' · '), String(m.priorita || '').toUpperCase() === 'URGENTE' ? 'urgent' : (m.stato === 'LETTO' ? 'read' : ''));
+    const actions = document.createElement('div'); actions.className = 'notification-actions';
+    if (m.stato === 'NUOVO') {
+      const letto = document.createElement('button'); letto.type = 'button'; letto.className = 'btn ghost compact'; letto.textContent = 'Segna letto'; letto.addEventListener('click', () => aggiornaMessaggio(m.id, 'LETTO')); actions.appendChild(letto);
+    }
+    const risolto = document.createElement('button'); risolto.type = 'button'; risolto.className = 'btn primary compact'; risolto.textContent = 'Ho verificato'; risolto.addEventListener('click', () => aggiornaMessaggio(m.id, 'RISOLTO')); actions.appendChild(risolto);
+    item.appendChild(actions); entries.push(item);
+  });
+  entries.forEach((x) => list.appendChild(x));
+  count.textContent = entries.length;
+  card.hidden = entries.length === 0;
+}
+
+function normalizzaTelefonoLink(value) {
+  let digits = String(value || '').replace(/\D/g, '');
+  if (digits.indexOf('00') === 0) digits = digits.slice(2);
+  if (digits.length === 10 && digits[0] === '3') digits = '39' + digits;
+  return digits;
+}
+
+function testoDiagnostica() {
+  const p = STATE.profile || {};
+  return [
+    'Rete Seggi ' + APP_VERSION,
+    'Backend: ' + ((STATE.config && STATE.config.app && STATE.config.app.backendVersion) || 'non rilevato'),
+    'Rappresentante: ' + (p.nome || '—'),
+    'Municipio: ' + (p.municipio || '—'),
+    'Sezione: ' + (p.sezione || '—'),
+    'Connessione: ' + (navigator.onLine ? 'online' : 'offline'),
+    'Invii in coda: ' + contaInCoda(),
+    'PWA installata: ' + (isStandalone() ? 'sì' : 'no'),
+    'Browser: ' + navigator.userAgent,
+  ].join('\n');
+}
+
+function apriAssistenza() {
+  const modal = $('#modalAssistenza');
+  const tel = normalizzaTelefonoLink(impostazione('TELEFONO_ASSISTENZA', ''));
+  const wa = normalizzaTelefonoLink(impostazione('WHATSAPP_ASSISTENZA', '') || impostazione('TELEFONO_ASSISTENZA', ''));
+  const email = impostazione('EMAIL_ASSISTENZA', '');
+  const base = impostazione('MESSAGGIO_ASSISTENZA', 'Ho bisogno di assistenza per la mia sezione.');
+  const testo = base + '\n\n' + testoDiagnostica();
+  const call = $('#supportCall'); const whatsapp = $('#supportWhatsapp'); const mail = $('#supportEmail');
+  call.href = tel ? 'tel:+' + tel : '#'; call.hidden = !tel;
+  whatsapp.href = wa ? 'https://wa.me/' + wa + '?text=' + encodeURIComponent(testo) : '#'; whatsapp.hidden = !wa;
+  mail.href = email ? 'mailto:' + encodeURIComponent(email) + '?subject=' + encodeURIComponent('Assistenza Rete Seggi - Sezione ' + ((STATE.profile && STATE.profile.sezione) || '')) + '&body=' + encodeURIComponent(testo) : '#'; mail.hidden = !email;
+  $('#supportDiagnostics').textContent = testoDiagnostica();
+  modal.hidden = false;
+  modal.querySelector('.modal-box').focus();
+}
+
+function chiudiAssistenza() { $('#modalAssistenza').hidden = true; }
+
+async function copiaDiagnostica() {
+  const testo = testoDiagnostica();
+  try { await navigator.clipboard.writeText(testo); showToast('Diagnostica copiata.'); }
+  catch (e) { $('#supportDiagnostics').focus(); showToast('Seleziona e copia il testo mostrato.'); }
+}
+
+function applicaAccessibilita() {
+  const attiva = !!loadJSON(LS.ACCESSIBILITY, false);
+  document.body.classList.toggle('accessible-mode', attiva);
+  const btn = $('#btnAccessibilita');
+  if (btn) btn.textContent = attiva ? 'Disattiva modalità accessibile' : 'Attiva testo grande e alto contrasto';
+}
+
+function toggleAccessibilita() {
+  saveJSON(LS.ACCESSIBILITY, !loadJSON(LS.ACCESSIBILITY, false));
+  applicaAccessibilita();
+}
+
+function renderDeviceResults(results, openModal) {
+  const box = $('#deviceCheckResults');
+  if (box) {
+    box.innerHTML = '';
+    results.forEach((r) => {
+      const row = document.createElement('div'); row.className = 'device-check-item ' + r.level;
+      const icon = document.createElement('span'); icon.className = 'device-check-icon'; icon.textContent = r.level === 'ok' ? '✓' : (r.level === 'warn' ? '!' : '×');
+      const text = document.createElement('div'); const strong = document.createElement('strong'); strong.textContent = r.title; const small = document.createElement('div'); small.textContent = r.detail;
+      text.appendChild(strong); text.appendChild(small); row.appendChild(icon); row.appendChild(text); box.appendChild(row);
+    });
+  }
+  const failures = results.filter((r) => r.level === 'error').length;
+  const warnings = results.filter((r) => r.level === 'warn').length;
+  const readiness = $('#deviceReadinessText');
+  if (readiness) readiness.textContent = failures ? failures + ' problema/i da risolvere.' : (warnings ? 'Pronto, con ' + warnings + ' avviso/i.' : 'Tutti i controlli sono superati.');
+  saveJSON(LS.DEVICE_CHECK_VERSION, APP_VERSION);
+  if (openModal || failures) $('#modalDeviceCheck').hidden = false;
+}
+
+async function eseguiControlloDispositivo(openModal) {
+  const results = [];
+  let storageOk = false;
+  try { localStorage.setItem('rs_device_test', '1'); storageOk = localStorage.getItem('rs_device_test') === '1'; localStorage.removeItem('rs_device_test'); } catch (e) {}
+  results.push({ title: 'Salvataggio sul telefono', detail: storageOk ? 'Disponibile per bozze e invii offline.' : 'Non disponibile: evita la navigazione privata.', level: storageOk ? 'ok' : 'error' });
+  const swSupported = 'serviceWorker' in navigator;
+  const swReady = swSupported && !!navigator.serviceWorker.controller;
+  results.push({ title: 'Funzionamento offline', detail: swReady ? 'Service worker attivo.' : (swSupported ? 'Si attiverà dopo il primo aggiornamento della pagina.' : 'Browser non compatibile.'), level: swReady ? 'ok' : (swSupported ? 'warn' : 'error') });
+  results.push({ title: 'Sessione', detail: sessionToken() ? 'Accesso disponibile sul dispositivo.' : 'Sessione non presente.', level: sessionToken() ? 'ok' : 'warn' });
+  const min = STATE.config && STATE.config.app && STATE.config.app.versioneMinima;
+  const versionOk = !min || confrontaVersioni(APP_VERSION, min) >= 0;
+  results.push({ title: 'Versione app', detail: versionOk ? 'Versione ' + APP_VERSION + ' aggiornata.' : 'È richiesta almeno la versione ' + min + '.', level: versionOk ? 'ok' : 'error' });
+  if (navigator.onLine && backendConfigurato()) {
+    try {
+      const r = await fetch(BACKEND_URL + '?action=health', { cache: 'no-store' });
+      const d = JSON.parse(await r.text());
+      results.push({ title: 'Collegamento al coordinamento', detail: d.ok ? 'Backend raggiungibile.' : 'Risposta non valida.', level: d.ok ? 'ok' : 'error' });
+    } catch (e) { results.push({ title: 'Collegamento al coordinamento', detail: 'Backend non raggiungibile in questo momento.', level: 'error' }); }
+  } else results.push({ title: 'Collegamento al coordinamento', detail: 'Controllo rinviato perché il telefono è offline.', level: 'warn' });
+  renderDeviceResults(results, !!openModal);
+  return results;
+}
+
+function mostraAggiornamento(testo, obbligatorio) {
+  const banner = $('#updateBanner');
+  if (!banner) return;
+  $('#updateText').textContent = testo || 'È pronta una nuova versione dell’app.';
+  banner.hidden = false;
+  banner.dataset.mandatory = obbligatorio ? '1' : '0';
+}
+
+function verificaVersioneConfigurata() {
+  const appCfg = STATE.config && STATE.config.app;
+  if (!appCfg || !appCfg.versioneMinima) return;
+  if (confrontaVersioni(APP_VERSION, appCfg.versioneMinima) < 0) {
+    mostraAggiornamento('La versione minima richiesta è ' + appCfg.versioneMinima + '. Aggiorna prima di proseguire.', !!appCfg.aggiornamentoObbligatorio);
+  }
+}
+
+async function initServiceWorkerUpdates() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.register('service-worker.js');
+    STATE.swRegistration = reg;
+    if (reg.waiting) { STATE.swWaiting = reg.waiting; mostraAggiornamento('È disponibile una nuova versione dell’app.', false); }
+    reg.addEventListener('updatefound', () => {
+      const worker = reg.installing;
+      if (!worker) return;
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+          STATE.swWaiting = worker;
+          mostraAggiornamento('Aggiornamento scaricato e pronto.', false);
+        }
+      });
+    });
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (swReloading) return;
+      swReloading = true;
+      window.location.reload();
+    });
+    setInterval(() => reg.update().catch(() => {}), 15 * 60 * 1000);
+  } catch (e) {}
+}
+
+function applicaAggiornamento() {
+  const worker = STATE.swWaiting || (STATE.swRegistration && STATE.swRegistration.waiting);
+  if (worker) worker.postMessage({ type: 'SKIP_WAITING' });
+  else window.location.reload();
+}
+
+
 function isStandalone() {
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
@@ -2045,10 +2367,13 @@ function initInstallBanner() {
 // =======================================================================
 async function avvia() {
   aggiornaStatoConnessione();
+  applicaAccessibilita();
   initInstallBanner();
   initTabs();
+  initServiceWorkerUpdates();
 
   await caricaConfig();
+  verificaVersioneConfigurata();
   popolaSelectMunicipi();
 
   $('#btnLogin').addEventListener('click', onLogin);
@@ -2076,6 +2401,17 @@ async function avvia() {
   $('#btnVaiInvii').addEventListener('click', () => attivaTabPerNome('invii'));
   $('#btnHomeModificaElettori').addEventListener('click', onModificaElettori);
   $('#btnHomeCondividi').addEventListener('click', onCondividi);
+  $('#btnAssistenza').addEventListener('click', apriAssistenza);
+  $('#btnChiudiAssistenza').addEventListener('click', chiudiAssistenza);
+  $('#modalAssistenza').addEventListener('click', (e) => { if (e.target.id === 'modalAssistenza') chiudiAssistenza(); });
+  $('#btnCopyDiagnostics').addEventListener('click', copiaDiagnostica);
+  $('#btnAccessibilita').addEventListener('click', toggleAccessibilita);
+  $('#btnDeviceCheck').addEventListener('click', () => eseguiControlloDispositivo(true));
+  $('#btnRiprovaDeviceCheck').addEventListener('click', () => eseguiControlloDispositivo(true));
+  $('#btnChiudiDeviceCheck').addEventListener('click', () => { $('#modalDeviceCheck').hidden = true; });
+  $('#btnChiudiDeviceCheck2').addEventListener('click', () => { $('#modalDeviceCheck').hidden = true; });
+  $('#modalDeviceCheck').addEventListener('click', (e) => { if (e.target.id === 'modalDeviceCheck') $('#modalDeviceCheck').hidden = true; });
+  $('#btnUpdateApp').addEventListener('click', applicaAggiornamento);
   $$('.scrutiny-step').forEach((btn) => btn.addEventListener('click', () => {
     $$('.scrutiny-step').forEach((b) => b.classList.toggle('active', b === btn));
     const target = document.getElementById(btn.dataset.scrollStep);
@@ -2133,11 +2469,9 @@ async function avvia() {
     else if (!$('#modalLogout').hidden) chiudiModalLogout();
     else if (!$('#modalElettori').hidden) chiudiModalElettori();
     else if (!$('#modalCondivisione').hidden) chiudiModalCondivisione();
+    else if (!$('#modalAssistenza').hidden) chiudiAssistenza();
+    else if (!$('#modalDeviceCheck').hidden) $('#modalDeviceCheck').hidden = true;
   });
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js').catch(() => {});
-  }
 
   migraDaProfiloSingolo();
   STATE.persona = loadJSON(LS.PERSONA, null);
@@ -2175,6 +2509,9 @@ async function avvia() {
 
   provaSvuotaCode();
   setInterval(provaSvuotaCode, 45000); // riprova periodica in background, utile su connessioni instabili
+  const intervalloMessaggi = Math.max(60, Number(impostazione('INTERVALLO_MESSAGGI_SECONDI', '120')) || 120) * 1000;
+  clearInterval(messaggiTimer);
+  messaggiTimer = setInterval(() => caricaMessaggi(true), intervalloMessaggi);
   window.addEventListener('pagehide', () => {
     if (STATE.profile && timerBozzaScrutinio) salvaBozzaScrutinio(false, 'bozza');
   });

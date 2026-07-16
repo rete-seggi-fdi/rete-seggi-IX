@@ -1,8 +1,8 @@
 {
-  "name": "Rete Seggi FdI · Municipio Roma IX",
+  "name": "Rete Seggi FdI · Municipio Roma IX · v9",
   "short_name": "Rete Seggi",
-  "description": "App operativa per affluenza e scrutinio dei rappresentanti di lista di Fratelli d’Italia nel Municipio Roma IX",
-  "start_url": "./index.html",
+  "description": "App operativa v9 per affluenza, scrutinio, assistenza e comunicazioni dei rappresentanti di lista di Fratelli d’Italia nel Municipio Roma IX",
+  "start_url": "./index.html?v=90",
   "scope": "./",
   "id": "./index.html",
   "display": "standalone",

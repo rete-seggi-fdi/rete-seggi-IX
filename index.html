@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 <link rel="icon" href="icons/icon-192.png" />
-<title>Rete Seggi · Fratelli d’Italia · Municipio Roma IX</title>
+<title>Rete Seggi · Fratelli d’Italia · Municipio Roma IX · v9</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -47,6 +47,14 @@
       <button id="dismissInstallBtn" class="icon-btn" type="button" aria-label="Non mostrare più questo avviso">×</button>
     </div>
   </div>
+</div>
+
+<div id="updateBanner" class="update-banner" hidden role="status" aria-live="assertive">
+  <div>
+    <strong>Aggiornamento disponibile</strong>
+    <span id="updateText">È pronta una nuova versione dell’app.</span>
+  </div>
+  <button id="btnUpdateApp" class="btn primary compact" type="button">Aggiorna ora</button>
 </div>
 
 <main id="app">
@@ -219,10 +227,30 @@
         </div>
       </article>
 
+      <article id="notificationsCard" class="card home-section-card" hidden>
+        <div class="home-section-title">
+          <div><p class="section-kicker">Comunicazioni</p><h2>Messaggi dal coordinamento</h2></div>
+          <span id="notificationsCount" class="pill warning">0</span>
+        </div>
+        <div id="homeNotifications" class="notification-list" aria-live="polite"></div>
+      </article>
+
+      <article class="card readiness-card">
+        <div>
+          <p class="section-kicker">Controllo dispositivo</p>
+          <h2>Pronto per la giornata elettorale</h2>
+          <p id="deviceReadinessText" class="muted-text">Verifica automatica in corso…</p>
+        </div>
+        <button id="btnDeviceCheck" class="btn ghost compact" type="button">Controlla</button>
+      </article>
+
       <article class="support-card">
         <div class="support-mark" aria-hidden="true">IX</div>
-        <div><strong>Coordinamento Municipio Roma IX</strong><p>In caso di dubbi sui dati, conserva l’invio sul telefono e contatta il coordinamento.</p></div>
+        <div class="support-copy"><strong>Coordinamento Municipio Roma IX</strong><p>Assistenza tecnica e operativa per il rappresentante di lista.</p></div>
+        <button id="btnAssistenza" class="btn primary compact" type="button">Assistenza</button>
       </article>
+
+      <p class="app-version-footer">Rete Seggi <strong id="appVersionLabel">9.0.0</strong> · backend <span id="backendVersionLabel">—</span></p>
     </div>
 
     <!-- --- AFFLUENZA --- -->
@@ -475,6 +503,40 @@
     <div class="button-row modal-actions">
       <button id="btnEseguiConfermaAzione" class="btn danger" type="button">Conferma</button>
       <button id="btnAnnullaConfermaAzione" class="btn ghost" type="button">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<div id="modalAssistenza" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="assistenzaTitolo" hidden>
+  <div class="modal-box compact-modal" tabindex="-1">
+    <div class="share-modal-heading">
+      <div><p class="section-kicker">Centro assistenza</p><h2 id="assistenzaTitolo">Come possiamo aiutarti?</h2></div>
+      <button id="btnChiudiAssistenza" class="icon-close" type="button" aria-label="Chiudi">×</button>
+    </div>
+    <div class="support-action-grid">
+      <a id="supportCall" class="btn primary" href="#">Chiama</a>
+      <a id="supportWhatsapp" class="btn primary" href="#" target="_blank" rel="noopener">WhatsApp</a>
+      <a id="supportEmail" class="btn ghost" href="#">Email</a>
+      <button id="btnCopyDiagnostics" class="btn ghost" type="button">Copia diagnostica</button>
+    </div>
+    <details class="share-preview-wrap" open>
+      <summary>Dati tecnici da comunicare</summary>
+      <pre id="supportDiagnostics" class="share-preview" tabindex="0"></pre>
+    </details>
+    <button id="btnAccessibilita" class="btn ghost full" type="button">Attiva testo grande e alto contrasto</button>
+  </div>
+</div>
+
+<div id="modalDeviceCheck" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="deviceCheckTitolo" hidden>
+  <div class="modal-box compact-modal" tabindex="-1">
+    <div class="share-modal-heading">
+      <div><p class="section-kicker">Verifica preventiva</p><h2 id="deviceCheckTitolo">Controllo del dispositivo</h2></div>
+      <button id="btnChiudiDeviceCheck" class="icon-close" type="button" aria-label="Chiudi">×</button>
+    </div>
+    <div id="deviceCheckResults" class="device-check-list" aria-live="polite"></div>
+    <div class="button-row modal-actions">
+      <button id="btnRiprovaDeviceCheck" class="btn primary" type="button">Ripeti controllo</button>
+      <button id="btnChiudiDeviceCheck2" class="btn ghost" type="button">Chiudi</button>
     </div>
   </div>
 </div>
