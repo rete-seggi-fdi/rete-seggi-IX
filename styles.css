@@ -593,6 +593,9 @@ body{
 .action-card:hover{transform:translateY(-2px); border-color:#aebed7; box-shadow:0 13px 28px rgba(11,33,72,.1)}
 .action-card:active{transform:none}
 .action-card-icon{width:48px; height:48px; display:grid; place-items:center; border-radius:14px; font-size:20px; font-weight:900}
+.action-card-icon svg,.section-icon svg{width:27px; height:27px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round}
+.icon-label{display:inline-flex; align-items:center; justify-content:center; gap:7px}
+.icon-label svg{width:18px; height:18px; flex:none; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round}
 .action-affluenza .action-card-icon{background:#e9f7f0; color:#087a4b}
 .action-scrutinio .action-card-icon{background:#edf1fb; color:var(--brand)}
 .action-card-copy{display:flex; flex-direction:column; min-width:0}

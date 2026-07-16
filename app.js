@@ -13,7 +13,7 @@
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbx78tvql-_GwosG23g17bhTkjZZALCTMPgM2sC4HRwbiekMW0eDAdZ-13sjYnkKU01icQ/exec';
-const APP_VERSION = '9.0.0';
+const APP_VERSION = '9.2.0';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -2270,23 +2270,78 @@ function renderDeviceResults(results, openModal) {
 
 async function eseguiControlloDispositivo(openModal) {
   const results = [];
+
   let storageOk = false;
-  try { localStorage.setItem('rs_device_test', '1'); storageOk = localStorage.getItem('rs_device_test') === '1'; localStorage.removeItem('rs_device_test'); } catch (e) {}
-  results.push({ title: 'Salvataggio sul telefono', detail: storageOk ? 'Disponibile per bozze e invii offline.' : 'Non disponibile: evita la navigazione privata.', level: storageOk ? 'ok' : 'error' });
+  try {
+    localStorage.setItem('rs_device_test', '1');
+    storageOk = localStorage.getItem('rs_device_test') === '1';
+    localStorage.removeItem('rs_device_test');
+  } catch (e) {}
+  results.push({
+    title: 'Salvataggio sul telefono',
+    detail: storageOk ? 'Disponibile per bozze e invii in coda.' : 'Non disponibile: evita la navigazione privata e controlla le impostazioni del browser.',
+    level: storageOk ? 'ok' : 'error'
+  });
+
+  // Verifichiamo le funzioni realmente necessarie, non il nome del browser.
+  // Alcuni browser iOS possono non esporre il service worker in tutti i
+  // contesti pur permettendo il normale utilizzo dell'app e della coda locale.
   const swSupported = 'serviceWorker' in navigator;
-  const swReady = swSupported && !!navigator.serviceWorker.controller;
-  results.push({ title: 'Funzionamento offline', detail: swReady ? 'Service worker attivo.' : (swSupported ? 'Si attiverà dopo il primo aggiornamento della pagina.' : 'Browser non compatibile.'), level: swReady ? 'ok' : (swSupported ? 'warn' : 'error') });
-  results.push({ title: 'Sessione', detail: sessionToken() ? 'Accesso disponibile sul dispositivo.' : 'Sessione non presente.', level: sessionToken() ? 'ok' : 'warn' });
+  let swReady = swSupported && !!navigator.serviceWorker.controller;
+  let swRegistration = null;
+  if (swSupported) {
+    try {
+      swRegistration = STATE.swRegistration || await navigator.serviceWorker.getRegistration();
+      swReady = swReady || !!(swRegistration && (swRegistration.active || swRegistration.waiting));
+    } catch (e) {}
+  }
+
+  if (swReady) {
+    results.push({
+      title: 'Riapertura offline',
+      detail: 'App installata nella cache e pronta anche dopo la chiusura.',
+      level: 'ok'
+    });
+  } else if (swSupported) {
+    results.push({
+      title: 'Riapertura offline',
+      detail: 'Funzione disponibile ma non ancora attiva. Ricarica una volta la pagina con connessione.',
+      level: 'warn'
+    });
+  } else {
+    results.push({
+      title: 'Riapertura offline',
+      detail: 'Non verificabile in questo browser. Gli invii restano salvabili mentre l’app è aperta; su iPhone usa Safari per installazione e riapertura offline garantite.',
+      level: 'warn'
+    });
+  }
+
+  results.push({
+    title: 'Sessione',
+    detail: sessionToken() ? 'Accesso disponibile sul dispositivo.' : 'Sessione non presente.',
+    level: sessionToken() ? 'ok' : 'warn'
+  });
+
   const min = STATE.config && STATE.config.app && STATE.config.app.versioneMinima;
   const versionOk = !min || confrontaVersioni(APP_VERSION, min) >= 0;
-  results.push({ title: 'Versione app', detail: versionOk ? 'Versione ' + APP_VERSION + ' aggiornata.' : 'È richiesta almeno la versione ' + min + '.', level: versionOk ? 'ok' : 'error' });
+  results.push({
+    title: 'Versione app',
+    detail: versionOk ? 'Versione ' + APP_VERSION + ' aggiornata.' : 'È richiesta almeno la versione ' + min + '.',
+    level: versionOk ? 'ok' : 'error'
+  });
+
   if (navigator.onLine && backendConfigurato()) {
     try {
       const r = await fetch(BACKEND_URL + '?action=health', { cache: 'no-store' });
       const d = JSON.parse(await r.text());
       results.push({ title: 'Collegamento al coordinamento', detail: d.ok ? 'Backend raggiungibile.' : 'Risposta non valida.', level: d.ok ? 'ok' : 'error' });
-    } catch (e) { results.push({ title: 'Collegamento al coordinamento', detail: 'Backend non raggiungibile in questo momento.', level: 'error' }); }
-  } else results.push({ title: 'Collegamento al coordinamento', detail: 'Controllo rinviato perché il telefono è offline.', level: 'warn' });
+    } catch (e) {
+      results.push({ title: 'Collegamento al coordinamento', detail: 'Backend non raggiungibile in questo momento.', level: 'error' });
+    }
+  } else {
+    results.push({ title: 'Collegamento al coordinamento', detail: 'Controllo rinviato perché il telefono è offline.', level: 'warn' });
+  }
+
   renderDeviceResults(results, !!openModal);
   return results;
 }

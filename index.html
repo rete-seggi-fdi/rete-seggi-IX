@@ -166,15 +166,15 @@
         <span>Home</span>
       </button>
       <button class="tab" data-tab="affluenza" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V5M16 20v-7M22 20V8"/><path d="M2 20h22"/></svg>
         <span>Affluenza</span>
       </button>
       <button class="tab" data-tab="scrutinio" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6zM9 7h6M9 11h6M9 15h4"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h16l-1 10H5L4 10Z"/><path d="M8 10 9 4h6l1 6M10 7h4"/><path d="M8 15h8"/></svg>
         <span>Scrutinio</span>
       </button>
       <button class="tab" data-tab="invii" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7 10 17l-5-5M4 4h16v16H4z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.3 8.4A7 7 0 0 1 18.4 7M17.7 15.6A7 7 0 0 1 5.6 17"/></svg>
         <span>Invii</span>
       </button>
     </nav>
@@ -196,12 +196,12 @@
         </div>
         <div class="action-grid">
           <button id="btnVaiAffluenza" class="action-card action-affluenza" type="button">
-            <span class="action-card-icon" aria-hidden="true">%</span>
+            <span class="action-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V5M16 20v-7M22 20V8"/><path d="M2 20h22"/></svg></span>
             <span class="action-card-copy"><strong>Affluenza</strong><small>Comunica i votanti dell’orario corrente</small></span>
             <span class="action-card-arrow" aria-hidden="true">›</span>
           </button>
           <button id="btnVaiScrutinio" class="action-card action-scrutinio" type="button">
-            <span class="action-card-icon" aria-hidden="true">▣</span>
+            <span class="action-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 10h16l-1 10H5L4 10Z"/><path d="M8 10 9 4h6l1 6M10 7h4"/><path d="M8 15h8"/></svg></span>
             <span class="action-card-copy"><strong>Scrutinio</strong><small>Inserisci risultati e preferenze</small></span>
             <span class="action-card-arrow" aria-hidden="true">›</span>
           </button>
@@ -247,16 +247,16 @@
       <article class="support-card">
         <div class="support-mark" aria-hidden="true">IX</div>
         <div class="support-copy"><strong>Coordinamento Municipio Roma IX</strong><p>Assistenza tecnica e operativa per il rappresentante di lista.</p></div>
-        <button id="btnAssistenza" class="btn primary compact" type="button">Assistenza</button>
+        <button id="btnAssistenza" class="btn primary compact icon-label" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13a8 8 0 0 1 16 0"/><path d="M4 13v5h3v-5H4ZM17 13v5h3v-5h-3ZM17 18c0 2-2 3-5 3"/></svg><span>Assistenza</span></button>
       </article>
 
-      <p class="app-version-footer">Rete Seggi <strong id="appVersionLabel">9.0.0</strong> · backend <span id="backendVersionLabel">—</span></p>
+      <p class="app-version-footer">Rete Seggi <strong id="appVersionLabel">9.2.0</strong> · backend <span id="backendVersionLabel">—</span></p>
     </div>
 
     <!-- --- AFFLUENZA --- -->
     <div id="tab-affluenza" class="tabpanel">
       <article class="card feature-card">
-        <div class="section-heading"><div><p class="section-kicker">Durante la giornata</p><h2>Rilevazione affluenza</h2></div><span class="section-icon" aria-hidden="true">%</span></div>
+        <div class="section-heading"><div><p class="section-kicker">Durante la giornata</p><h2>Rilevazione affluenza</h2></div><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V5M16 20v-7M22 20V8"/><path d="M2 20h22"/></svg></span></div>
         <div id="elettoriBanner" class="info-box">Elettori aventi diritto: <strong id="elettoriValore">—</strong> <button id="btnModificaElettori" class="link-btn inline-link" type="button">modifica</button></div>
         <p class="muted-text">Tocca l'orario di rilevazione, inserisci i dati e invia. Puoi inviare più rilevazioni nel corso della giornata.</p>
         <div id="orariAffluenza" class="chip-row"></div>
