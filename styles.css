@@ -745,3 +745,5 @@ body.accessible-mode :focus-visible { outline: 4px solid #f6b800 !important; out
   .readiness-card, .support-card { align-items: flex-start; flex-wrap: wrap; }
   .support-action-grid { grid-template-columns: 1fr; }
 }
+
+.demo-banner{background:#7a2e0b;color:#fff;text-align:center;padding:9px 14px;font-size:.86rem;font-weight:800;letter-spacing:.03em;border-bottom:3px solid #f79009}.demo-banner[hidden]{display:none!important}

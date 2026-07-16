@@ -13,7 +13,7 @@
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbx78tvql-_GwosG23g17bhTkjZZALCTMPgM2sC4HRwbiekMW0eDAdZ-13sjYnkKU01icQ/exec';
-const APP_VERSION = '9.4.0';
+const APP_VERSION = '10.0.0';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -273,6 +273,18 @@ async function caricaConfig() {
 
 function configVuota() {
   return { ok: false, municipi: [], liste: { capitolina: [], municipio: {} }, candidati: { capitolina: [], municipio: {} }, orari: [], impostazioni: {}, app: {} };
+}
+
+function renderModalitaDemo() {
+  const el = $('#demoBanner');
+  if (!el) return;
+  const appCfg = STATE.config && STATE.config.app;
+  const attiva = !!(appCfg && appCfg.modalitaDemo);
+  el.hidden = !attiva;
+  if (attiva) {
+    const text = $('#demoBannerText');
+    if (text) text.textContent = appCfg.demoBanner || 'MODALITÀ DIMOSTRAZIONE · I dati inseriti non sono ufficiali';
+  }
 }
 
 function listeCapitolina() { return (STATE.config && STATE.config.liste && STATE.config.liste.capitolina) || []; }
@@ -2428,6 +2440,7 @@ async function avvia() {
   initServiceWorkerUpdates();
 
   await caricaConfig();
+  renderModalitaDemo();
   verificaVersioneConfigurata();
   popolaSelectMunicipi();
 
