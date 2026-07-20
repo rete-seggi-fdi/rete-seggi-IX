@@ -12,8 +12,12 @@
 // Sostituire con l'URL del tuo Web App di Google Apps Script
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
-const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbx78tvql-_GwosG23g17bhTkjZZALCTMPgM2sC4HRwbiekMW0eDAdZ-13sjYnkKU01icQ/exec';
-const APP_VERSION = '10.1.0';
+const RUNTIME_CONFIG = window.SEGGI_CONFIG || {};
+const BACKEND_URL = String(RUNTIME_CONFIG.backendUrl || 'https://script.google.com/macros/s/AKfycbxf4d4sB8Lye6G9spyR-RPY9hdmYb6XEy9vv5CEhRdYND6GieY10j1XWoKy7n6W78kbHg/exec').trim();
+const BACKEND_PROVIDER = String(RUNTIME_CONFIG.backendProvider || 'apps-script');
+const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '12.0.0');
+const APP_NAME = String(RUNTIME_CONFIG.appName || 'SeggioLink Roma');
+const ENABLED_MUNICIPALITIES = Array.isArray(RUNTIME_CONFIG.enabledMunicipalities) ? RUNTIME_CONFIG.enabledMunicipalities : ['09'];
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -65,6 +69,15 @@ function ricostruisciProfileDaSeggioAttivo() {
   STATE.profile = Object.assign({}, STATE.persona, seg);
 }
 
+function aggiornaBrandTerritoriale() {
+  const mu = STATE.profile && STATE.profile.municipio;
+  const nome = mu ? (NOMI_MUNICIPI[mu] || ('Municipio ' + mu)) : 'Roma Capitale';
+  document.querySelectorAll('[data-municipio-label]').forEach((el) => { el.textContent = nome; });
+  const mark = document.querySelector('[data-municipio-mark]');
+  if (mark) mark.textContent = mu ? String(parseInt(mu, 10)) : 'RM';
+}
+
+
 // ---------------------------------------------------------------------
 // UTILITY DI BASE
 // ---------------------------------------------------------------------
@@ -74,7 +87,7 @@ function $all(sel, root) { return Array.from((root || document).querySelectorAll
 
 function uuid() {
   if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-  return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  throw new Error('Questo dispositivo non supporta la generazione sicura degli identificativi. Aggiorna il browser.');
 }
 
 function loadJSON(key, fallback) {
@@ -375,13 +388,17 @@ async function onLogin() {
   btn.disabled = true;
 
   try {
-    const url = BACKEND_URL + '?action=verifica_codice&codice=' + encodeURIComponent(codice);
-    const res = await fetch(url, { cache: 'no-store', redirect: 'follow' });
+    const res = await fetch(BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: JSON.stringify({ tipo: 'login', codice }),
+      cache: 'no-store', redirect: 'follow'
+    });
     const data = JSON.parse(await res.text());
     if (!data.ok || !data.sessionToken) throw new Error(data.error || 'Codice non valido.');
 
     gestisciRevisioneDati(data.dataRevision);
-    saveJSON(LS.CODICE, codice);
+    saveJSON(LS.CODICE, 'sessione-attiva');
     saveJSON(LS.TOKEN, data.sessionToken);
     saveJSON(LS.TOKEN_EXPIRES, data.sessionExpiresAt || null);
     aggiornaTokenInviiInCoda(data.sessionToken);
@@ -805,8 +822,9 @@ function mostraDashboard() {
   $('#screen-setup').classList.remove('active');
   $('#screen-dashboard').classList.add('active');
   popolaSelectSeggioAttivo();
+  aggiornaBrandTerritoriale();
   const indirizzo = [STATE.profile.addr, STATE.profile.cap ? 'CAP ' + STATE.profile.cap : ''].filter(Boolean).join(' · ');
-  $('#seggioIndirizzo').textContent = indirizzo || 'Municipio Roma IX';
+  $('#seggioIndirizzo').textContent = indirizzo || (NOMI_MUNICIPI[STATE.profile.municipio] || 'Roma Capitale');
   renderElettoriBanner();
   renderAffluenza();
   renderScrutinioListeECandidati();
@@ -862,7 +880,7 @@ function renderHomeDashboard() {
   const nomeEl = $('#homeNome');
   const seggioEl = $('#homeSeggio');
   if (nomeEl) nomeEl.textContent = nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
-  if (seggioEl) seggioEl.textContent = 'Municipio Roma IX · Sezione ' + STATE.profile.sezione;
+  if (seggioEl) seggioEl.textContent = (NOMI_MUNICIPI[STATE.profile.municipio] || 'Municipio ' + STATE.profile.municipio) + ' · Sezione ' + STATE.profile.sezione;
   const elettori = $('#homeElettori');
   if (elettori) elettori.textContent = STATE.profile.elettori || '—';
 
