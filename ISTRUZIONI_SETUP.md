@@ -90,7 +90,7 @@ GitHub Pages è il modo più semplice e gratuito per avere un link `https://...`
 
 Tutto si gestisce **direttamente nel Google Sheet**, modificando le celle: non serve toccare altro codice.
 
-- **Foglio "Municipi"**: metti `TRUE` nella colonna Attivo per ogni municipio che ti interessa (il Municipio IX è già attivo di default).
+- **Foglio "Municipi"**: metti `TRUE` nella colonna Attivo per ogni municipio che ti interessa (tutti i 15 municipi sono attivi di default; puoi disattivare quelli non ancora operativi).
 - **Foglio "Liste"**: una riga per ogni lista in competizione. Colonna "Livello" = `Capitolina` (lascia vuota la colonna Municipio) oppure `Municipio` (e indica il numero, es. `09`).
 - **Foglio "Candidati FdI"**: una riga per ogni candidato FdI di cui vuoi raccogliere le preferenze, stesso schema Livello/Municipio.
 - **Foglio "Orari Affluenza"**: gli orari di rilevazione che appariranno come pulsanti nell'app. Sono già precompilati con lo schema standard delle comunali (12:00, 19:00, 23:00 la domenica, 12:00 il lunedì): verificali e correggili quando sarà fissata la data ufficiale del voto di Roma Capitale.
@@ -102,7 +102,7 @@ Le modifiche sono visibili nell'app non appena un rappresentante la apre con con
 ## Passo 6 — Testala prima di distribuirla
 
 1. Apri il link del Passo 4 dal tuo telefono.
-2. Segui la procedura come farebbe un rappresentante: inserisci dati di prova, scegli il Municipio IX, una sezione qualsiasi, invia una rilevazione di affluenza di prova.
+2. Segui la procedura come farebbe un rappresentante: inserisci dati di prova, scegli il municipio da collaudare e una sezione valida, invia una rilevazione di affluenza di prova.
 3. Torna sul Google Sheet, foglio "Invii Affluenza": dovresti vedere la riga appena arrivata.
 4. Una volta verificato che funziona, cancella la riga di prova.
 

@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 <link rel="icon" href="icons/icon-192.png" />
-<title>SeggioLink · Coordinamento Fratelli d’Italia · Municipio Roma IX · v10.1</title>
+<title>SeggioLink Roma · Coordinamento elettorale · v11.0</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -21,7 +21,7 @@
     <div class="brand">
       <img src="icons/icon-192.png" alt="" class="brand-icon" />
       <div class="brand-copy">
-        <p class="eyebrow">Coordinamento Fratelli d’Italia · Municipio Roma IX</p>
+        <p class="eyebrow">Coordinamento Fratelli d’Italia · Roma Capitale</p>
         <h1>SeggioLink</h1>
       </div>
     </div>
@@ -69,7 +69,7 @@
           <img src="icons/icon-192.png" alt="" class="login-logo" />
           <div class="login-identity">
             <span>SeggioLink</span>
-            <strong>Coordinamento Fratelli d’Italia · Municipio Roma IX</strong>
+            <strong>Coordinamento Fratelli d’Italia · Roma Capitale</strong>
           </div>
         </div>
         <h2 id="loginTitolo">Accedi al tuo seggio</h2>
@@ -187,7 +187,7 @@
         <div class="home-hero-copy">
           <p class="section-kicker light">Giornata elettorale</p>
           <h2>Buon lavoro, <span id="homeNome">rappresentante</span></h2>
-          <p id="homeSeggio">Municipio Roma IX · Sezione —</p>
+          <p id="homeSeggio"><span data-municipio-label>Roma Capitale</span> · Sezione —</p>
         </div>
         <div id="homeConnStatus" class="home-status" aria-live="polite">Verifico la connessione…</div>
       </article>
@@ -247,12 +247,12 @@
       </article>
 
       <article class="support-card">
-        <div class="support-mark" aria-hidden="true">IX</div>
-        <div class="support-copy"><strong>Coordinamento Municipio Roma IX</strong><p>Assistenza tecnica e operativa per il rappresentante di lista.</p></div>
+        <div class="support-mark" aria-hidden="true" data-municipio-mark>RM</div>
+        <div class="support-copy"><strong>Coordinamento <span data-municipio-label>Roma Capitale</span></strong><p>Assistenza tecnica e operativa per il rappresentante di lista.</p></div>
         <button id="btnAssistenza" class="btn primary compact icon-label" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13a8 8 0 0 1 16 0"/><path d="M4 13v5h3v-5H4ZM17 13v5h3v-5h-3ZM17 18c0 2-2 3-5 3"/></svg><span>Assistenza</span></button>
       </article>
 
-      <p class="app-version-footer">SeggioLink <strong id="appVersionLabel">10.1.0</strong> · backend <span id="backendVersionLabel">—</span></p>
+      <p class="app-version-footer">SeggioLink <strong id="appVersionLabel">11.0.0</strong> · backend <span id="backendVersionLabel">—</span></p>
     </div>
 
     <!-- --- AFFLUENZA --- -->
@@ -546,6 +546,7 @@
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 
-<script src="app.js"></script>
+<script src="config.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

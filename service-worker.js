@@ -7,7 +7,7 @@
    Le richieste verso il backend (Apps Script, altro dominio) non vengono
    mai intercettate: passano sempre direttamente alla rete. */
 
-const VERSIONE = 'seggiolink-v10.1';
+const VERSIONE = 'seggiolink-v11.0';
 const CACHE_SHELL = 'shell-' + VERSIONE;
 const CACHE_DATI = 'dati-' + VERSIONE;
 
@@ -18,6 +18,21 @@ const FILE_APP = [
   './app.js',
   './manifest.json',
   './data/indice-sezioni.json',
+  './data/municipio-01.json',
+  './data/municipio-02.json',
+  './data/municipio-03.json',
+  './data/municipio-04.json',
+  './data/municipio-05.json',
+  './data/municipio-06.json',
+  './data/municipio-07.json',
+  './data/municipio-08.json',
+  './data/municipio-09.json',
+  './data/municipio-10.json',
+  './data/municipio-11.json',
+  './data/municipio-12.json',
+  './data/municipio-13.json',
+  './data/municipio-14.json',
+  './data/municipio-15.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',

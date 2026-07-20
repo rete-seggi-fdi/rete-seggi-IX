@@ -34,6 +34,9 @@ const FOGLI = {
   LOG: 'Log Errori',
 };
 
+const BACKEND_VERSION = '11.0.0';
+const SESSION_TTL_SECONDS = 21600;
+
 const NOMI_MUNICIPI = {
   '01': 'Municipio I', '02': 'Municipio II', '03': 'Municipio III',
   '04': 'Municipio IV', '05': 'Municipio V', '06': 'Municipio VI',
@@ -47,43 +50,28 @@ const NOMI_MUNICIPI = {
 function doGet(e) {
   try {
     const action = (e && e.parameter && e.parameter.action) || '';
-    const invio = (e && e.parameter && e.parameter.invio) || '';
-
-    // Invio dati tramite GET (evita il redirect CORS delle POST)
-    if (invio) {
-      const body = JSON.parse(invio);
-      const tipo = body.tipo;
-      if (tipo === 'affluenza') return jsonOutput(salvaAffluenza(body));
-      if (tipo === 'scrutinio') return jsonOutput(salvaScrutinio(body));
-      return jsonOutput({ ok: false, error: 'Tipo invio non riconosciuto: ' + tipo });
-    }
-
-    if (action === 'verifica_codice') {
-      const codice = (e.parameter && e.parameter.codice) || '';
-      return jsonOutput(verificaCodice(codice));
-    }
     if (action === 'config') return jsonOutput(buildConfig());
-    if (action === 'ping') return jsonOutput({ ok: true, time: new Date().toISOString() });
-    return jsonOutput({ ok: false, error: 'Azione non riconosciuta: ' + action });
+    if (action === 'ping' || action === 'health') return jsonOutput({ ok: true, backendVersion: BACKEND_VERSION, time: new Date().toISOString() });
+    // Compatibilità temporanea con vecchie versioni. Non usare per nuovi accessi.
+    if (action === 'verifica_codice') return jsonOutput(creaSessione((e.parameter && e.parameter.codice) || ''));
+    return jsonOutput({ ok: false, code: 'UNKNOWN_ACTION', error: 'Azione non riconosciuta: ' + action });
   } catch (err) {
     logError('doGet', err);
-    return jsonOutput({ ok: false, error: String(err) });
+    return jsonOutput({ ok: false, code: 'SERVER_ERROR', error: String(err) });
   }
 }
 
 function doPost(e) {
   try {
-    if (!e || !e.postData || !e.postData.contents) {
-      return jsonOutput({ ok: false, error: 'Richiesta vuota' });
-    }
+    if (!e || !e.postData || !e.postData.contents) return jsonOutput({ ok: false, code: 'EMPTY_REQUEST', error: 'Richiesta vuota' });
     const body = JSON.parse(e.postData.contents);
-    const tipo = body.tipo;
-    if (tipo === 'affluenza') return jsonOutput(salvaAffluenza(body));
-    if (tipo === 'scrutinio') return jsonOutput(salvaScrutinio(body));
-    return jsonOutput({ ok: false, error: 'Tipo invio non riconosciuto: ' + tipo });
+    if (body.tipo === 'login') return jsonOutput(creaSessione(body.codice || ''));
+    if (body.tipo === 'affluenza') return jsonOutput(salvaAffluenza(body));
+    if (body.tipo === 'scrutinio') return jsonOutput(salvaScrutinio(body));
+    return jsonOutput({ ok: false, code: 'UNKNOWN_TYPE', error: 'Tipo richiesta non riconosciuto: ' + body.tipo });
   } catch (err) {
     logError('doPost', err);
-    return jsonOutput({ ok: false, error: String(err) });
+    return jsonOutput({ ok: false, code: 'SERVER_ERROR', error: String(err) });
   }
 }
 
@@ -133,6 +121,56 @@ function verificaCodice(codice) {
   }
 
   return { ok: true, nome: nome, sezioni: sezioni };
+}
+
+
+function creaSessione(codice) {
+  const verifica = verificaCodice(codice);
+  if (!verifica.ok) return verifica;
+  const token = Utilities.getUuid() + Utilities.getUuid();
+  const sessione = {
+    codice: String(codice).trim().toUpperCase(),
+    nome: verifica.nome,
+    sezioni: verifica.sezioni,
+    expiresAt: Date.now() + SESSION_TTL_SECONDS * 1000,
+  };
+  CacheService.getScriptCache().put('session:' + token, JSON.stringify(sessione), SESSION_TTL_SECONDS);
+  return {
+    ok: true,
+    nome: verifica.nome,
+    sezioni: verifica.sezioni,
+    sessionToken: token,
+    sessionExpiresAt: new Date(sessione.expiresAt).toISOString(),
+    dataRevision: PropertiesService.getScriptProperties().getProperty('DATA_REVISION') || '1'
+  };
+}
+
+function leggiSessione(token) {
+  if (!token) return null;
+  const raw = CacheService.getScriptCache().get('session:' + token);
+  if (!raw) return null;
+  const sessione = JSON.parse(raw);
+  if (!sessione.expiresAt || sessione.expiresAt < Date.now()) return null;
+  return sessione;
+}
+
+function autorizzaInvio(body) {
+  const sessione = leggiSessione(body.sessionToken);
+  if (!sessione) return { ok: false, code: 'SESSION_EXPIRED', error: 'Sessione scaduta. Effettua nuovamente l’accesso.' };
+  const mu = String(body.municipio || '').padStart(2, '0');
+  const sezione = String(body.sezione || '').trim();
+  const assegnata = (sessione.sezioni || []).some(function(s) { return s.municipio === mu && String(s.sezione) === sezione; });
+  if (!assegnata) return { ok: false, code: 'SECTION_NOT_ASSIGNED', error: 'Questa sezione non è assegnata al tuo codice.' };
+  body.codice = sessione.codice;
+  body.rappresentante = sessione.nome;
+  return { ok: true, sessione: sessione };
+}
+
+function validaIntero(v, nome, obbligatorio) {
+  if ((v === '' || v === null || v === undefined) && !obbligatorio) return null;
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < 0) throw new Error(nome + ' deve essere un numero intero non negativo.');
+  return n;
 }
 
 function buildConfig() {
@@ -227,86 +265,78 @@ function buildConfig() {
     }
   }
 
-  return { ok: true, municipi, liste, candidati, sindaci, presidenti, orari, generatoIl: new Date().toISOString() };
+  return { ok: true, municipi, liste, candidati, sindaci, presidenti, orari, dataRevision: PropertiesService.getScriptProperties().getProperty('DATA_REVISION') || '1', app: { backendVersion: BACKEND_VERSION, versioneMinima: '11.0.0', modalitaDemo: false }, generatoIl: new Date().toISOString() };
 }
 
 // ===================== SALVATAGGIO INVII =====================================
 
 function salvaAffluenza(body) {
-  const sh = getOrCreateSheet(FOGLI.AFFLUENZA, [
-    'Timestamp', 'ID Invio', 'Codice', 'Municipio', 'Sezione', 'Rappresentante', 'Telefono',
-    'Giorno', 'Orario', 'Elettori', 'Maschi', 'Femmine', 'Totale', '% Affluenza', 'Note',
-  ]);
-  if (gia_inviato(sh, body.idInvio)) return { ok: true, duplicato: true, idInvio: body.idInvio };
-
-  const elettori = numOrVuoto(body.elettori);
-  const totale = numOrVuoto(body.totale);
-  const perc = (elettori && totale !== '') ? Math.round((totale / elettori) * 1000) / 10 : '';
-
-  sh.appendRow([
-    new Date(), body.idInvio || '', body.codice || '', body.municipio || '', body.sezione || '',
-    body.rappresentante || '', body.telefono || '', body.giorno || '', body.orario || '',
-    elettori, numOrVuoto(body.maschi), numOrVuoto(body.femmine), totale, perc, body.note || '',
-  ]);
-  return { ok: true, idInvio: body.idInvio };
+  const auth = autorizzaInvio(body);
+  if (!auth.ok) return auth;
+  try {
+    const totale = validaIntero(body.totale, 'Totale votanti', true);
+    const maschi = validaIntero(body.maschi, 'Votanti maschi', false);
+    const femmine = validaIntero(body.femmine, 'Votanti femmine', false);
+    const elettori = validaIntero(body.elettori, 'Elettori', false);
+    if (maschi !== null && femmine !== null && maschi + femmine !== totale) return { ok:false, code:'INVALID_DATA', error:'Maschi e femmine non coincidono con il totale.' };
+    if (elettori !== null && totale > elettori) return { ok:false, code:'INVALID_DATA', error:'I votanti non possono superare gli elettori.' };
+    if (body.correzioneDi && !String(body.motivoCorrezione || '').trim()) return { ok:false, code:'INVALID_DATA', error:'La correzione richiede una motivazione.' };
+    const lock = LockService.getScriptLock(); lock.waitLock(20000);
+    try {
+      const sh = getOrCreateSheet(FOGLI.AFFLUENZA, [
+        'Timestamp', 'ID Invio', 'Codice', 'Municipio', 'Sezione', 'Rappresentante', 'Telefono',
+        'Giorno', 'Orario', 'Elettori', 'Maschi', 'Femmine', 'Totale', '% Affluenza', 'Note',
+        'Correzione di', 'Motivo correzione', 'Versione app'
+      ]);
+      if (gia_inviato(sh, body.idInvio)) return { ok: true, duplicato: true, idInvio: body.idInvio, ricevutoIl: new Date().toISOString() };
+      if (body.correzioneDi && !gia_inviato(sh, body.correzioneDi)) return { ok:false, code:'CORRECTION_TARGET_NOT_FOUND', error:'Invio originale non trovato.' };
+      const perc = elettori ? Math.round((totale / elettori) * 1000) / 10 : '';
+      sh.appendRow([new Date(), body.idInvio || Utilities.getUuid(), body.codice, body.municipio, body.sezione,
+        body.rappresentante, body.telefono || '', body.giorno || '', body.orario || '',
+        elettori === null ? '' : elettori, maschi === null ? '' : maschi, femmine === null ? '' : femmine,
+        totale, perc, body.note || '', body.correzioneDi || '', body.motivoCorrezione || '', body.versioneApp || '' ]);
+      return { ok: true, idInvio: body.idInvio, ricevutoIl: new Date().toISOString() };
+    } finally { lock.releaseLock(); }
+  } catch(err) { return { ok:false, code:'INVALID_DATA', error:String(err.message || err) }; }
 }
 
 function salvaScrutinio(body) {
-  const idInvio = body.idInvio || Utilities.getUuid();
-
-  const shRiepilogo = getOrCreateSheet(FOGLI.SCRUTINIO, [
-    'Timestamp', 'ID Invio', 'Codice', 'Municipio', 'Sezione', 'Rappresentante', 'Telefono',
-    'Elettori', 'Votanti',
-    'Comune - Valide', 'Comune - Bianche', 'Comune - Nulle', 'Comune - Contestate',
-    'Municipio - Valide', 'Municipio - Bianche', 'Municipio - Nulle', 'Municipio - Contestate',
-    'Note',
-  ]);
-  if (gia_inviato(shRiepilogo, idInvio)) return { ok: true, duplicato: true, idInvio };
-
-  const sc = body.schedaComune || {};
-  const sm = body.schedaMunicipio || {};
-  shRiepilogo.appendRow([
-    new Date(), idInvio, body.codice || '', body.municipio || '', body.sezione || '',
-    body.rappresentante || '', body.telefono || '',
-    numOrVuoto(body.elettori), numOrVuoto(body.votanti),
-    numOrVuoto(sc.valide), numOrVuoto(sc.bianche), numOrVuoto(sc.nulle), numOrVuoto(sc.contestate),
-    numOrVuoto(sm.valide), numOrVuoto(sm.bianche), numOrVuoto(sm.nulle), numOrVuoto(sm.contestate),
-    body.note || '',
-  ]);
-
-  const shListe = getOrCreateSheet(FOGLI.VOTI_LISTE, [
-    'Timestamp', 'ID Invio', 'Municipio', 'Sezione', 'Livello', 'Lista', 'Voti',
-  ]);
-  (body.liste || []).forEach(function (l) {
-    if (!l || !l.nome) return;
-    shListe.appendRow([new Date(), idInvio, body.municipio || '', body.sezione || '', l.livello || '', l.nome, numOrVuoto(l.voti)]);
-  });
-
-  const shPref = getOrCreateSheet(FOGLI.PREFERENZE, [
-    'Timestamp', 'ID Invio', 'Municipio', 'Sezione', 'Livello', 'Candidato', 'Preferenze',
-  ]);
-  (body.preferenze || []).forEach(function (p) {
-    if (!p || !p.candidato) return;
-    shPref.appendRow([new Date(), idInvio, body.municipio || '', body.sezione || '', p.livello || '', p.candidato, numOrVuoto(p.voti)]);
-  });
-
-  const shSindaci = getOrCreateSheet(FOGLI.VOTI_SINDACI, [
-    'Timestamp', 'ID Invio', 'Municipio', 'Sezione', 'Candidato Sindaco', 'Voti',
-  ]);
-  (body.sindaci || []).forEach(function (s) {
-    if (!s || !s.nome) return;
-    shSindaci.appendRow([new Date(), idInvio, body.municipio || '', body.sezione || '', s.nome, numOrVuoto(s.voti)]);
-  });
-
-  const shPresidenti = getOrCreateSheet(FOGLI.VOTI_PRESIDENTI, [
-    'Timestamp', 'ID Invio', 'Municipio', 'Sezione', 'Candidato Presidente', 'Voti',
-  ]);
-  (body.presidenti || []).forEach(function (p) {
-    if (!p || !p.nome) return;
-    shPresidenti.appendRow([new Date(), idInvio, body.municipio || '', body.sezione || '', p.nome, numOrVuoto(p.voti)]);
-  });
-
-  return { ok: true, idInvio: idInvio };
+  const auth = autorizzaInvio(body);
+  if (!auth.ok) return auth;
+  try {
+    const idInvio = body.idInvio || Utilities.getUuid();
+    const elettori = validaIntero(body.elettori, 'Elettori', true);
+    const votanti = validaIntero(body.votanti, 'Votanti', true);
+    if (votanti > elettori) return { ok:false, code:'INVALID_DATA', error:'I votanti non possono superare gli elettori.' };
+    if (body.correzioneDi && !String(body.motivoCorrezione || '').trim()) return { ok:false, code:'INVALID_DATA', error:'La correzione richiede una motivazione.' };
+    const sc = body.schedaComune || {}, sm = body.schedaMunicipio || {};
+    ['valide','bianche','nulle','contestate'].forEach(function(k){ validaIntero(sc[k], 'Comune '+k, true); validaIntero(sm[k], 'Municipio '+k, true); });
+    const totC = Number(sc.valide)+Number(sc.bianche)+Number(sc.nulle)+Number(sc.contestate);
+    const totM = Number(sm.valide)+Number(sm.bianche)+Number(sm.nulle)+Number(sm.contestate);
+    if (totC !== votanti || totM !== votanti) return { ok:false, code:'INVALID_DATA', error:'Il totale delle schede Comune e Municipio deve coincidere con i votanti.' };
+    const lock = LockService.getScriptLock(); lock.waitLock(20000);
+    try {
+      const shRiepilogo = getOrCreateSheet(FOGLI.SCRUTINIO, [
+        'Timestamp','ID Invio','Codice','Municipio','Sezione','Rappresentante','Telefono','Elettori','Votanti',
+        'Comune - Valide','Comune - Bianche','Comune - Nulle','Comune - Contestate',
+        'Municipio - Valide','Municipio - Bianche','Municipio - Nulle','Municipio - Contestate','Note',
+        'Correzione di','Motivo correzione','Versione app'
+      ]);
+      if (gia_inviato(shRiepilogo, idInvio)) return { ok:true, duplicato:true, idInvio:idInvio, ricevutoIl:new Date().toISOString() };
+      if (body.correzioneDi && !gia_inviato(shRiepilogo, body.correzioneDi)) return { ok:false, code:'CORRECTION_TARGET_NOT_FOUND', error:'Scrutinio originale non trovato.' };
+      shRiepilogo.appendRow([new Date(),idInvio,body.codice,body.municipio,body.sezione,body.rappresentante,body.telefono||'',elettori,votanti,
+        sc.valide,sc.bianche,sc.nulle,sc.contestate,sm.valide,sm.bianche,sm.nulle,sm.contestate,body.note||'',body.correzioneDi||'',body.motivoCorrezione||'',body.versioneApp||'']);
+      const shListe=getOrCreateSheet(FOGLI.VOTI_LISTE,['Timestamp','ID Invio','Municipio','Sezione','Livello','Lista','Voti']);
+      (body.liste||[]).forEach(function(x){if(x&&x.nome)shListe.appendRow([new Date(),idInvio,body.municipio,body.sezione,x.livello||'',x.nome,numOrVuoto(x.voti)]);});
+      const shPref=getOrCreateSheet(FOGLI.PREFERENZE,['Timestamp','ID Invio','Municipio','Sezione','Livello','Candidato','Preferenze']);
+      (body.preferenze||[]).forEach(function(x){if(x&&x.candidato)shPref.appendRow([new Date(),idInvio,body.municipio,body.sezione,x.livello||'',x.candidato,numOrVuoto(x.voti)]);});
+      const shSind=getOrCreateSheet(FOGLI.VOTI_SINDACI,['Timestamp','ID Invio','Municipio','Sezione','Candidato Sindaco','Voti']);
+      (body.sindaci||[]).forEach(function(x){if(x&&x.nome)shSind.appendRow([new Date(),idInvio,body.municipio,body.sezione,x.nome,numOrVuoto(x.voti)]);});
+      const shPres=getOrCreateSheet(FOGLI.VOTI_PRESIDENTI,['Timestamp','ID Invio','Municipio','Sezione','Candidato Presidente','Voti']);
+      (body.presidenti||[]).forEach(function(x){if(x&&x.nome)shPres.appendRow([new Date(),idInvio,body.municipio,body.sezione,x.nome,numOrVuoto(x.voti)]);});
+      return { ok:true, idInvio:idInvio, ricevutoIl:new Date().toISOString() };
+    } finally { lock.releaseLock(); }
+  } catch(err) { return { ok:false, code:'INVALID_DATA', error:String(err.message || err) }; }
 }
 
 function gia_inviato(sheet, idInvio) {
@@ -355,7 +385,7 @@ function inizializza() {
   const shMun = getOrCreateSheet(FOGLI.MUNICIPI, ['Municipio', 'Nome', 'Attivo']);
   if (shMun.getLastRow() < 2) {
     Object.keys(NOMI_MUNICIPI).sort().forEach(function (m) {
-      shMun.appendRow([m, NOMI_MUNICIPI[m], m === '09']);
+      shMun.appendRow([m, NOMI_MUNICIPI[m], true]);
     });
   }
 

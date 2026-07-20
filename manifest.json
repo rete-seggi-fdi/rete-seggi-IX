@@ -1,8 +1,8 @@
 {
-  "name": "SeggioLink · Coordinamento Fratelli d’Italia · Municipio Roma IX",
+  "name": "SeggioLink Roma · Coordinamento elettorale",
   "short_name": "SeggioLink",
-  "description": "SeggioLink, app operativa del Coordinamento Fratelli d’Italia del Municipio Roma IX per affluenza, scrutinio, assistenza e comunicazioni",
-  "start_url": "./index.html?v=100",
+  "description": "App operativa per affluenza, scrutinio, assistenza e comunicazioni nei municipi di Roma Capitale",
+  "start_url": "./index.html?v=110",
   "scope": "./",
   "id": "./index.html",
   "display": "standalone",
