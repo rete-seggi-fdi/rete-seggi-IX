@@ -747,3 +747,18 @@ body.accessible-mode :focus-visible { outline: 4px solid #f6b800 !important; out
 }
 
 .demo-banner{background:#7a2e0b;color:#fff;text-align:center;padding:9px 14px;font-size:.86rem;font-weight:800;letter-spacing:.03em;border-bottom:3px solid #f79009}.demo-banner[hidden]{display:none!important}
+
+
+/* V13: identificazione build e aggiornamento obbligatorio */
+.environment-banner{position:sticky;top:0;z-index:70;text-align:center;padding:8px 12px;font-size:.78rem;font-weight:900;letter-spacing:.06em}
+.environment-banner.test{background:#9a3412;color:#fff;border-bottom:3px solid #fdba74}
+.environment-banner.production{background:#166534;color:#fff}
+.version-button{border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.login-card .version-button{display:block;margin:14px auto 0;color:#5f6b7c;font-size:.78rem}
+.app-version-footer .version-button{text-decoration:none;color:#687287}
+.app-info-grid{display:grid;gap:0;margin:12px 0 18px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.app-info-grid>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.app-info-grid>div:last-child{border-bottom:0}.app-info-grid dt{font-weight:750;color:var(--muted)}.app-info-grid dd{margin:0;font-weight:850;text-align:right}
+.mandatory-update{z-index:9999;background:rgba(8,18,38,.92)}
+.mandatory-update .modal-box{border:3px solid #b42318;text-align:center}
+body.version-blocked> :not(#modalMandatoryUpdate):not(script){pointer-events:none;user-select:none}

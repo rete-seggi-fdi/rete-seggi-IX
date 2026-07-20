@@ -13,9 +13,12 @@
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
 const RUNTIME_CONFIG = window.SEGGI_CONFIG || {};
-const BACKEND_URL = String(RUNTIME_CONFIG.backendUrl || 'https://script.google.com/macros/s/AKfycbxf4d4sB8Lye6G9spyR-RPY9hdmYb6XEy9vv5CEhRdYND6GieY10j1XWoKy7n6W78kbHg/exec').trim();
+const BACKEND_URL = String(RUNTIME_CONFIG.backendUrl || '').trim();
 const BACKEND_PROVIDER = String(RUNTIME_CONFIG.backendProvider || 'apps-script');
-const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '12.0.0');
+const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '13.1.0');
+const BUILD_DATE = String(RUNTIME_CONFIG.buildDate || '');
+const APP_ENVIRONMENT = String(RUNTIME_CONFIG.environment || 'test').toLowerCase();
+const LATEST_VERSION_URL = String(RUNTIME_CONFIG.latestVersionUrl || 'build-info.json');
 const APP_NAME = String(RUNTIME_CONFIG.appName || 'SeggioLink Roma');
 const ENABLED_MUNICIPALITIES = Array.isArray(RUNTIME_CONFIG.enabledMunicipalities) ? RUNTIME_CONFIG.enabledMunicipalities : ['09'];
 
@@ -388,10 +391,13 @@ async function onLogin() {
   btn.disabled = true;
 
   try {
+    if (!BACKEND_URL || BACKEND_URL.includes('INSERIRE_NUOVO_DEPLOYMENT')) {
+      throw new Error('BACKEND_NOT_CONFIGURED');
+    }
     const res = await fetch(BACKEND_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body: JSON.stringify({ tipo: 'login', codice }),
+      body: JSON.stringify({ tipo: 'login', codice, telefono }),
       cache: 'no-store', redirect: 'follow'
     });
     const data = JSON.parse(await res.text());
@@ -402,7 +408,7 @@ async function onLogin() {
     saveJSON(LS.TOKEN, data.sessionToken);
     saveJSON(LS.TOKEN_EXPIRES, data.sessionExpiresAt || null);
     aggiornaTokenInviiInCoda(data.sessionToken);
-    STATE.persona = { nome: data.nome || 'Rappresentante', telefono };
+    STATE.persona = { nome: data.nome || 'Rappresentante', telefono: data.telefono || telefono };
     saveJSON(LS.PERSONA, STATE.persona);
     STATE.seggi = [];
 
@@ -432,9 +438,14 @@ async function onLogin() {
       vaiAlSetupPrecompilato(data);
     }
   } catch (e) {
-    errBox.textContent = e.message === 'Failed to fetch'
-      ? 'Connessione non disponibile. Il primo accesso richiede la rete.'
-      : (e.message || 'Impossibile verificare il codice.');
+    const configurazioneIncompleta = !BACKEND_URL || BACKEND_URL.includes('INSERIRE_NUOVO_DEPLOYMENT');
+    errBox.textContent = configurazioneIncompleta
+      ? 'Il servizio di accesso non è ancora configurato. Inserisci in config.js l’indirizzo /exec del deployment Apps Script.'
+      : (e.message === 'BACKEND_NOT_CONFIGURED'
+        ? 'Il servizio di accesso non è ancora configurato. Inserisci in config.js l’indirizzo /exec del deployment Apps Script.'
+        : (e.message === 'Failed to fetch'
+        ? 'Impossibile raggiungere il servizio di accesso. Controlla la connessione, l’URL del backend e le autorizzazioni della Web App.'
+          : (e.message || 'Impossibile verificare telefono e codice.')));
     errBox.hidden = false;
   } finally {
     btn.textContent = 'Accedi';
@@ -2231,7 +2242,10 @@ function normalizzaTelefonoLink(value) {
 function testoDiagnostica() {
   const p = STATE.profile || {};
   return [
-    'Rete Seggi ' + APP_VERSION,
+    APP_NAME + ' ' + APP_VERSION,
+    'Build: ' + (BUILD_DATE || '—'),
+    'Ambiente: ' + APP_ENVIRONMENT.toUpperCase(),
+    'Provider: ' + BACKEND_PROVIDER,
     'Backend: ' + ((STATE.config && STATE.config.app && STATE.config.app.backendVersion) || 'non rilevato'),
     'Rappresentante: ' + (p.nome || '—'),
     'Municipio: ' + (p.municipio || '—'),
@@ -2376,6 +2390,57 @@ async function eseguiControlloDispositivo(openModal) {
   return results;
 }
 
+function renderIdentitaVersione() {
+  const envLabel = APP_ENVIRONMENT === 'production' ? 'PRODUZIONE' : 'TEST';
+  document.querySelectorAll('[data-app-version]').forEach((el) => { el.textContent = APP_VERSION; });
+  document.querySelectorAll('[data-environment-label]').forEach((el) => { el.textContent = envLabel; });
+  const banner = $('#environmentBanner');
+  if (banner) {
+    banner.textContent = APP_ENVIRONMENT === 'production' ? 'AMBIENTE DI PRODUZIONE' : 'AMBIENTE DI TEST · I dati potrebbero non essere ufficiali';
+    banner.className = 'environment-banner ' + APP_ENVIRONMENT;
+    banner.hidden = APP_ENVIRONMENT === 'production';
+  }
+  const footer = $('#environmentFooter'); if (footer) footer.textContent = envLabel;
+}
+
+function apriInfoApp() {
+  $('#infoAppVersion').textContent = APP_VERSION;
+  $('#infoBuildDate').textContent = BUILD_DATE || '—';
+  $('#infoEnvironment').textContent = APP_ENVIRONMENT === 'production' ? 'PRODUZIONE' : 'TEST';
+  $('#infoBackendProvider').textContent = BACKEND_PROVIDER === 'cloudflare-d1' ? 'Cloudflare Worker + D1' : 'Google Apps Script + Sheets';
+  $('#infoBackendVersion').textContent = (STATE.config && STATE.config.app && STATE.config.app.backendVersion) || 'non rilevata';
+  $('#infoMunicipalities').textContent = ENABLED_MUNICIPALITIES.join(', ');
+  $('#modalInfoApp').hidden = false;
+}
+function chiudiInfoApp() { $('#modalInfoApp').hidden = true; }
+
+function bloccaPerAggiornamento(testo) {
+  const modal = $('#modalMandatoryUpdate');
+  if (!modal) return;
+  $('#mandatoryUpdateText').textContent = testo || 'Aggiorna SeggioLink prima di continuare.';
+  modal.hidden = false;
+  document.body.classList.add('version-blocked');
+}
+
+async function verificaBuildPubblicata() {
+  if (!navigator.onLine || !LATEST_VERSION_URL) return;
+  try {
+    const sep = LATEST_VERSION_URL.includes('?') ? '&' : '?';
+    const r = await fetch(LATEST_VERSION_URL + sep + 't=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return;
+    const info = await r.json();
+    const latest = String(info.latestVersion || '');
+    const minimum = String(info.minimumVersion || '');
+    if (minimum && confrontaVersioni(APP_VERSION, minimum) < 0) {
+      bloccaPerAggiornamento('Questa è la versione ' + APP_VERSION + '. È richiesta almeno la ' + minimum + '.');
+      return;
+    }
+    if (latest && confrontaVersioni(APP_VERSION, latest) < 0) {
+      mostraAggiornamento('Disponibile la versione ' + latest + '. Stai usando la ' + APP_VERSION + '.', false);
+    }
+  } catch (e) {}
+}
+
 function mostraAggiornamento(testo, obbligatorio) {
   const banner = $('#updateBanner');
   if (!banner) return;
@@ -2388,7 +2453,9 @@ function verificaVersioneConfigurata() {
   const appCfg = STATE.config && STATE.config.app;
   if (!appCfg || !appCfg.versioneMinima) return;
   if (confrontaVersioni(APP_VERSION, appCfg.versioneMinima) < 0) {
-    mostraAggiornamento('La versione minima richiesta è ' + appCfg.versioneMinima + '. Aggiorna prima di proseguire.', !!appCfg.aggiornamentoObbligatorio);
+    const msg = 'La versione minima richiesta è ' + appCfg.versioneMinima + '. Stai usando la ' + APP_VERSION + '.';
+    mostraAggiornamento(msg, !!appCfg.aggiornamentoObbligatorio);
+    if (appCfg.aggiornamentoObbligatorio) bloccaPerAggiornamento(msg);
   }
 }
 
@@ -2451,6 +2518,7 @@ function initInstallBanner() {
 // AVVIO APP
 // =======================================================================
 async function avvia() {
+  renderIdentitaVersione();
   aggiornaStatoConnessione();
   applicaAccessibilita();
   initInstallBanner();
@@ -2460,6 +2528,7 @@ async function avvia() {
   await caricaConfig();
   renderModalitaDemo();
   verificaVersioneConfigurata();
+  await verificaBuildPubblicata();
   popolaSelectMunicipi();
 
   $('#btnLogin').addEventListener('click', onLogin);
@@ -2498,6 +2567,12 @@ async function avvia() {
   $('#btnChiudiDeviceCheck2').addEventListener('click', () => { $('#modalDeviceCheck').hidden = true; });
   $('#modalDeviceCheck').addEventListener('click', (e) => { if (e.target.id === 'modalDeviceCheck') $('#modalDeviceCheck').hidden = true; });
   $('#btnUpdateApp').addEventListener('click', applicaAggiornamento);
+  $('#btnMandatoryUpdate').addEventListener('click', applicaAggiornamento);
+  $('#btnInfoLogin').addEventListener('click', apriInfoApp);
+  $('#btnInfoApp').addEventListener('click', apriInfoApp);
+  $('#btnChiudiInfoApp').addEventListener('click', chiudiInfoApp);
+  $('#btnInfoDeviceCheck').addEventListener('click', () => { chiudiInfoApp(); eseguiControlloDispositivo(true); });
+  $('#modalInfoApp').addEventListener('click', (e) => { if (e.target.id === 'modalInfoApp') chiudiInfoApp(); });
   $$('.scrutiny-step').forEach((btn) => btn.addEventListener('click', () => {
     $$('.scrutiny-step').forEach((b) => b.classList.toggle('active', b === btn));
     const target = document.getElementById(btn.dataset.scrollStep);

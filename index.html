@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 <link rel="icon" href="icons/icon-192.png" />
-<title>SeggioLink Roma · Coordinamento elettorale · v11.0</title>
+<title>SeggioLink Roma · Coordinamento elettorale · v13.1</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -49,6 +49,8 @@
   </div>
 </div>
 
+<div id="environmentBanner" class="environment-banner" hidden role="status"></div>
+
 <div id="demoBanner" class="demo-banner" hidden role="status" aria-live="assertive"><strong id="demoBannerText">MODALITÀ DIMOSTRAZIONE · I dati inseriti non sono ufficiali</strong></div>
 
 <div id="updateBanner" class="update-banner" hidden role="status" aria-live="assertive">
@@ -79,7 +81,7 @@
         <span>Numero di telefono</span>
         <input id="loginTelefono" type="tel" inputmode="tel" autocomplete="tel" placeholder="Es. 333 1234567" aria-describedby="telefonoHelp" />
       </label>
-      <p id="telefonoHelp" class="field-help">Serve solo al coordinamento per ricontattarti in caso di dati dubbi.</p>
+      <p id="telefonoHelp" class="field-help">Viene verificato insieme al codice personale e consente al coordinamento di ricontattarti in caso di dati dubbi.</p>
       <label class="field">
         <span>Codice di accesso</span>
         <input id="inputCodice" class="code-input" type="text" autocomplete="one-time-code" autocorrect="off" autocapitalize="characters" spellcheck="false" placeholder="Es. ROSSI2026" />
@@ -88,6 +90,7 @@
       <button id="btnLogin" class="btn primary full">Accedi</button>
       <div class="privacy-note">I dati vengono salvati sul dispositivo e trasmessi al foglio del coordinamento. Non inserire informazioni sugli elettori nelle note.</div>
       <p class="login-help">Non hai un codice? Contatta il coordinamento.</p>
+      <button id="btnInfoLogin" class="version-button" type="button">Versione <span data-app-version>13.1.0</span> · <span data-environment-label>TEST</span></button>
     </article>
   </section>
 
@@ -252,7 +255,7 @@
         <button id="btnAssistenza" class="btn primary compact icon-label" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13a8 8 0 0 1 16 0"/><path d="M4 13v5h3v-5H4ZM17 13v5h3v-5h-3ZM17 18c0 2-2 3-5 3"/></svg><span>Assistenza</span></button>
       </article>
 
-      <p class="app-version-footer">SeggioLink <strong id="appVersionLabel">11.0.0</strong> · backend <span id="backendVersionLabel">—</span></p>
+      <p class="app-version-footer"><button id="btnInfoApp" class="version-button" type="button">SeggioLink <strong id="appVersionLabel">13.1.0</strong> · <span id="environmentFooter">TEST</span> · backend <span id="backendVersionLabel">—</span></button></p>
     </div>
 
     <!-- --- AFFLUENZA --- -->
@@ -540,6 +543,33 @@
       <button id="btnRiprovaDeviceCheck" class="btn primary" type="button">Ripeti controllo</button>
       <button id="btnChiudiDeviceCheck2" class="btn ghost" type="button">Chiudi</button>
     </div>
+  </div>
+</div>
+
+<div id="modalInfoApp" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="infoAppTitolo" hidden>
+  <div class="modal-box compact-modal" tabindex="-1">
+    <div class="share-modal-heading">
+      <div><p class="section-kicker">Informazioni tecniche</p><h2 id="infoAppTitolo">SeggioLink Roma</h2></div>
+      <button id="btnChiudiInfoApp" class="icon-close" type="button" aria-label="Chiudi">×</button>
+    </div>
+    <dl class="app-info-grid">
+      <div><dt>Versione app</dt><dd id="infoAppVersion">—</dd></div>
+      <div><dt>Build</dt><dd id="infoBuildDate">—</dd></div>
+      <div><dt>Ambiente</dt><dd id="infoEnvironment">—</dd></div>
+      <div><dt>Backend</dt><dd id="infoBackendProvider">—</dd></div>
+      <div><dt>Versione backend</dt><dd id="infoBackendVersion">—</dd></div>
+      <div><dt>Municipi abilitati</dt><dd id="infoMunicipalities">—</dd></div>
+    </dl>
+    <button id="btnInfoDeviceCheck" class="btn primary full" type="button">Esegui controllo dispositivo</button>
+  </div>
+</div>
+
+<div id="modalMandatoryUpdate" class="modal-overlay mandatory-update" role="alertdialog" aria-modal="true" aria-labelledby="mandatoryUpdateTitle" hidden>
+  <div class="modal-box compact-modal">
+    <p class="section-kicker">Aggiornamento obbligatorio</p>
+    <h2 id="mandatoryUpdateTitle">Versione non più supportata</h2>
+    <p id="mandatoryUpdateText">Aggiorna SeggioLink prima di continuare.</p>
+    <button id="btnMandatoryUpdate" class="btn primary full" type="button">Aggiorna adesso</button>
   </div>
 </div>
 

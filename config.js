@@ -1,6 +1,9 @@
 /* Configurazione ambiente: non inserire segreti in questo file. */
 window.SEGGI_CONFIG = Object.freeze({
-  appVersion: '12.0.0',
+  appVersion: '13.1.0',
+  buildDate: '2026-07-20',
+  environment: 'test', // 'test' oppure 'production'
+  latestVersionUrl: 'build-info.json',
   appName: 'SeggioLink Roma',
   backendProvider: 'apps-script', // 'apps-script' oppure 'cloudflare-d1'
   backendUrl: 'https://script.google.com/macros/s/INSERIRE_NUOVO_DEPLOYMENT/exec',
