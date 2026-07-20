@@ -1736,8 +1736,11 @@ function correggiUltimoScrutinio() {
   if (pannello) pannello.classList.add('correction-mode');
   if (banner) banner.hidden = false;
 
-  $('#scCorrezioneBox').hidden = !giaRicevuto;
-  $('#scMotivoCorrezione').value = '';
+  const boxCorrezione = $('#scCorrezioneBox');
+  const motivoCorrezione = $('#scMotivoCorrezione');
+  if (boxCorrezione) boxCorrezione.hidden = !giaRicevuto;
+  if (motivoCorrezione) motivoCorrezione.value = '';
+
   $('#scElettori').value = p.elettori ?? '';
   $('#scVotanti').value = p.votanti ?? '';
 
@@ -1760,41 +1763,60 @@ function correggiUltimoScrutinio() {
   impostaDynPerNome('pc', (p.preferenze || []).filter((x) => x.livello === 'Comune'), 'candidato');
   impostaDynPerNome('pm', (p.preferenze || []).filter((x) => x.livello === 'Municipio'), 'candidato');
 
-  // Attiva la scheda senza forzare subito il focus su un campo numerico.
-  // Su iPhone/Android l'apertura immediata della tastiera, combinata con
-  // scrollIntoView e barra sticky, ridimensionava il viewport e faceva
-  // apparire l'intera schermata disallineata.
   const tabScrutinio = document.querySelector('.tab[data-tab="scrutinio"]');
-  if (tabScrutinio && !tabScrutinio.classList.contains('active')) tabScrutinio.click();
+  if (tabScrutinio && !tabScrutinio.classList.contains('active')) {
+    tabScrutinio.click();
+  }
 
-  // Durante la correzione il pulsante non deve poter essere premuto una
-  // seconda volta: un doppio caricamento può lasciare la pagina in uno stato
-  // visivo incoerente, soprattutto sui telefoni meno recenti.
   const btnCorreggi = $('#btnCorreggiScrutinio');
   if (btnCorreggi) btnCorreggi.hidden = true;
 
-  // Riporta l'indicatore dei passaggi al primo blocco.
-  $all('.scrutiny-step').forEach((step, indice) => {
-    step.classList.toggle('active', indice === 0);
+  // Mostra direttamente il passaggio finale: qui si trova il motivo.
+  $all('.scrutiny-step').forEach((step) => {
+    const numero = Number(step.dataset.step || step.dataset.stepNumber || 0);
+    step.classList.toggle('active', numero === 4);
+    step.setAttribute('aria-current', numero === 4 ? 'step' : 'false');
+  });
+
+  $all('.scrutiny-card').forEach((card) => {
+    const numero = Number(card.dataset.stepNumber || 0);
+    card.hidden = numero !== 4;
+    card.classList.toggle('active', numero === 4);
   });
 
   aggiornaAvvisiScrutinio();
 
-  // Due frame consentono al browser di completare il layout prima dello
-  // spostamento. Nessun focus automatico: la tastiera si aprirà soltanto
-  // quando l'utente toccherà volontariamente un campo.
+  // Nessun focus automatico: su iPhone evitita il salto del viewport.
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    const primoPassaggio = $('#scrStepGenerali');
-    if (!primoPassaggio) return;
+    const destinazione = giaRicevuto ? boxCorrezione : $('#scrStepRiepilogo');
+    if (!destinazione) return;
+
     const topbar = document.querySelector('.topbar');
-    const offset = (topbar ? topbar.getBoundingClientRect().height : 0) + 12;
-    const top = window.scrollY + primoPassaggio.getBoundingClientRect().top - offset;
-    window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+    const progress = document.querySelector('.scrutiny-progress');
+    const offset =
+      (topbar ? topbar.getBoundingClientRect().height : 0) +
+      (progress && getComputedStyle(progress).position === 'sticky'
+        ? progress.getBoundingClientRect().height
+        : 0) +
+      16;
+
+    const top =
+      window.scrollY +
+      destinazione.getBoundingClientRect().top -
+      offset;
+
+    window.scrollTo({
+      top: Math.max(0, top),
+      behavior: 'auto'
+    });
   }));
 
-  showToast(giaRicevuto
-    ? 'Ultimo scrutinio caricato. Modifica i valori e indica il motivo nel passaggio finale.'
-    : 'Tentativo precedente caricato. Puoi correggere i valori e reinviarlo.', 5500);
+  showToast(
+    giaRicevuto
+      ? 'Ultimo scrutinio caricato. Inserisci il motivo della correzione e modifica i valori necessari.'
+      : 'Tentativo precedente caricato. Puoi correggere i valori e reinviarlo.',
+    5500
+  );
 }
 
 // =======================================================================
