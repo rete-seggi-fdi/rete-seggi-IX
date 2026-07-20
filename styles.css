@@ -765,3 +765,95 @@ body.version-blocked> :not(#modalMandatoryUpdate):not(script){pointer-events:non
 
 
 .in-app-browser-warning{margin:0;padding:12px 18px;background:#fff3cd;color:#5f4300;border-top:1px solid #e0b84a;border-bottom:1px solid #e0b84a;font-size:.95rem;line-height:1.35;text-align:center}.in-app-browser-warning strong{font-weight:800}
+
+/* ===================== v13.3.1: correzione scrutinio mobile ===================== */
+.scrutiny-correction-banner{
+  margin:0 0 12px; padding:13px 14px; border:1px solid #e5c274;
+  border-radius:14px; background:#fff8e8; color:#614600;
+  box-shadow:var(--shadow-sm);
+}
+.scrutiny-correction-banner strong{display:block; margin-bottom:3px; font-size:14px}
+.scrutiny-correction-banner span{display:block; font-size:12.5px; line-height:1.4}
+#tab-scrutinio.correction-mode .scrutiny-card{border-color:#e2c16f}
+#tab-scrutinio.correction-mode #scrStepGenerali{box-shadow:0 0 0 3px rgba(229,194,116,.20), var(--shadow-sm)}
+
+@media(max-width:480px){
+  body{overflow-x:hidden}
+  #tab-scrutinio{min-width:0; overflow:visible}
+  .scrutiny-progress{
+    position:static; top:auto; grid-template-columns:repeat(2,minmax(0,1fr));
+    overflow:visible; gap:6px; padding:6px;
+  }
+  .scrutiny-step{min-width:0; min-height:44px; white-space:normal; line-height:1.15}
+  .scrutiny-card{scroll-margin-top:78px; overflow:hidden}
+  .scrutiny-card .grid.two,
+  .scrutiny-card .grid.three{grid-template-columns:1fr}
+  .scrutiny-card .section-title-row{padding-right:34px}
+  .scrutiny-card .section-title-row .pill{max-width:100%; white-space:normal}
+  .dynamic-list .dyn-row{grid-template-columns:minmax(0,1fr) 76px; gap:8px; padding:8px}
+  .dynamic-list .dyn-row label{overflow-wrap:anywhere}
+  .dynamic-list .dyn-row input{min-width:0; width:100%}
+  #scrStepRiepilogo .sticky-actions{
+    position:static; bottom:auto; margin:14px 0 0; padding:0;
+    background:transparent; border-top:0; backdrop-filter:none;
+  }
+  #scrStepRiepilogo .sticky-actions .btn{flex:1 1 100%; width:100%}
+  .correction-box .field{margin-bottom:0}
+}
+
+/* ===================== v13.3.3: campo motivo correzione visibile ===================== */
+#scCorrezioneBox {
+  position: relative;
+  z-index: 5;
+  display: block;
+  overflow: visible;
+  margin: 0 0 16px;
+}
+
+#scCorrezioneBox[hidden] {
+  display: none !important;
+}
+
+#scCorrezioneBox .field {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  margin: 12px 0 0;
+}
+
+#scMotivoCorrezione {
+  position: relative;
+  z-index: 7;
+  display: block;
+  width: 100%;
+  min-height: 54px;
+  margin: 6px 0 0;
+  scroll-margin-top: 150px;
+}
+
+#tab-scrutinio.correction-mode #scrStepRiepilogo {
+  overflow: visible;
+}
+
+#tab-scrutinio.correction-mode #scrStepRiepilogo .sticky-actions {
+  position: static !important;
+  z-index: 1;
+  clear: both;
+  margin-top: 18px;
+}
+
+@media (max-width: 480px) {
+  #scCorrezioneBox {
+    margin-bottom: 18px;
+  }
+
+  #scMotivoCorrezione {
+    font-size: 16px;
+  }
+
+  #tab-scrutinio.correction-mode #scrStepRiepilogo {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+}
+
