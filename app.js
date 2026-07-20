@@ -1456,6 +1456,10 @@ function pianificaSalvataggioBozzaScrutinio() {
 }
 
 function resetCampiScrutinio() {
+  const pannelloScrutinio = $('#tab-scrutinio');
+  const bannerCorrezione = $('#scrutinioCorrezioneBanner');
+  if (pannelloScrutinio) pannelloScrutinio.classList.remove('correction-mode');
+  if (bannerCorrezione) bannerCorrezione.hidden = true;
   caricamentoBozzaInCorso = true;
   ['#scElettori','#scVotanti','#comValide','#comBianche','#comNulle','#comContestate','#munValide','#munBianche','#munNulle','#munContestate'].forEach((sel) => {
     const el = $(sel); if (el) el.value = '';
@@ -1685,7 +1689,12 @@ async function onConfermaInvioScrutinio() {
   tentativoScrutinioDaSostituireId = null;
   $('#scCorrezioneBox').hidden = true;
   $('#scMotivoCorrezione').value = '';
+  const pannelloScrutinio = $('#tab-scrutinio');
+  const bannerCorrezione = $('#scrutinioCorrezioneBanner');
+  if (pannelloScrutinio) pannelloScrutinio.classList.remove('correction-mode');
+  if (bannerCorrezione) bannerCorrezione.hidden = true;
   aggiornaBadgeScrutinio(); renderTabellaInvii(); aggiornaBadgeInCoda();
+  aggiornaPulsanteCorrezioneScrutinio();
   showToast(navigator.onLine ? 'Salvato sul telefono. Verifico la ricezione…' : 'Salvato sul telefono. Sarà inviato quando torna la rete.');
   payloadScrutinioPronto = null;
   await provaSvuotaCode();
@@ -1703,16 +1712,9 @@ function ultimoScrutinioAttivo() {
 
 function aggiornaPulsanteCorrezioneScrutinio() {
   const btn = $('#btnCorreggiScrutinio');
-  if (!btn) return;
-
   const ultimo = ultimoScrutinioAttivo();
-  btn.hidden = !ultimo || !!correzioneScrutinioId || !!tentativoScrutinioDaSostituireId;
-
-  if (!ultimo) return;
-
-  btn.textContent = ultimo.status === 'synced'
-    ? 'Correggi ultimo invio'
-    : 'Correggi tentativo non inviato';
+  btn.hidden = !ultimo;
+  if (ultimo) btn.textContent = ultimo.status === 'synced' ? 'Correggi ultimo invio' : 'Correggi tentativo non inviato';
 }
 
 function impostaDynPerNome(prefix, valori, campoNome) {
@@ -1722,79 +1724,77 @@ function impostaDynPerNome(prefix, valori, campoNome) {
 
 function correggiUltimoScrutinio() {
   const item = ultimoScrutinioAttivo();
-  if (!item || !item.payload) {
-    showToast('Non trovo uno scrutinio da correggere.');
-    return;
-  }
+  if (!item || !item.payload) return;
 
   const p = item.payload;
   const giaRicevuto = item.status === 'synced';
-
   correzioneScrutinioId = giaRicevuto ? item.idInvio : null;
   tentativoScrutinioDaSostituireId = giaRicevuto ? null : item.idInvio;
 
-  caricamentoBozzaInCorso = true;
+  const pannello = $('#tab-scrutinio');
+  const banner = $('#scrutinioCorrezioneBanner');
+  if (pannello) pannello.classList.add('correction-mode');
+  if (banner) banner.hidden = false;
 
-  try {
-    const boxCorrezione = $('#scCorrezioneBox');
-    const motivoCorrezione = $('#scMotivoCorrezione');
+  $('#scCorrezioneBox').hidden = !giaRicevuto;
+  $('#scMotivoCorrezione').value = '';
+  $('#scElettori').value = p.elettori ?? '';
+  $('#scVotanti').value = p.votanti ?? '';
 
-    if (boxCorrezione) boxCorrezione.hidden = !giaRicevuto;
-    if (motivoCorrezione) motivoCorrezione.value = '';
+  const sc = p.schedaComune || {};
+  const sm = p.schedaMunicipio || {};
+  $('#comValide').value = sc.valide ?? '';
+  $('#comBianche').value = sc.bianche ?? '';
+  $('#comNulle').value = sc.nulle ?? '';
+  $('#comContestate').value = sc.contestate ?? '';
+  $('#munValide').value = sm.valide ?? '';
+  $('#munBianche').value = sm.bianche ?? '';
+  $('#munNulle').value = sm.nulle ?? '';
+  $('#munContestate').value = sm.contestate ?? '';
+  $('#scNote').value = p.note || '';
 
-    const scElettori = $('#scElettori');
-    const scVotanti = $('#scVotanti');
-    const scNote = $('#scNote');
+  impostaDynPerNome('si', p.sindaci || []);
+  impostaDynPerNome('pr', p.presidenti || []);
+  impostaDynPerNome('lc', (p.liste || []).filter((x) => x.livello === 'Comune'));
+  impostaDynPerNome('lm', (p.liste || []).filter((x) => x.livello === 'Municipio'));
+  impostaDynPerNome('pc', (p.preferenze || []).filter((x) => x.livello === 'Comune'), 'candidato');
+  impostaDynPerNome('pm', (p.preferenze || []).filter((x) => x.livello === 'Municipio'), 'candidato');
 
-    if (scElettori) scElettori.value = p.elettori ?? '';
-    if (scVotanti) scVotanti.value = p.votanti ?? '';
-    if (scNote) scNote.value = p.note || '';
-
-    const comune = p.schedaComune || p.comune || {};
-    const municipio = p.schedaMunicipio || p.municipio || {};
-
-    const campi = [
-      ['#comValide', comune.valide],
-      ['#comBianche', comune.bianche],
-      ['#comNulle', comune.nulle],
-      ['#comContestate', comune.contestate],
-      ['#munValide', municipio.valide],
-      ['#munBianche', municipio.bianche],
-      ['#munNulle', municipio.nulle],
-      ['#munContestate', municipio.contestate],
-    ];
-
-    campi.forEach(([selettore, valore]) => {
-      const campo = $(selettore);
-      if (campo) campo.value = valore ?? '';
-    });
-
-    impostaDynPerNome('si', p.sindaci || []);
-    impostaDynPerNome('pr', p.presidenti || []);
-    impostaDynPerNome('lc', (p.liste || []).filter((x) => x.livello === 'Comune'));
-    impostaDynPerNome('lm', (p.liste || []).filter((x) => x.livello === 'Municipio'));
-    impostaDynPerNome('pc', (p.preferenze || []).filter((x) => x.livello === 'Comune'), 'candidato');
-    impostaDynPerNome('pm', (p.preferenze || []).filter((x) => x.livello === 'Municipio'), 'candidato');
-  } finally {
-    caricamentoBozzaInCorso = false;
-  }
-
+  // Attiva la scheda senza forzare subito il focus su un campo numerico.
+  // Su iPhone/Android l'apertura immediata della tastiera, combinata con
+  // scrollIntoView e barra sticky, ridimensionava il viewport e faceva
+  // apparire l'intera schermata disallineata.
   const tabScrutinio = document.querySelector('.tab[data-tab="scrutinio"]');
   if (tabScrutinio && !tabScrutinio.classList.contains('active')) tabScrutinio.click();
 
-  aggiornaAvvisiScrutinio();
-  aggiornaPulsanteCorrezioneScrutinio();
+  // Durante la correzione il pulsante non deve poter essere premuto una
+  // seconda volta: un doppio caricamento può lasciare la pagina in uno stato
+  // visivo incoerente, soprattutto sui telefoni meno recenti.
+  const btnCorreggi = $('#btnCorreggiScrutinio');
+  if (btnCorreggi) btnCorreggi.hidden = true;
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const primoPassaggio = document.getElementById('scrStepGenerali') || document.getElementById('tab-scrutinio');
-      if (primoPassaggio) primoPassaggio.scrollIntoView({ behavior: 'auto', block: 'start' });
-    });
+  // Riporta l'indicatore dei passaggi al primo blocco.
+  $all('.scrutiny-step').forEach((step, indice) => {
+    step.classList.toggle('active', indice === 0);
   });
 
+  aggiornaAvvisiScrutinio();
+
+  // Due frame consentono al browser di completare il layout prima dello
+  // spostamento. Nessun focus automatico: la tastiera si aprirà soltanto
+  // quando l'utente toccherà volontariamente un campo.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const primoPassaggio = $('#scrStepGenerali');
+    if (!primoPassaggio) return;
+    const topbar = document.querySelector('.topbar');
+    const offset = (topbar ? topbar.getBoundingClientRect().height : 0) + 12;
+    const top = window.scrollY + primoPassaggio.getBoundingClientRect().top - offset;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+  }));
+
   showToast(giaRicevuto
-    ? 'Modalità correzione attiva. Modifica i valori e indica il motivo prima dell’invio.'
-    : 'Valori del tentativo precedente caricati. Puoi modificarli e riprovare.', 5000);
+    ? 'Ultimo scrutinio caricato. Modifica i valori e indica il motivo nel passaggio finale.'
+    : 'Tentativo precedente caricato. Puoi correggere i valori e reinviarlo.', 5500);
 }
 
 // =======================================================================
