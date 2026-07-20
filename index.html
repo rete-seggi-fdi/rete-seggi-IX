@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 <link rel="icon" href="icons/icon-192.png" />
-<title>SeggioLink Roma · Coordinamento elettorale · v13.2</title>
+<title>SeggioLink Roma · Coordinamento elettorale · v13.3.1</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -309,6 +309,10 @@
 
     <!-- --- SCRUTINIO --- -->
     <div id="tab-scrutinio" class="tabpanel">
+      <div id="scrutinioCorrezioneBanner" class="scrutiny-correction-banner" role="status" hidden>
+        <strong>Modalità correzione attiva</strong>
+        <span>I valori dell’ultimo scrutinio sono stati caricati. Modificali partendo dai dati generali e indica il motivo nel passaggio finale.</span>
+      </div>
       <div class="scrutiny-progress" aria-label="Passaggi dello scrutinio">
         <button type="button" class="scrutiny-step active" data-scroll-step="scrStepGenerali"><span>1</span>Dati generali</button>
         <button type="button" class="scrutiny-step" data-scroll-step="scrStepComune"><span>2</span>Comune</button>
