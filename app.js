@@ -1703,9 +1703,16 @@ function ultimoScrutinioAttivo() {
 
 function aggiornaPulsanteCorrezioneScrutinio() {
   const btn = $('#btnCorreggiScrutinio');
+  if (!btn) return;
+
   const ultimo = ultimoScrutinioAttivo();
-  btn.hidden = !ultimo;
-  if (ultimo) btn.textContent = ultimo.status === 'synced' ? 'Correggi ultimo invio' : 'Correggi tentativo non inviato';
+  btn.hidden = !ultimo || !!correzioneScrutinioId || !!tentativoScrutinioDaSostituireId;
+
+  if (!ultimo) return;
+
+  btn.textContent = ultimo.status === 'synced'
+    ? 'Correggi ultimo invio'
+    : 'Correggi tentativo non inviato';
 }
 
 function impostaDynPerNome(prefix, valori, campoNome) {
@@ -1715,28 +1722,79 @@ function impostaDynPerNome(prefix, valori, campoNome) {
 
 function correggiUltimoScrutinio() {
   const item = ultimoScrutinioAttivo();
-  if (!item) return;
+  if (!item || !item.payload) {
+    showToast('Non trovo uno scrutinio da correggere.');
+    return;
+  }
+
   const p = item.payload;
   const giaRicevuto = item.status === 'synced';
+
   correzioneScrutinioId = giaRicevuto ? item.idInvio : null;
   tentativoScrutinioDaSostituireId = giaRicevuto ? null : item.idInvio;
-  $('#scCorrezioneBox').hidden = !giaRicevuto;
-  $('#scMotivoCorrezione').value = '';
-  $('#scElettori').value = p.elettori ?? '';
-  $('#scVotanti').value = p.votanti ?? '';
-  const sc = p.schedaComune || {}, sm = p.schedaMunicipio || {};
-  $('#comValide').value = sc.valide ?? ''; $('#comBianche').value = sc.bianche ?? ''; $('#comNulle').value = sc.nulle ?? ''; $('#comContestate').value = sc.contestate ?? '';
-  $('#munValide').value = sm.valide ?? ''; $('#munBianche').value = sm.bianche ?? ''; $('#munNulle').value = sm.nulle ?? ''; $('#munContestate').value = sm.contestate ?? '';
-  $('#scNote').value = p.note || '';
-  impostaDynPerNome('si', p.sindaci || []); impostaDynPerNome('pr', p.presidenti || []);
-  impostaDynPerNome('lc', (p.liste || []).filter((x) => x.livello === 'Comune'));
-  impostaDynPerNome('lm', (p.liste || []).filter((x) => x.livello === 'Municipio'));
-  impostaDynPerNome('pc', (p.preferenze || []).filter((x) => x.livello === 'Comune'), 'candidato');
-  impostaDynPerNome('pm', (p.preferenze || []).filter((x) => x.livello === 'Municipio'), 'candidato');
-  document.querySelector('.tab[data-tab="scrutinio"]').click();
-  $('#scCorrezioneBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  caricamentoBozzaInCorso = true;
+
+  try {
+    const boxCorrezione = $('#scCorrezioneBox');
+    const motivoCorrezione = $('#scMotivoCorrezione');
+
+    if (boxCorrezione) boxCorrezione.hidden = !giaRicevuto;
+    if (motivoCorrezione) motivoCorrezione.value = '';
+
+    const scElettori = $('#scElettori');
+    const scVotanti = $('#scVotanti');
+    const scNote = $('#scNote');
+
+    if (scElettori) scElettori.value = p.elettori ?? '';
+    if (scVotanti) scVotanti.value = p.votanti ?? '';
+    if (scNote) scNote.value = p.note || '';
+
+    const comune = p.schedaComune || p.comune || {};
+    const municipio = p.schedaMunicipio || p.municipio || {};
+
+    const campi = [
+      ['#comValide', comune.valide],
+      ['#comBianche', comune.bianche],
+      ['#comNulle', comune.nulle],
+      ['#comContestate', comune.contestate],
+      ['#munValide', municipio.valide],
+      ['#munBianche', municipio.bianche],
+      ['#munNulle', municipio.nulle],
+      ['#munContestate', municipio.contestate],
+    ];
+
+    campi.forEach(([selettore, valore]) => {
+      const campo = $(selettore);
+      if (campo) campo.value = valore ?? '';
+    });
+
+    impostaDynPerNome('si', p.sindaci || []);
+    impostaDynPerNome('pr', p.presidenti || []);
+    impostaDynPerNome('lc', (p.liste || []).filter((x) => x.livello === 'Comune'));
+    impostaDynPerNome('lm', (p.liste || []).filter((x) => x.livello === 'Municipio'));
+    impostaDynPerNome('pc', (p.preferenze || []).filter((x) => x.livello === 'Comune'), 'candidato');
+    impostaDynPerNome('pm', (p.preferenze || []).filter((x) => x.livello === 'Municipio'), 'candidato');
+  } finally {
+    caricamentoBozzaInCorso = false;
+  }
+
+  const tabScrutinio = document.querySelector('.tab[data-tab="scrutinio"]');
+  if (tabScrutinio && !tabScrutinio.classList.contains('active')) tabScrutinio.click();
+
   aggiornaAvvisiScrutinio();
-  $('#scMotivoCorrezione').focus();
+  aggiornaPulsanteCorrezioneScrutinio();
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const primoPassaggio = document.getElementById('scrStepGenerali') || document.getElementById('tab-scrutinio');
+      if (primoPassaggio) primoPassaggio.scrollIntoView({ behavior: 'auto', block: 'start' });
+    });
+  });
+
+  showToast(giaRicevuto
+    ? 'Modalità correzione attiva. Modifica i valori e indica il motivo prima dell’invio.'
+    : 'Valori del tentativo precedente caricati. Puoi modificarli e riprovare.', 5000);
 }
 
 // =======================================================================
