@@ -368,6 +368,14 @@ function statoScadenza(giorno, orario, completato) {
 }
 
 
+
+function mostraAvvisoBrowserInterno() {
+  const ua = navigator.userAgent || '';
+  const browserInterno = /FBAN|FBAV|Instagram|Line\/|LinkedInApp|Twitter/i.test(ua);
+  const box = document.getElementById('inAppBrowserWarning');
+  if (box) box.hidden = !browserInterno;
+}
+
 // =======================================================================
 // SCHERMATA 0 — LOGIN CON CODICE ACCESSO
 // =======================================================================
