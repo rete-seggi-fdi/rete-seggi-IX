@@ -1,9 +1,9 @@
 {
-  "latestVersion": "13.1.0",
-  "minimumVersion": "13.2.0",
-  "buildDate": "2026-07-20",
-  "environment": "test",
+  "latestVersion": "13.3.5",
+  "minimumVersion": "13.3.5",
+  "buildDate": "2026-07-21",
+  "environment": "production",
   "mandatory": true,
-  "version": "13.2.0",
-  "notes": "Correzione login con telefono, invii affluenza/scrutinio, backend Apps Script e avviso browser interno Facebook."
+  "version": "13.3.5",
+  "notes": "Release candidata Municipio IX: versionamento PWA allineato, ambiente produzione e correzioni mobile fino alla v13.3.5. Backend Apps Script atteso: 13.3.2-batch-scrutinio."
 }

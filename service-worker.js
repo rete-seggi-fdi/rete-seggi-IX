@@ -7,7 +7,7 @@
    Le richieste verso il backend (Apps Script, altro dominio) non vengono
    mai intercettate: passano sempre direttamente alla rete. */
 
-const VERSIONE = 'seggiolink-v13.2.0';
+const VERSIONE = 'seggiolink-v13.3.5';
 const CACHE_SHELL = 'shell-' + VERSIONE;
 const CACHE_DATI = 'dati-' + VERSIONE;
 
