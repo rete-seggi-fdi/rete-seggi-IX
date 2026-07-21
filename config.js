@@ -6,7 +6,7 @@ window.SEGGI_CONFIG = Object.freeze({
   latestVersionUrl: 'build-info.json',
   appName: 'SeggioLink Roma',
   backendProvider: 'apps-script',
-  backendUrl: 'https://script.google.com/macros/s/AKfycbxdjMHth9B70bN9Ug6-McqckZXxt3vNlvfyOd12CJiulwmroniK9azwInxRsNKVv3eLyg/exec',
+  backendUrl: 'https://script.google.com/macros/s/AKfycbxWFI-n2AjRW0uuEy95V00yW_HLmFzomK9Ya--izJCR/exec',
   requestTimeoutMs: 20000,
   enabledMunicipalities: ['09'],
   allowAllMunicipalitiesData: false
