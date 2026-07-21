@@ -47,6 +47,8 @@ const LS = {
   DEVICE_CHECK_VERSION: 'rs_device_check_version',
   ACCESSIBILITY: 'rs_accessibility_mode',
   LAST_MESSAGE_CHECK: 'rs_last_message_check',
+  SERVER_HISTORY: 'rs_server_history',
+  LAST_HISTORY_SYNC: 'rs_last_history_sync',
 };
 
 let STATE = {
@@ -204,7 +206,7 @@ function aggiornaStatoConnessione() {
     if (home) { home.textContent = 'Offline · i dati restano sul telefono'; home.className = 'home-status offline'; }
   }
 }
-window.addEventListener('online', () => { aggiornaStatoConnessione(); provaSvuotaCode(); caricaMessaggi(true); });
+window.addEventListener('online', () => { aggiornaStatoConnessione(); provaSvuotaCode(); caricaMessaggi(true); caricaStoricoInvii(true); });
 window.addEventListener('offline', () => { aggiornaStatoConnessione(); renderNotificheHome(); });
 
 // ---------------------------------------------------------------------
@@ -863,6 +865,7 @@ function mostraDashboard() {
   if (appLabel) appLabel.textContent = APP_VERSION;
   if (backendLabel) backendLabel.textContent = (STATE.config && STATE.config.app && STATE.config.app.backendVersion) || '—';
   caricaMessaggi(true);
+  setTimeout(() => caricaStoricoInvii(true), 0);
   setTimeout(() => eseguiControlloDispositivo(false), 300);
 }
 
@@ -899,6 +902,69 @@ function statoTimelineDaInvio(item) {
   return { classe: 'queued', etichetta: 'Sul telefono' };
 }
 
+
+let sincronizzazioneStoricoInCorso = false;
+
+function storicoServerCorrente(tipo) {
+  if (!STATE.profile) return [];
+  return loadJSON(LS.SERVER_HISTORY, []).filter((it) =>
+    it && it.payload && it.tipoServer === tipo &&
+    String(it.payload.municipio) === String(STATE.profile.municipio) &&
+    String(it.payload.sezione) === String(STATE.profile.sezione)
+  );
+}
+
+function unisciStoricoLocaleEServer(queueKey, tipoServer) {
+  const locali = inviiCorrenti(queueKey);
+  const idsLocali = new Set(locali.map((it) => String(it.idInvio || '')));
+  const remoti = storicoServerCorrente(tipoServer).filter((it) => !idsLocali.has(String(it.idInvio || '')));
+  return locali.concat(remoti);
+}
+
+async function caricaStoricoInvii(silenzioso) {
+  if (sincronizzazioneStoricoInCorso || !navigator.onLine || !backendConfigurato() || !sessionToken()) return false;
+  sincronizzazioneStoricoInCorso = true;
+  try {
+    const res = await fetch(BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: JSON.stringify({ tipo: 'storico_invii', sessionToken: sessionToken(), limit: 100 }),
+      cache: 'no-store', redirect: 'follow',
+    });
+    const data = await leggiRispostaBackend(res);
+    const items = Array.isArray(data.items) ? data.items.map((it) => ({
+      idInvio: it.idInvio,
+      creato: it.creato,
+      sincronizzatoIl: it.creato,
+      status: 'synced',
+      tipoServer: it.tipo,
+      serverOnly: true,
+      payload: {
+        municipio: it.municipio,
+        sezione: it.sezione,
+        giorno: it.giorno || '',
+        orario: it.orario || '',
+        elettori: it.elettori,
+        totale: it.totale,
+        votanti: it.votanti,
+        correzioneDi: it.correzioneDi || '',
+      },
+    })) : [];
+    saveJSON(LS.SERVER_HISTORY, items);
+    saveJSON(LS.LAST_HISTORY_SYNC, data.serverTime || new Date().toISOString());
+    if (STATE.profile) {
+      renderHomeDashboard();
+      renderTabellaInvii();
+    }
+    return true;
+  } catch (e) {
+    if (!silenzioso) showToast('Storico non aggiornato: ' + (e.message || 'errore di rete'), 4500);
+    return false;
+  } finally {
+    sincronizzazioneStoricoInCorso = false;
+  }
+}
+
 function renderHomeDashboard() {
   if (!STATE.profile) return;
   const nome = (STATE.profile.nome || 'rappresentante').trim().split(/\s+/)[0];
@@ -909,8 +975,8 @@ function renderHomeDashboard() {
   const elettori = $('#homeElettori');
   if (elettori) elettori.textContent = STATE.profile.elettori || '—';
 
-  const aff = inviiCorrenti(LS.QUEUE_AFF);
-  const scr = inviiCorrenti(LS.QUEUE_SCR);
+  const aff = unisciStoricoLocaleEServer(LS.QUEUE_AFF, 'affluenza');
+  const scr = unisciStoricoLocaleEServer(LS.QUEUE_SCR, 'scrutinio');
   const pending = [...aff, ...scr].filter((it) => it.status !== 'synced').length;
   const pendingEl = $('#homePending');
   if (pendingEl) pendingEl.textContent = pending;
@@ -1167,9 +1233,9 @@ function percentuale(parte, totale) {
 }
 
 function invitiAffluenzaSezione() {
-  const tutti = loadJSON(LS.QUEUE_AFF, []);
+  const tutti = unisciStoricoLocaleEServer(LS.QUEUE_AFF, 'affluenza');
   const mappa = {};
-  tutti.filter((it) => it.payload.sezione === STATE.profile.sezione && it.payload.municipio === STATE.profile.municipio)
+  tutti.filter((it) => it.payload && it.payload.sezione === STATE.profile.sezione && it.payload.municipio === STATE.profile.municipio)
     .forEach((it) => { mappa[chiaveAffluenza(it.payload.giorno, it.payload.orario)] = it.status; });
   return mappa;
 }
@@ -1997,11 +2063,17 @@ function renderTabellaInvii() {
   const tbody = $('#tabellaInvii tbody');
   tbody.innerHTML = '';
   const sostAff = idsSostituiti(LS.QUEUE_AFF), sostScr = idsSostituiti(LS.QUEUE_SCR);
-  const tutti = [
+  const locali = [
     ...loadJSON(LS.QUEUE_AFF, []).map((i) => ({ ...i, tipo: 'Affluenza', queueKey: LS.QUEUE_AFF, superato: sostAff.has(i.idInvio) })),
     ...loadJSON(LS.QUEUE_SCR, []).map((i) => ({ ...i, tipo: 'Scrutinio', queueKey: LS.QUEUE_SCR, superato: sostScr.has(i.idInvio) })),
-  ].filter((i) => STATE.profile && i.payload.sezione === STATE.profile.sezione && i.payload.municipio === STATE.profile.municipio)
-   .sort((a, b) => (a.creato < b.creato ? 1 : -1));
+  ];
+  const idsLocali = new Set(locali.map((i) => String(i.idInvio || '')));
+  const remoti = loadJSON(LS.SERVER_HISTORY, [])
+    .filter((i) => !idsLocali.has(String(i.idInvio || '')))
+    .map((i) => ({ ...i, tipo: i.tipoServer === 'affluenza' ? 'Affluenza' : 'Scrutinio', queueKey: null, superato: false, serverOnly: true }));
+  const tutti = locali.concat(remoti)
+    .filter((i) => STATE.profile && i.payload && i.payload.sezione === STATE.profile.sezione && i.payload.municipio === STATE.profile.municipio)
+    .sort((a, b) => (a.creato < b.creato ? 1 : -1));
 
   if (!tutti.length) {
     tbody.innerHTML = '<tr><td colspan="4" class="muted-text">Nessun invio per questa sezione.</td></tr>';
@@ -2012,7 +2084,8 @@ function renderTabellaInvii() {
     const quando = new Date(it.creato).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' });
     let dettagli = '';
     const targetMancante = it.codiceErrore === 'CORRECTION_TARGET_NOT_FOUND' && it.payload.correzioneDi;
-    if (targetMancante) dettagli = 'Il dato precedente è stato cancellato dal coordinamento. Puoi recuperare questi valori come nuovo invio.';
+    if (it.serverOnly) dettagli = 'Confermato dal coordinamento e recuperato dal server.';
+    else if (targetMancante) dettagli = 'Il dato precedente è stato cancellato dal coordinamento. Puoi recuperare questi valori come nuovo invio.';
     else {
       if (it.payload.correzioneDi) dettagli += 'Correzione tracciata. ';
       if (it.ultimoErrore) dettagli += it.ultimoErrore;
@@ -2029,7 +2102,7 @@ function renderTabellaInvii() {
       btn.addEventListener('click', () => recuperaCorrezioneComeNuovo(it.queueKey, it.idInvio));
       tr.lastElementChild.appendChild(document.createElement('br'));
       tr.lastElementChild.appendChild(btn);
-    } else if (!it.superato) {
+    } else if (!it.superato && !it.serverOnly) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'btn ghost small';

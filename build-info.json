@@ -1,9 +1,9 @@
 {
-  "latestVersion": "13.3.6",
-  "minimumVersion": "13.3.6",
+  "latestVersion": "13.3.7",
+  "minimumVersion": "13.3.7",
   "buildDate": "2026-07-21",
   "environment": "production",
   "mandatory": true,
-  "version": "13.3.6",
-  "notes": "Correzione produzione: invii, storico e bozze locali non vengono più cancellati al cambio di revisione configurazione. Aggiunto pulsante esplicito per tornare alla Home dalla pagina Scrutinio."
+  "version": "13.3.7",
+  "notes": "Storico invii confermati recuperato dal backend in background, con unione deduplicata ai dati locali. Nessun blocco della Home."
 }
