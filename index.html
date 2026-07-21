@@ -398,8 +398,9 @@
       <article class="card feature-card">
         <div class="section-heading">
           <div><p class="section-kicker">Sincronizzazione</p><h2>Stato invii</h2></div>
-          <button id="btnRiprovaInvii" class="btn ghost compact">Riprova ora</button>
+          <div class="button-row compact-actions"><button id="btnAggiornaStorico" class="btn ghost compact" type="button">Aggiorna storico</button><button id="btnRiprovaInvii" class="btn ghost compact" type="button">Riprova coda</button></div>
         </div>
+        <p id="storicoSyncStato" class="muted-text sync-status" aria-live="polite">Lo storico viene recuperato automaticamente dal coordinamento.</p>
         <div class="responsive-table">
           <table id="tabellaInvii">
             <thead><tr><th>Tipo</th><th>Quando</th><th>Stato</th><th>Dettagli</th></tr></thead>

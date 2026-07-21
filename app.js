@@ -168,6 +168,15 @@ function interoNonNegativo(v) {
   return Number.isInteger(n) && n >= 0 ? n : null;
 }
 function sessionToken() { return loadJSON(LS.TOKEN, ''); }
+function normalizzaMunicipioClient(v) {
+  const testo = String(v === undefined || v === null ? '' : v).trim();
+  if (!testo) return '';
+  const n = Number(testo.replace(/\D/g, ''));
+  return Number.isFinite(n) && n > 0 ? String(Math.round(n)).padStart(2, '0') : testo.padStart(2, '0');
+}
+function stessaSezioneClient(a, b) {
+  return !!a && !!b && normalizzaMunicipioClient(a.municipio) === normalizzaMunicipioClient(b.municipio) && String(a.sezione || '').trim() === String(b.sezione || '').trim();
+}
 function impostaNonValido(el, invalido) {
   if (!el) return;
   if (invalido) el.setAttribute('aria-invalid', 'true');
@@ -887,7 +896,7 @@ function attivaTabPerNome(nome) {
 
 function inviiCorrenti(queueKey) {
   if (!STATE.profile) return [];
-  return loadJSON(queueKey, []).filter((it) => it.payload && it.payload.sezione === STATE.profile.sezione && it.payload.municipio === STATE.profile.municipio);
+  return loadJSON(queueKey, []).filter((it) => it.payload && stessaSezioneClient(it.payload, STATE.profile));
 }
 
 function ultimoInvioAttivo(queueKey) {
@@ -908,9 +917,7 @@ let sincronizzazioneStoricoInCorso = false;
 function storicoServerCorrente(tipo) {
   if (!STATE.profile) return [];
   return loadJSON(LS.SERVER_HISTORY, []).filter((it) =>
-    it && it.payload && it.tipoServer === tipo &&
-    String(it.payload.municipio) === String(STATE.profile.municipio) &&
-    String(it.payload.sezione) === String(STATE.profile.sezione)
+    it && it.payload && it.tipoServer === tipo && stessaSezioneClient(it.payload, STATE.profile)
   );
 }
 
@@ -922,49 +929,70 @@ function unisciStoricoLocaleEServer(queueKey, tipoServer) {
 }
 
 async function caricaStoricoInvii(silenzioso) {
-  if (sincronizzazioneStoricoInCorso || !navigator.onLine || !backendConfigurato() || !sessionToken()) return false;
+  const statoEl = $('#storicoSyncStato');
+  if (sincronizzazioneStoricoInCorso) return false;
+  if (!navigator.onLine) {
+    if (statoEl) statoEl.textContent = 'Offline: impossibile recuperare lo storico dal coordinamento.';
+    if (!silenzioso) showToast('Sei offline: storico non aggiornato.', 4000);
+    return false;
+  }
+  if (!backendConfigurato() || !sessionToken()) {
+    if (statoEl) statoEl.textContent = 'Sessione o backend non disponibile.';
+    return false;
+  }
   sincronizzazioneStoricoInCorso = true;
+  if (statoEl) statoEl.textContent = 'Aggiornamento storico in corso…';
+  const btn = $('#btnAggiornaStorico');
+  if (btn) btn.disabled = true;
   try {
     const res = await fetch(BACKEND_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body: JSON.stringify({ tipo: 'storico_invii', sessionToken: sessionToken(), limit: 100 }),
+      body: JSON.stringify({ tipo: 'storico_invii', sessionToken: sessionToken(), limit: 200 }),
       cache: 'no-store', redirect: 'follow',
     });
     const data = await leggiRispostaBackend(res);
     const items = Array.isArray(data.items) ? data.items.map((it) => ({
-      idInvio: it.idInvio,
+      idInvio: String(it.idInvio || ''),
       creato: it.creato,
-      sincronizzatoIl: it.creato,
+      sincronizzatoIl: data.serverTime || it.creato,
       status: 'synced',
       tipoServer: it.tipo,
       serverOnly: true,
+      superatoServer: !!it.sostituito,
+      sostituitoDa: it.sostituitoDa || '',
+      statoServer: it.stato || (it.sostituito ? 'SOSTITUITO' : 'ATTIVO'),
       payload: {
-        municipio: it.municipio,
-        sezione: it.sezione,
+        municipio: normalizzaMunicipioClient(it.municipio),
+        sezione: String(it.sezione || '').trim(),
         giorno: it.giorno || '',
         orario: it.orario || '',
         elettori: it.elettori,
         totale: it.totale,
         votanti: it.votanti,
         correzioneDi: it.correzioneDi || '',
+        motivoCorrezione: it.motivoCorrezione || '',
       },
-    })) : [];
+    })).filter((it) => it.idInvio) : [];
     saveJSON(LS.SERVER_HISTORY, items);
     saveJSON(LS.LAST_HISTORY_SYNC, data.serverTime || new Date().toISOString());
+    if (statoEl) statoEl.textContent = 'Storico aggiornato: ' + items.length + ' invii recuperati · backend ' + (data.versioneBackend || '—');
     if (STATE.profile) {
       renderHomeDashboard();
       renderTabellaInvii();
     }
+    if (!silenzioso) showToast('Storico aggiornato: ' + items.length + ' invii.', 3500);
     return true;
   } catch (e) {
-    if (!silenzioso) showToast('Storico non aggiornato: ' + (e.message || 'errore di rete'), 4500);
+    const messaggio = e && e.message ? e.message : 'errore di rete';
+    if (statoEl) statoEl.textContent = 'Errore recupero storico: ' + messaggio;
+    showToast('Storico non aggiornato: ' + messaggio, 5500);
     return false;
   } finally {
     sincronizzazioneStoricoInCorso = false;
+    if (btn) btn.disabled = false;
   }
 }
-
 function renderHomeDashboard() {
   if (!STATE.profile) return;
   const nome = (STATE.profile.nome || 'rappresentante').trim().split(/\s+/)[0];
@@ -2070,9 +2098,9 @@ function renderTabellaInvii() {
   const idsLocali = new Set(locali.map((i) => String(i.idInvio || '')));
   const remoti = loadJSON(LS.SERVER_HISTORY, [])
     .filter((i) => !idsLocali.has(String(i.idInvio || '')))
-    .map((i) => ({ ...i, tipo: i.tipoServer === 'affluenza' ? 'Affluenza' : 'Scrutinio', queueKey: null, superato: false, serverOnly: true }));
+    .map((i) => ({ ...i, tipo: i.tipoServer === 'affluenza' ? 'Affluenza' : 'Scrutinio', queueKey: null, superato: !!i.superatoServer, serverOnly: true }));
   const tutti = locali.concat(remoti)
-    .filter((i) => STATE.profile && i.payload && i.payload.sezione === STATE.profile.sezione && i.payload.municipio === STATE.profile.municipio)
+    .filter((i) => STATE.profile && i.payload && stessaSezioneClient(i.payload, STATE.profile))
     .sort((a, b) => (a.creato < b.creato ? 1 : -1));
 
   if (!tutti.length) {
@@ -2084,7 +2112,7 @@ function renderTabellaInvii() {
     const quando = new Date(it.creato).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' });
     let dettagli = '';
     const targetMancante = it.codiceErrore === 'CORRECTION_TARGET_NOT_FOUND' && it.payload.correzioneDi;
-    if (it.serverOnly) dettagli = 'Confermato dal coordinamento e recuperato dal server.';
+    if (it.serverOnly) dettagli = it.superato ? 'Invio precedente sostituito da una correzione confermata.' : (it.payload.correzioneDi ? 'Correzione confermata dal coordinamento e recuperata dal server.' : 'Confermato dal coordinamento e recuperato dal server.');
     else if (targetMancante) dettagli = 'Il dato precedente è stato cancellato dal coordinamento. Puoi recuperare questi valori come nuovo invio.';
     else {
       if (it.payload.correzioneDi) dettagli += 'Correzione tracciata. ';

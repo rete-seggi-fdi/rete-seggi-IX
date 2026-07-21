@@ -1,9 +1,9 @@
 {
-  "latestVersion": "13.3.7",
-  "minimumVersion": "13.3.7",
+  "latestVersion": "13.3.8",
+  "minimumVersion": "13.3.8",
   "buildDate": "2026-07-21",
   "environment": "production",
   "mandatory": true,
-  "version": "13.3.7",
-  "notes": "Storico invii confermati recuperato dal backend in background, con unione deduplicata ai dati locali. Nessun blocco della Home."
+  "version": "13.3.8",
+  "notes": "Recupero storico per codice o sezione autorizzata; normalizzazione Municipio 09; originali e correzioni con stato sostituito; diagnostica visibile e aggiornamento manuale."
 }
