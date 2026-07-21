@@ -1010,16 +1010,14 @@ function recuperaElettoriDalloStoricoServer() {
       stessaSezioneClient(it.payload, STATE.profile) &&
       Number(it.payload.elettori) > 0
     )
-    .sort((a, b) =>
-      String(b.creato || '').localeCompare(String(a.creato || ''))
-    );
+    .sort((a, b) => String(b.creato || '').localeCompare(String(a.creato || '')));
 
   if (!storico.length) return;
 
   const elettori = Number(storico[0].payload.elettori);
   STATE.profile.elettori = elettori;
 
-  const seggio = STATE.seggi.find((s) => s.id === STATE.seggioAttivoId);
+  const seggio = STATE.seggi.find((item) => item.id === STATE.seggioAttivoId);
   if (seggio) {
     seggio.elettori = elettori;
     saveJSON(LS.SEGGI, STATE.seggi);
@@ -1076,10 +1074,8 @@ function renderHomeDashboard() {
 
   const ultimo = tuttiHome
     .filter((item) =>
-      item &&
-      item.payload &&
-      !item.superato &&
-      !item.superatoServer &&
+      item && item.payload &&
+      !item.superato && !item.superatoServer &&
       item.statoServer !== 'SOSTITUITO'
     )
     .sort((a, b) => {
@@ -1418,9 +1414,7 @@ function renderTabellaAffluenza() {
   const sostituiti = idsSostituiti(LS.QUEUE_AFF);
   const tutti = unisciStoricoLocaleEServer(LS.QUEUE_AFF, 'affluenza')
     .filter((it) => it.payload && stessaSezioneClient(it.payload, STATE.profile))
-    .sort((a, b) =>
-      String(b.creato || '').localeCompare(String(a.creato || ''))
-    );
+    .sort((a, b) => String(b.creato || '').localeCompare(String(a.creato || '')));
   if (!tutti.length) {
     tbody.innerHTML = '<tr><td colspan="7" class="muted-text">Nessuna rilevazione ancora salvata.</td></tr>';
     return;
