@@ -1116,11 +1116,42 @@ function totaleAffluenzaCorrente() {
   return numOr0($('#affMaschi').value) + numOr0($('#affFemmine').value);
 }
 
+function elettoriAffluenzaCorrenti() {
+  if (STATE.profile && Number(STATE.profile.elettori) > 0) {
+    return Number(STATE.profile.elettori);
+  }
+
+  const storico = loadJSON(LS.QUEUE_AFF, [])
+    .filter((it) =>
+      it &&
+      it.payload &&
+      STATE.profile &&
+      it.payload.municipio === STATE.profile.municipio &&
+      it.payload.sezione === STATE.profile.sezione &&
+      Number(it.payload.elettori) > 0
+    )
+    .sort((a, b) => String(a.creato || '') < String(b.creato || '') ? 1 : -1);
+
+  if (storico.length) {
+    const valore = Number(storico[0].payload.elettori);
+    STATE.profile.elettori = valore;
+
+    const seggio = STATE.seggi.find((s) => s.id === STATE.seggioAttivoId);
+    if (seggio) {
+      seggio.elettori = valore;
+      saveJSON(LS.SEGGI, STATE.seggi);
+    }
+    return valore;
+  }
+
+  return 0;
+}
+
 function aggiornaTotaleAffluenza() {
   const tot = totaleAffluenzaCorrente();
-  const el = STATE.profile.elettori;
+  const el = elettoriAffluenzaCorrenti();
   let testo = 'Totale votanti: ' + tot;
-  if (el) testo += ' &nbsp;·&nbsp; Affluenza: ' + percentuale(tot, el) + '%';
+  testo += ' &nbsp;·&nbsp; Affluenza: ' + (el ? percentuale(tot, el) + '%' : '—');
   $('#affTotaleBox').innerHTML = testo;
 }
 
@@ -1216,7 +1247,7 @@ function renderTabellaAffluenza() {
   }
   tutti.forEach((it) => {
     const p = it.payload;
-    const el = p.elettori || STATE.profile.elettori;
+    const el = Number(p.elettori) > 0 ? Number(p.elettori) : elettoriAffluenzaCorrenti();
     const perc = el ? percentuale(p.totale, el) + '%' : '—';
     const superato = sostituiti.has(it.idInvio);
     const tr = document.createElement('tr');
@@ -1990,6 +2021,34 @@ function renderTabellaInvii() {
       btn.className = 'btn primary small';
       btn.textContent = 'Invia come nuovo';
       btn.addEventListener('click', () => recuperaCorrezioneComeNuovo(it.queueKey, it.idInvio));
+      tr.lastElementChild.appendChild(document.createElement('br'));
+      tr.lastElementChild.appendChild(btn);
+    } else if (!it.superato) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn ghost small';
+      btn.textContent = 'Modifica';
+
+      if (it.queueKey === LS.QUEUE_AFF) {
+        btn.addEventListener('click', () => {
+          attivaTabPerNome('affluenza');
+          correggiAffluenza(it.idInvio);
+        });
+      } else {
+        const ultimo = ultimoScrutinioAttivo();
+        const modificabile = ultimo && ultimo.idInvio === it.idInvio;
+        btn.disabled = !modificabile;
+        btn.title = modificabile
+          ? 'Carica questo scrutinio per correggerlo'
+          : 'È modificabile solo l’ultimo scrutinio attivo';
+        if (modificabile) {
+          btn.addEventListener('click', () => {
+            attivaTabPerNome('scrutinio');
+            correggiUltimoScrutinio();
+          });
+        }
+      }
+
       tr.lastElementChild.appendChild(document.createElement('br'));
       tr.lastElementChild.appendChild(btn);
     }
