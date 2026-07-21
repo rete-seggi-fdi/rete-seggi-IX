@@ -968,8 +968,11 @@ async function caricaStoricoInvii(silenzioso) {
         giorno: it.giorno || '',
         orario: it.orario || '',
         elettori: it.elettori,
+        maschi: it.maschi,
+        femmine: it.femmine,
         totale: it.totale,
         votanti: it.votanti,
+        note: it.note || '',
         correzioneDi: it.correzioneDi || '',
         motivoCorrezione: it.motivoCorrezione || '',
       },
@@ -978,7 +981,10 @@ async function caricaStoricoInvii(silenzioso) {
     saveJSON(LS.LAST_HISTORY_SYNC, data.serverTime || new Date().toISOString());
     if (statoEl) statoEl.textContent = 'Storico aggiornato: ' + items.length + ' invii recuperati · backend ' + (data.versioneBackend || '—');
     if (STATE.profile) {
+      recuperaElettoriDalloStoricoServer();
+      renderElettoriBanner();
       renderHomeDashboard();
+      renderAffluenza();
       renderTabellaInvii();
     }
     if (!silenzioso) showToast('Storico aggiornato: ' + items.length + ' invii.', 3500);
@@ -993,6 +999,33 @@ async function caricaStoricoInvii(silenzioso) {
     if (btn) btn.disabled = false;
   }
 }
+function recuperaElettoriDalloStoricoServer() {
+  if (!STATE.profile) return;
+
+  const storico = loadJSON(LS.SERVER_HISTORY, [])
+    .filter((it) =>
+      it &&
+      it.tipoServer === 'affluenza' &&
+      it.payload &&
+      stessaSezioneClient(it.payload, STATE.profile) &&
+      Number(it.payload.elettori) > 0
+    )
+    .sort((a, b) =>
+      String(b.creato || '').localeCompare(String(a.creato || ''))
+    );
+
+  if (!storico.length) return;
+
+  const elettori = Number(storico[0].payload.elettori);
+  STATE.profile.elettori = elettori;
+
+  const seggio = STATE.seggi.find((s) => s.id === STATE.seggioAttivoId);
+  if (seggio) {
+    seggio.elettori = elettori;
+    saveJSON(LS.SEGGI, STATE.seggi);
+  }
+}
+
 function renderHomeDashboard() {
   if (!STATE.profile) return;
   const nome = (STATE.profile.nome || 'rappresentante').trim().split(/\s+/)[0];
@@ -1036,16 +1069,57 @@ function renderHomeDashboard() {
     });
   }
 
-  const ultimo = [...aff.map((x) => ({ ...x, tipoHome: 'Affluenza' })), ...scr.map((x) => ({ ...x, tipoHome: 'Scrutinio' }))].sort((a, b) => (a.creato < b.creato ? 1 : -1))[0];
+  const tuttiHome = [
+    ...aff.map((item) => ({ ...item, tipoHome: 'Affluenza' })),
+    ...scr.map((item) => ({ ...item, tipoHome: 'Scrutinio' })),
+  ];
+
+  const ultimo = tuttiHome
+    .filter((item) =>
+      item &&
+      item.payload &&
+      !item.superato &&
+      !item.superatoServer &&
+      item.statoServer !== 'SOSTITUITO'
+    )
+    .sort((a, b) => {
+      const dataA = new Date(a.sincronizzatoIl || a.creato || 0).getTime();
+      const dataB = new Date(b.sincronizzatoIl || b.creato || 0).getTime();
+      return dataB - dataA;
+    })[0];
+
   const ultimoEl = $('#homeUltimoInvio');
   if (ultimoEl) {
     if (!ultimo) {
       ultimoEl.innerHTML = '<span class="latest-empty">Nessun dato ancora salvato per questa sezione.</span>';
     } else {
-      const quando = new Date(ultimo.creato).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' });
+      const p = ultimo.payload || {};
+      const dataInvio = ultimo.sincronizzatoIl || ultimo.creato;
+      const quando = dataInvio
+        ? new Date(dataInvio).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })
+        : 'data non disponibile';
       const stato = statoTimelineDaInvio(ultimo);
-      let dettaglio = ultimo.tipoHome === 'Affluenza' ? (ultimo.payload.orario + ' · ' + ultimo.payload.totale + ' votanti') : ((ultimo.payload.votanti || 0) + ' votanti · risultati scrutinio');
-      ultimoEl.innerHTML = '<div class="latest-icon ' + stato.classe + '" aria-hidden="true">' + (ultimo.tipoHome === 'Affluenza' ? '%' : '▣') + '</div><div><strong>' + ultimo.tipoHome + '</strong><span>' + escapeHtml(dettaglio) + '</span><small>' + escapeHtml(quando) + ' · ' + escapeHtml(stato.etichetta) + '</small></div>';
+      let dettaglio = '';
+
+      if (ultimo.tipoHome === 'Affluenza') {
+        const giorno = String(p.giorno || '').trim();
+        const orario = String(p.orario || '').trim();
+        const totale = Number(p.totale ?? p.votanti ?? 0);
+        const elettoriTotali = Number(p.elettori || STATE.profile.elettori || elettoriAffluenzaCorrenti() || 0);
+        const percentualeTesto = elettoriTotali > 0 ? percentuale(totale, elettoriTotali) + '%' : '—';
+        dettaglio = [giorno, orario].filter(Boolean).join(' ') +
+          ' · ' + totale + ' votanti · ' + percentualeTesto;
+      } else {
+        const votanti = Number(p.votanti ?? p.totale ?? 0);
+        dettaglio = votanti + ' votanti · risultati scrutinio';
+      }
+
+      ultimoEl.innerHTML =
+        '<div class="latest-icon ' + stato.classe + '" aria-hidden="true">' +
+          (ultimo.tipoHome === 'Affluenza' ? '%' : '▣') +
+        '</div><div><strong>' + escapeHtml(ultimo.tipoHome) + '</strong><span>' +
+          escapeHtml(dettaglio) + '</span><small>' + escapeHtml(quando) + ' · ' +
+          escapeHtml(stato.etichetta) + '</small></div>';
     }
   }
   aggiornaStatoConnessione();
@@ -1159,7 +1233,11 @@ function initTabs() {
 }
 
 // ---------------------------- AFFLUENZA --------------------------------
-function chiaveAffluenza(giorno, orario) { return giorno + '|' + orario; }
+function chiaveAffluenza(giorno, orario) {
+  const g = String(giorno || '').trim().toLowerCase();
+  const o = String(orario || '').trim().slice(0, 5);
+  return g + '|' + o;
+}
 
 function renderAffluenza() {
   const cont = $('#orariAffluenza');
@@ -1338,9 +1416,11 @@ function renderTabellaAffluenza() {
   const tbody = $('#tabellaAffluenza tbody');
   tbody.innerHTML = '';
   const sostituiti = idsSostituiti(LS.QUEUE_AFF);
-  const tutti = loadJSON(LS.QUEUE_AFF, [])
-    .filter((it) => it.payload.sezione === STATE.profile.sezione && it.payload.municipio === STATE.profile.municipio)
-    .sort((a, b) => (a.creato < b.creato ? 1 : -1));
+  const tutti = unisciStoricoLocaleEServer(LS.QUEUE_AFF, 'affluenza')
+    .filter((it) => it.payload && stessaSezioneClient(it.payload, STATE.profile))
+    .sort((a, b) =>
+      String(b.creato || '').localeCompare(String(a.creato || ''))
+    );
   if (!tutti.length) {
     tbody.innerHTML = '<tr><td colspan="7" class="muted-text">Nessuna rilevazione ancora salvata.</td></tr>';
     return;
@@ -1349,12 +1429,15 @@ function renderTabellaAffluenza() {
     const p = it.payload;
     const el = Number(p.elettori) > 0 ? Number(p.elettori) : elettoriAffluenzaCorrenti();
     const perc = el ? percentuale(p.totale, el) + '%' : '—';
-    const superato = sostituiti.has(it.idInvio);
+    const superato =
+      sostituiti.has(it.idInvio) ||
+      it.superatoServer ||
+      it.statoServer === 'SOSTITUITO';
     const tr = document.createElement('tr');
     tr.innerHTML = '<td>' + escapeHtml((p.giorno ? p.giorno + ' ' : '') + p.orario) + '</td><td>' + (p.maschi ?? '—') +
       '</td><td>' + (p.femmine ?? '—') + '</td><td>' + p.totale + '</td><td>' + perc + '</td><td>' +
       (superato ? '<span class="pill neutral">sostituito</span>' : statoPillHtml(it.status)) + '</td><td></td>';
-    if (!superato) {
+    if (!superato && !it.serverOnly) {
       const btn = document.createElement('button');
       btn.type = 'button'; btn.className = 'btn ghost small'; btn.textContent = 'Correggi';
       btn.addEventListener('click', () => correggiAffluenza(it.idInvio));
