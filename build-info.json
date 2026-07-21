@@ -1,9 +1,9 @@
 {
-  "latestVersion": "13.3.5",
-  "minimumVersion": "13.3.5",
+  "latestVersion": "13.3.6",
+  "minimumVersion": "13.3.6",
   "buildDate": "2026-07-21",
   "environment": "production",
   "mandatory": true,
-  "version": "13.3.5",
-  "notes": "Release candidata Municipio IX: versionamento PWA allineato, ambiente produzione e correzioni mobile fino alla v13.3.5. Backend Apps Script atteso: 13.3.2-batch-scrutinio."
+  "version": "13.3.6",
+  "notes": "Correzione produzione: invii, storico e bozze locali non vengono più cancellati al cambio di revisione configurazione. Aggiunto pulsante esplicito per tornare alla Home dalla pagina Scrutinio."
 }

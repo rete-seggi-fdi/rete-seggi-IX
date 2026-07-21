@@ -981,3 +981,9 @@ body.version-blocked> :not(#modalMandatoryUpdate):not(script){pointer-events:non
   }
 }
 
+
+
+/* v13.3.6 - ritorno esplicito alla Home dallo scrutinio */
+.scrutiny-back-row{display:flex;justify-content:flex-start;margin:0 0 10px}
+.scrutiny-back-row .btn{min-height:42px}
+@media(max-width:759px){.scrutiny-back-row{position:sticky;top:67px;z-index:31;padding:6px 0;background:linear-gradient(180deg,var(--bg) 75%,transparent)}}

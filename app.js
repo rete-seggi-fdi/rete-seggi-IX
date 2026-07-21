@@ -127,10 +127,16 @@ function gestisciRevisioneDati(revisione) {
     return false;
   }
   if (String(precedente) === nuova) return false;
-  pulisciDatiOperativiLocali();
+
+  // In produzione la revisione della configurazione non deve mai cancellare
+  // invii, storico o bozze salvati sul telefono. L'azzeramento automatico è
+  // consentito soltanto nell'ambiente di test/dimostrazione.
+  if (APP_ENVIRONMENT !== 'production') {
+    pulisciDatiOperativiLocali();
+    setTimeout(() => showToast('Il coordinamento ha azzerato i dati di prova. Lo storico del telefono è stato riallineato.', 6000), 0);
+  }
   saveJSON(LS.DATA_REVISION, nuova);
-  setTimeout(() => showToast('Il coordinamento ha azzerato i dati di prova. Lo storico del telefono è stato riallineato.', 6000), 0);
-  return true;
+  return APP_ENVIRONMENT !== 'production';
 }
 
 let toastTimer = null;
@@ -2700,6 +2706,7 @@ async function avvia() {
   $('#selectSeggioAttivo').addEventListener('change', onCambiaSeggioAttivo);
   $('#btnVaiAffluenza').addEventListener('click', () => attivaTabPerNome('affluenza'));
   $('#btnVaiScrutinio').addEventListener('click', () => attivaTabPerNome('scrutinio'));
+  $('#btnTornaHomeScrutinio').addEventListener('click', () => attivaTabPerNome('home'));
   $('#btnVaiInvii').addEventListener('click', () => attivaTabPerNome('invii'));
   $('#btnHomeModificaElettori').addEventListener('click', onModificaElettori);
   $('#btnHomeCondividi').addEventListener('click', onCondividi);
