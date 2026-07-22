@@ -68,6 +68,57 @@
         </div>
       </section>
 
+      <section class="card results-card">
+        <div class="section-head results-head">
+          <div>
+            <h2>Risultati FdI per sezione</h2>
+            <p>Confronto sui voti validi, sui votanti e sugli iscritti della sezione.</p>
+          </div>
+          <label>Tipo di scheda
+            <select id="filterLivello">
+              <option value="Comune">Comune</option>
+              <option value="Municipio">Municipio</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="fdiSummary" class="fdi-summary"></div>
+
+        <div class="table-wrap">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>Mun.</th><th>Sez.</th><th>Iscritti</th><th>Votanti</th>
+                <th>Validi</th><th>FdI</th><th>Altri</th>
+                <th>FdI/validi</th><th>FdI/votanti</th><th>FdI/iscritti</th>
+                <th>Pos.</th><th>Confronto</th>
+              </tr>
+            </thead>
+            <tbody id="risultatiBody"></tbody>
+          </table>
+        </div>
+        <p class="results-note">Apri una riga per vedere tutti i partiti della sezione.</p>
+      </section>
+
+      <dialog id="sectionDialog">
+        <form method="dialog" class="dialog-card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow dark">Dettaglio scrutinio</p>
+              <h2 id="dialogTitle">Sezione</h2>
+            </div>
+            <button class="secondary close-dialog" value="close" aria-label="Chiudi">Chiudi</button>
+          </div>
+          <div id="dialogMetrics" class="dialog-metrics"></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Partito</th><th>Voti</th><th>% validi</th></tr></thead>
+              <tbody id="dialogParties"></tbody>
+            </table>
+          </div>
+        </form>
+      </dialog>
+
       <section class="grid">
         <article class="card">
           <div class="section-head"><h2>Ultimo dato per sezione</h2><span id="sectionCount"></span></div>
