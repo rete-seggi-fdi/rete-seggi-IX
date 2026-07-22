@@ -1431,7 +1431,7 @@ function renderTabellaAffluenza() {
     tr.innerHTML = '<td>' + escapeHtml((p.giorno ? p.giorno + ' ' : '') + p.orario) + '</td><td>' + (p.maschi ?? '—') +
       '</td><td>' + (p.femmine ?? '—') + '</td><td>' + p.totale + '</td><td>' + perc + '</td><td>' +
       (superato ? '<span class="pill neutral">sostituito</span>' : statoPillHtml(it.status)) + '</td><td></td>';
-    if (!superato && !it.serverOnly) {
+    if (!superato) {
       const btn = document.createElement('button');
       btn.type = 'button'; btn.className = 'btn ghost small'; btn.textContent = 'Correggi';
       btn.addEventListener('click', () => correggiAffluenza(it.idInvio));
@@ -1441,12 +1441,29 @@ function renderTabellaAffluenza() {
   });
 }
 
+function trovaInvioAffluenzaCorreggibile(idInvio) {
+  const locale = trovaItem(LS.QUEUE_AFF, idInvio);
+  if (locale && locale.payload) return locale;
+
+  return loadJSON(LS.SERVER_HISTORY, []).find((item) =>
+    item &&
+    String(item.idInvio || '') === String(idInvio || '') &&
+    item.tipoServer === 'affluenza' &&
+    item.payload &&
+    !item.superatoServer &&
+    item.statoServer !== 'SOSTITUITO'
+  ) || null;
+}
+
 function correggiAffluenza(idInvio) {
-  const item = trovaItem(LS.QUEUE_AFF, idInvio);
-  if (!item || !item.payload) return;
+  const item = trovaInvioAffluenzaCorreggibile(idInvio);
+  if (!item || !item.payload) {
+    showToast('Invio non disponibile per la correzione.', 4000);
+    return;
+  }
   const p = item.payload;
   apriFormAffluenza(p.giorno, p.orario);
-  const giaRicevuto = item.status === 'synced';
+  const giaRicevuto = item.status === 'synced' || item.serverOnly === true || item.tipoServer === 'affluenza';
   correzioneAffluenzaId = giaRicevuto ? idInvio : null;
   tentativoAffluenzaDaSostituireId = giaRicevuto ? null : idInvio;
   $('#affCorrezioneBox').hidden = !giaRicevuto;
@@ -2207,13 +2224,13 @@ function renderTabellaInvii() {
       btn.addEventListener('click', () => recuperaCorrezioneComeNuovo(it.queueKey, it.idInvio));
       tr.lastElementChild.appendChild(document.createElement('br'));
       tr.lastElementChild.appendChild(btn);
-    } else if (!it.superato && !it.serverOnly) {
+    } else if (!it.superato && (!it.serverOnly || it.tipoServer === 'affluenza')) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'btn ghost small';
       btn.textContent = 'Modifica';
 
-      if (it.queueKey === LS.QUEUE_AFF) {
+      if (it.queueKey === LS.QUEUE_AFF || it.tipoServer === 'affluenza') {
         btn.addEventListener('click', () => {
           attivaTabPerNome('affluenza');
           correggiAffluenza(it.idInvio);
