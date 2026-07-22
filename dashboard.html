@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="robots" content="noindex,nofollow">
+  <title>SeggioLink – Dashboard coordinamento</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">SeggioLink Roma</p>
+      <h1>Dashboard coordinamento</h1>
+    </div>
+    <div class="top-actions">
+      <span id="status" class="status" aria-live="polite">Non collegato</span>
+      <button id="refreshBtn" class="secondary" type="button" hidden>Aggiorna</button>
+      <button id="logoutBtn" class="secondary" type="button" hidden>Esci</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="loginCard" class="card login">
+      <h2>Accesso riservato</h2>
+      <p>Inserisci la password del coordinamento. La password non viene memorizzata nel browser.</p>
+      <form id="loginForm">
+        <label>
+          Password dashboard
+          <input id="dashboardPassword" type="password" autocomplete="current-password" minlength="16" required>
+        </label>
+        <button id="loginBtn" type="submit">Accedi</button>
+      </form>
+      <p class="security-note">Dopo l’accesso viene usato un token temporaneo valido per 8 ore.</p>
+      <p id="loginError" class="error" role="alert"></p>
+    </section>
+
+    <section id="app" hidden>
+      <div class="metrics">
+        <article><span>Affluenza</span><strong id="kpiPerc">—</strong></article>
+        <article><span>Votanti</span><strong id="kpiTotale">—</strong></article>
+        <article><span>Maschi / Femmine</span><strong id="kpiMF">—</strong></article>
+        <article><span>Sezioni ricevute</span><strong id="kpiSezioni">—</strong></article>
+      </div>
+
+      <div class="toolbar card">
+        <label>Municipio
+          <select id="filterMunicipio"><option value="">Tutti</option></select>
+        </label>
+        <label>Cerca sezione
+          <input id="filterSezione" inputmode="numeric" placeholder="Numero sezione">
+        </label>
+        <label class="checkbox-label">
+          <input id="autoRefresh" type="checkbox" checked>
+          Aggiornamento automatico
+        </label>
+        <span id="updatedAt"></span>
+      </div>
+
+      <section class="card">
+        <div class="section-head"><h2>Riepilogo per Municipio</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Municipio</th><th>Ricevute</th><th>Mancanti</th><th>Elettori</th><th>M</th><th>F</th><th>Totale</th><th>%</th></tr></thead>
+            <tbody id="municipiBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <div class="section-head"><h2>Ultimo dato per sezione</h2><span id="sectionCount"></span></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Mun.</th><th>Sez.</th><th>Orario</th><th>M</th><th>F</th><th>Tot.</th><th>%</th><th>Aggiornato</th></tr></thead>
+              <tbody id="sezioniBody"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="section-head"><h2>Sezioni mancanti</h2><span id="missingCount"></span></div>
+          <div id="mancanti" class="missing-list"></div>
+        </article>
+      </section>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>
