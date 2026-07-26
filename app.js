@@ -816,9 +816,7 @@ function eseguiRimozioneSeggio(id) {
 }
 
 function onGestisciSeggi() {
-  $('#screen-dashboard').classList.remove('active');
-  $('#screen-setup').classList.add('active');
-  predisponiSchermataSetup(true);
+  showToast('Le sezioni sono assegnate dal coordinamento. Per aggiungere o cambiare una sezione contatta il coordinatore.', 5500);
 }
 
 function onAnnullaAggiungiSeggio() {
@@ -854,6 +852,8 @@ function onCambiaSeggioAttivo() {
 // =======================================================================
 function mostraDashboard() {
   $('#btnLogout').hidden = false;
+  const btnGestisciSeggi = $('#btnGestisciSeggi');
+  if (btnGestisciSeggi) btnGestisciSeggi.hidden = true;
   $('#screen-login').classList.remove('active');
   $('#screen-setup').classList.remove('active');
   $('#screen-dashboard').classList.add('active');
@@ -972,6 +972,12 @@ async function caricaStoricoInvii(silenzioso) {
         femmine: it.femmine,
         totale: it.totale,
         votanti: it.votanti,
+        schedaComune: it.schedaComune || {},
+        schedaMunicipio: it.schedaMunicipio || {},
+        sindaci: Array.isArray(it.sindaci) ? it.sindaci : [],
+        presidenti: Array.isArray(it.presidenti) ? it.presidenti : [],
+        liste: Array.isArray(it.liste) ? it.liste : [],
+        preferenze: Array.isArray(it.preferenze) ? it.preferenze : [],
         note: it.note || '',
         correzioneDi: it.correzioneDi || '',
         motivoCorrezione: it.motivoCorrezione || '',
@@ -1937,9 +1943,53 @@ function ultimoScrutinioAttivo() {
 
 function aggiornaPulsanteCorrezioneScrutinio() {
   const btn = $('#btnCorreggiScrutinio');
-  const ultimo = ultimoScrutinioAttivo();
-  btn.hidden = !ultimo;
-  if (ultimo) btn.textContent = ultimo.status === 'synced' ? 'Correggi ultimo invio' : 'Correggi tentativo non inviato';
+  const ultimoLocale = ultimoScrutinioAttivo();
+  const scrutiniServer = storicoServerCorrente('scrutinio').filter((item) =>
+    item && !item.superatoServer && item.statoServer !== 'SOSTITUITO'
+  );
+  const disponibile = ultimoLocale || scrutiniServer.length;
+  btn.hidden = !disponibile;
+  if (disponibile) {
+    btn.textContent = ultimoLocale && ultimoLocale.status !== 'synced'
+      ? 'Correggi tentativo non inviato'
+      : 'Scegli scrutinio da correggere';
+  }
+}
+
+function trovaInvioScrutinioCorreggibile(idInvio) {
+  const id = String(idInvio || '');
+  const sostituiti = idsSostituiti(LS.QUEUE_SCR);
+
+  const locale = loadJSON(LS.QUEUE_SCR, []).find((item) =>
+    item &&
+    String(item.idInvio || '') === id &&
+    item.payload &&
+    stessaSezioneClient(item.payload, STATE.profile) &&
+    !sostituiti.has(item.idInvio)
+  );
+  if (locale) return locale;
+
+  return loadJSON(LS.SERVER_HISTORY, []).find((item) =>
+    item &&
+    String(item.idInvio || '') === id &&
+    item.tipoServer === 'scrutinio' &&
+    item.payload &&
+    stessaSezioneClient(item.payload, STATE.profile) &&
+    !item.superatoServer &&
+    item.statoServer !== 'SOSTITUITO'
+  ) || null;
+}
+
+function apriSceltaScrutinioDaCorreggere() {
+  const ultimoLocale = ultimoScrutinioAttivo();
+  if (ultimoLocale && ultimoLocale.status !== 'synced') {
+    correggiScrutinio(ultimoLocale.idInvio);
+    return;
+  }
+
+  attivaTabPerNome('invii');
+  renderTabellaInvii();
+  showToast('Seleziona lo scrutinio da correggere nella tabella “I miei invii”.', 5000);
 }
 
 function impostaDynPerNome(prefix, valori, campoNome) {
@@ -1947,12 +1997,15 @@ function impostaDynPerNome(prefix, valori, campoNome) {
   $all('[id^="' + prefix + '_"]').forEach((inp) => { inp.value = mappa.get(inp.dataset.nome) ?? 0; });
 }
 
-function correggiUltimoScrutinio() {
-  const item = ultimoScrutinioAttivo();
-  if (!item || !item.payload) return;
+function correggiScrutinio(idInvio) {
+  const item = trovaInvioScrutinioCorreggibile(idInvio);
+  if (!item || !item.payload) {
+    showToast('Scrutinio non disponibile per la correzione.', 4000);
+    return;
+  }
 
   const p = item.payload;
-  const giaRicevuto = item.status === 'synced';
+  const giaRicevuto = item.status === 'synced' || item.serverOnly === true || item.tipoServer === 'scrutinio';
   correzioneScrutinioId = giaRicevuto ? item.idInvio : null;
   tentativoScrutinioDaSostituireId = giaRicevuto ? null : item.idInvio;
 
@@ -1996,24 +2049,24 @@ function correggiUltimoScrutinio() {
   const btnCorreggi = $('#btnCorreggiScrutinio');
   if (btnCorreggi) btnCorreggi.hidden = true;
 
-  // Mostra direttamente il passaggio finale: qui si trova il motivo.
+  // La correzione riapre l'intero scrutinio dal primo passaggio.
   $all('.scrutiny-step').forEach((step) => {
     const numero = Number(step.dataset.step || step.dataset.stepNumber || 0);
-    step.classList.toggle('active', numero === 4);
-    step.setAttribute('aria-current', numero === 4 ? 'step' : 'false');
+    step.classList.toggle('active', numero === 1);
+    step.setAttribute('aria-current', numero === 1 ? 'step' : 'false');
   });
 
   $all('.scrutiny-card').forEach((card) => {
     const numero = Number(card.dataset.stepNumber || 0);
-    card.hidden = numero !== 4;
-    card.classList.toggle('active', numero === 4);
+    card.hidden = numero !== 1;
+    card.classList.toggle('active', numero === 1);
   });
 
   aggiornaAvvisiScrutinio();
 
   // Nessun focus automatico: su iPhone evitita il salto del viewport.
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    const destinazione = giaRicevuto ? boxCorrezione : $('#scrStepRiepilogo');
+    const destinazione = document.querySelector('.scrutiny-card[data-step-number="1"]') || $('#tab-scrutinio');
     if (!destinazione) return;
 
     const topbar = document.querySelector('.topbar');
@@ -2172,6 +2225,16 @@ function contaInCoda() {
   return conta(LS.QUEUE_AFF) + conta(LS.QUEUE_SCR);
 }
 
+
+function correggiUltimoScrutinio() {
+  const ultimo = ultimoScrutinioAttivo();
+  if (!ultimo) {
+    showToast('Nessuno scrutinio disponibile per la correzione.', 4000);
+    return;
+  }
+  correggiScrutinio(ultimo.idInvio);
+}
+
 function aggiornaBadgeInCoda() {
   const n = contaInCoda();
   const badge = $('#pendingBadge');
@@ -2224,7 +2287,7 @@ function renderTabellaInvii() {
       btn.addEventListener('click', () => recuperaCorrezioneComeNuovo(it.queueKey, it.idInvio));
       tr.lastElementChild.appendChild(document.createElement('br'));
       tr.lastElementChild.appendChild(btn);
-    } else if (!it.superato && (!it.serverOnly || it.tipoServer === 'affluenza')) {
+    } else if (!it.superato) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'btn ghost small';
@@ -2236,18 +2299,12 @@ function renderTabellaInvii() {
           correggiAffluenza(it.idInvio);
         });
       } else {
-        const ultimo = ultimoScrutinioAttivo();
-        const modificabile = ultimo && ultimo.idInvio === it.idInvio;
-        btn.disabled = !modificabile;
-        btn.title = modificabile
-          ? 'Carica questo scrutinio per correggerlo'
-          : 'È modificabile solo l’ultimo scrutinio attivo';
-        if (modificabile) {
-          btn.addEventListener('click', () => {
-            attivaTabPerNome('scrutinio');
-            correggiUltimoScrutinio();
-          });
-        }
+        btn.textContent = 'Correggi scrutinio';
+        btn.title = 'Carica questo scrutinio per correggerlo';
+        btn.addEventListener('click', () => {
+          attivaTabPerNome('scrutinio');
+          correggiScrutinio(it.idInvio);
+        });
       }
 
       tr.lastElementChild.appendChild(document.createElement('br'));
@@ -2956,7 +3013,7 @@ async function avvia() {
   $('#btnSalvaBozzaScrutinio').addEventListener('click', () => salvaBozzaScrutinio(true, 'bozza'));
   $('#btnEliminaBozzaScrutinio').addEventListener('click', eliminaBozzaScrutinio);
   $('#btnInviaScrutinio').addEventListener('click', onInviaScrutinio);
-  $('#btnCorreggiScrutinio').addEventListener('click', correggiUltimoScrutinio);
+  $('#btnCorreggiScrutinio').addEventListener('click', apriSceltaScrutinioDaCorreggere);
   $('#checkConfermaScrutinio').addEventListener('change', () => { $('#btnConfermaInvio').disabled = !$('#checkConfermaScrutinio').checked; });
   $('#btnConfermaInvio').addEventListener('click', onConfermaInvioScrutinio);
   $('#btnAnnullaInvio').addEventListener('click', () => {
