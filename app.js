@@ -2144,27 +2144,19 @@ async function inviaAlBackend(payload) {
   if (!backendConfigurato()) throw new Error('Backend non configurato.');
   if (!payload.sessionToken) throw new Error('Sessione mancante: effettua nuovamente l’accesso.');
   const body = JSON.stringify(payload);
-  let errorePost = null;
-
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Number(RUNTIME_CONFIG.requestTimeoutMs || 20000));
   try {
     const post = await fetch(BACKEND_URL, {
       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body, cache: 'no-store', redirect: 'follow',
+      body, cache: 'no-store', redirect: 'follow', signal: controller.signal,
     });
     return await leggiRispostaBackend(post);
   } catch (e) {
-    errorePost = e;
-  }
-
-  // Compatibilità con alcune distribuzioni Apps Script che non espongono
-  // correttamente la risposta CORS delle POST. L'ID invio rende il fallback idempotente.
-  const url = BACKEND_URL + '?invio=' + encodeURIComponent(body);
-  if (url.length > 7800) throw new Error('Invio troppo grande per il canale di emergenza. Riprova con una connessione stabile.');
-  try {
-    const get = await fetch(url, { method: 'GET', cache: 'no-store', redirect: 'follow' });
-    return await leggiRispostaBackend(get);
-  } catch (e) {
-    throw e && e.message ? e : errorePost;
+    if (e && e.name === 'AbortError') throw new Error('Tempo di risposta scaduto. L’invio resta in coda e verrà ritentato.');
+    throw e;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -2180,7 +2172,7 @@ async function provaSvuotaCode() {
         if (item.status === 'synced') continue;
         // Errori logici non cambiano da soli: evita nuovi tentativi ogni 45 secondi.
         // L'utente può correggere il tentativo oppure usare “Invia come nuovo”.
-        if (item.status === 'error' && ['CORRECTION_TARGET_NOT_FOUND', 'CORRECTION_NOT_ALLOWED', 'ALREADY_SUPERSEDED', 'ACTIVE_SCRUTINY_EXISTS', 'MULTIPLE_ACTIVE_SCRUTINIES', 'INVALID_DATA'].includes(item.codiceErrore)) continue;
+        if (item.status === 'error' && ['CORRECTION_TARGET_NOT_FOUND', 'CORRECTION_NOT_ALLOWED', 'ALREADY_SUPERSEDED', 'ACTIVE_TURNOUT_EXISTS', 'ACTIVE_SCRUTINY_EXISTS', 'MULTIPLE_ACTIVE_SCRUTINIES', 'INVALID_DATA'].includes(item.codiceErrore)) continue;
         item.status = 'syncing'; item.ultimoTentativo = new Date().toISOString(); cambiato = true;
         saveJSON(queueKey, coda);
         aggiornaBadgeInCoda();
@@ -2558,11 +2550,10 @@ async function caricaMessaggi(silent) {
   renderNotificheHome();
   if (!navigator.onLine || !backendConfigurato() || !sessionToken()) return STATE.messaggi;
   try {
-    const url = BACKEND_URL + '?action=messaggi&sessionToken=' + encodeURIComponent(sessionToken()) +
-      '&municipio=' + encodeURIComponent(STATE.profile.municipio) + '&sezione=' + encodeURIComponent(STATE.profile.sezione);
-    const res = await fetch(url, { cache: 'no-store', redirect: 'follow' });
-    const data = JSON.parse(await res.text());
-    if (!data.ok) throw new Error(data.error || 'Messaggi non disponibili');
+    const data = await inviaAlBackend({
+      tipo: 'messaggi', sessionToken: sessionToken(),
+      municipio: STATE.profile.municipio, sezione: STATE.profile.sezione
+    });
     const precedenti = new Set((STATE.messaggi || []).map((x) => x.id));
     STATE.messaggi = data.items || [];
     salvaMessaggiCache(STATE.messaggi);
@@ -2579,12 +2570,11 @@ async function caricaMessaggi(silent) {
 async function aggiornaMessaggio(id, stato) {
   if (!STATE.profile || !navigator.onLine) return showToast('Serve la connessione per aggiornare il messaggio.', 4000);
   try {
-    const url = BACKEND_URL + '?action=messaggio_ack&sessionToken=' + encodeURIComponent(sessionToken()) +
-      '&municipio=' + encodeURIComponent(STATE.profile.municipio) + '&sezione=' + encodeURIComponent(STATE.profile.sezione) +
-      '&id=' + encodeURIComponent(id) + '&stato=' + encodeURIComponent(stato);
-    const res = await fetch(url, { cache: 'no-store', redirect: 'follow' });
-    const data = JSON.parse(await res.text());
-    if (!data.ok) throw new Error(data.error || 'Aggiornamento non riuscito');
+    await inviaAlBackend({
+      tipo: 'messaggio_ack', sessionToken: sessionToken(),
+      municipio: STATE.profile.municipio, sezione: STATE.profile.sezione,
+      id, stato
+    });
     await caricaMessaggi(true);
     showToast(stato === 'RISOLTO' ? 'Richiesta segnata come risolta.' : 'Messaggio segnato come letto.');
   } catch (e) { showToast(e.message || 'Aggiornamento non riuscito.', 4500); }

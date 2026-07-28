@@ -7,7 +7,7 @@
    Le richieste verso il backend (Apps Script, altro dominio) non vengono
    mai intercettate: passano sempre direttamente alla rete. */
 
-const VERSIONE = 'seggiolink-v13.3.9';
+const VERSIONE = 'seggiolink-v13.4.3';
 const CACHE_SHELL = 'shell-' + VERSIONE;
 const CACHE_DATI = 'dati-' + VERSIONE;
 
@@ -20,21 +20,7 @@ const FILE_APP = [
   './app.js',
   './manifest.json',
   './data/indice-sezioni.json',
-  './data/municipio-01.json',
-  './data/municipio-02.json',
-  './data/municipio-03.json',
-  './data/municipio-04.json',
-  './data/municipio-05.json',
-  './data/municipio-06.json',
-  './data/municipio-07.json',
-  './data/municipio-08.json',
   './data/municipio-09.json',
-  './data/municipio-10.json',
-  './data/municipio-11.json',
-  './data/municipio-12.json',
-  './data/municipio-13.json',
-  './data/municipio-14.json',
-  './data/municipio-15.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
@@ -72,8 +58,10 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.indexOf('/data/') !== -1) {
     event.respondWith(
       fetch(event.request).then((res) => {
-        const copia = res.clone();
-        caches.open(CACHE_DATI).then((cache) => cache.put(event.request, copia));
+        if (res && res.ok) {
+          const copia = res.clone();
+          caches.open(CACHE_DATI).then((cache) => cache.put(event.request, copia));
+        }
         return res;
       }).catch(() => caches.match(event.request))
     );

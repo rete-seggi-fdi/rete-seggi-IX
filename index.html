@@ -4,13 +4,16 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#0b2148" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" />
+<meta name="referrer" content="no-referrer" />
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=()" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="SeggioLink" />
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 <link rel="icon" href="icons/icon-192.png" />
-<title>SeggioLink Roma · Coordinamento elettorale · v13.3.9</title>
+<title>SeggioLink Roma · Coordinamento elettorale · v13.4.3</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -90,7 +93,7 @@
       <button id="btnLogin" class="btn primary full">Accedi</button>
       <div class="privacy-note">I dati vengono salvati sul dispositivo e trasmessi al foglio del coordinamento. Non inserire informazioni sugli elettori nelle note.</div>
       <p class="login-help">Non hai un codice? Contatta il coordinamento.</p>
-      <button id="btnInfoLogin" class="version-button" type="button">Versione <span data-app-version>13.3.7</span> · <span data-environment-label>PRODUZIONE</span></button>
+      <button id="btnInfoLogin" class="version-button" type="button">Versione <span data-app-version>13.4.3</span> · <span data-environment-label>PRODUZIONE</span></button>
     </article>
   </section>
 
@@ -255,7 +258,7 @@
         <button id="btnAssistenza" class="btn primary compact icon-label" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13a8 8 0 0 1 16 0"/><path d="M4 13v5h3v-5H4ZM17 13v5h3v-5h-3ZM17 18c0 2-2 3-5 3"/></svg><span>Assistenza</span></button>
       </article>
 
-<p class="app-version-footer"><button id="btnInfoApp" class="version-button" type="button">SeggioLink <strong id="appVersionLabel">13.3.7</strong></button></p>
+<p class="app-version-footer"><button id="btnInfoApp" class="version-button" type="button">SeggioLink <strong id="appVersionLabel">13.4.3</strong></button></p>
 </div>
     <!-- --- AFFLUENZA --- -->
     <div id="tab-affluenza" class="tabpanel">

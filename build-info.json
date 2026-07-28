@@ -1,9 +1,9 @@
 {
-  "latestVersion": "13.3.8",
-  "minimumVersion": "13.3.8",
-  "buildDate": "2026-07-21",
+  "latestVersion": "13.4.3",
+  "minimumVersion": "13.4.3",
+  "buildDate": "2026-07-28",
   "environment": "production",
   "mandatory": true,
-  "version": "13.3.8",
-  "notes": "Recupero storico per codice o sezione autorizzata; normalizzazione Municipio 09; originali e correzioni con stato sostituito; diagnostica visibile e aggiornamento manuale."
+  "version": "13.4.3",
+  "notes": "Release production-ready: assegnazioni multi-seggio corrette, correzioni univoche, scrutinio idempotente, validazione server rigorosa e trasporto POST senza dati sensibili in URL."
 }
