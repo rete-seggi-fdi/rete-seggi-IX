@@ -1,9 +1,9 @@
 {
-  "latestVersion": "13.4.6",
-  "minimumVersion": "13.4.6",
+  "latestVersion": "13.4.7",
+  "minimumVersion": "13.4.7",
   "buildDate": "2026-07-28",
   "environment": "production",
   "mandatory": true,
-  "version": "13.4.6",
-  "notes": "Hotfix retry correzioni: un tentativo respinto conserva correzioneDi e motivo, evitando che il backend lo interpreti come nuovo scrutinio."
+  "version": "13.4.7",
+  "notes": "Recovery code pregresse: se una vecchia coda ha perso correzioneDi, l'originale attivo viene recuperato dallo storico server."
 }

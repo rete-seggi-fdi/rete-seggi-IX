@@ -2018,7 +2018,7 @@ function mostraPassaggioScrutinio(targetId, scorri) {
   return true;
 }
 
-function correggiScrutinio(idInvio) {
+async function correggiScrutinio(idInvio) {
   const item = trovaInvioScrutinioCorreggibile(idInvio);
   if (!item || !item.payload) {
     showToast('Scrutinio non disponibile per la correzione.', 4000);
@@ -2027,10 +2027,25 @@ function correggiScrutinio(idInvio) {
 
   const p = item.payload;
   const giaRicevuto = item.status === 'synced' || item.serverOnly === true || item.tipoServer === 'scrutinio';
+  if (!giaRicevuto && !p.correzioneDi && item.codiceErrore === 'ACTIVE_SCRUTINY_EXISTS' && navigator.onLine) {
+    await caricaStoricoInvii(true);
+  }
+  const originaleServer = !giaRicevuto && !p.correzioneDi
+    ? storicoServerCorrente('scrutinio').find((storico) =>
+        storico && storico.idInvio !== item.idInvio &&
+        !storico.superatoServer && storico.statoServer !== 'SOSTITUITO')
+    : null;
   // Un tentativo locale può essere già una correzione respinta dal backend.
   // In quel caso va conservato il collegamento all'originale: perderlo farebbe
-  // reinterpretare il retry come nuovo scrutinio, causando ACTIVE_SCRUTINY_EXISTS.
-  correzioneScrutinioId = giaRicevuto ? item.idInvio : (p.correzioneDi || null);
+  // reinterpretare il retry come nuovo scrutinio. Per le code già danneggiate
+  // da versioni precedenti, recupera l'originale attivo dallo storico server.
+  correzioneScrutinioId = giaRicevuto
+    ? item.idInvio
+    : (p.correzioneDi || (originaleServer && originaleServer.idInvio) || null);
+  if (!giaRicevuto && item.codiceErrore === 'ACTIVE_SCRUTINY_EXISTS' && !correzioneScrutinioId) {
+    showToast('Non riesco a recuperare lo scrutinio originale. Aggiorna lo storico e riprova.', 6000);
+    return;
+  }
   tentativoScrutinioDaSostituireId = giaRicevuto ? null : item.idInvio;
 
   const pannello = $('#tab-scrutinio');
