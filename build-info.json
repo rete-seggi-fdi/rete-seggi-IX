@@ -1,9 +1,9 @@
 {
-  "latestVersion": "13.4.5",
-  "minimumVersion": "13.4.5",
+  "latestVersion": "13.4.6",
+  "minimumVersion": "13.4.6",
   "buildDate": "2026-07-28",
   "environment": "production",
   "mandatory": true,
-  "version": "13.4.5",
-  "notes": "Hotfix correzioni: in modalità correzione tutti i pannelli dello scrutinio restano visibili e raggiungibili senza dipendere dalla navigazione a passaggi."
+  "version": "13.4.6",
+  "notes": "Hotfix retry correzioni: un tentativo respinto conserva correzioneDi e motivo, evitando che il backend lo interpreti come nuovo scrutinio."
 }

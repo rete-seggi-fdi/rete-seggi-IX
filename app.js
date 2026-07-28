@@ -2027,7 +2027,10 @@ function correggiScrutinio(idInvio) {
 
   const p = item.payload;
   const giaRicevuto = item.status === 'synced' || item.serverOnly === true || item.tipoServer === 'scrutinio';
-  correzioneScrutinioId = giaRicevuto ? item.idInvio : null;
+  // Un tentativo locale può essere già una correzione respinta dal backend.
+  // In quel caso va conservato il collegamento all'originale: perderlo farebbe
+  // reinterpretare il retry come nuovo scrutinio, causando ACTIVE_SCRUTINY_EXISTS.
+  correzioneScrutinioId = giaRicevuto ? item.idInvio : (p.correzioneDi || null);
   tentativoScrutinioDaSostituireId = giaRicevuto ? null : item.idInvio;
 
   const pannello = $('#tab-scrutinio');
@@ -2037,8 +2040,8 @@ function correggiScrutinio(idInvio) {
 
   const boxCorrezione = $('#scCorrezioneBox');
   const motivoCorrezione = $('#scMotivoCorrezione');
-  if (boxCorrezione) boxCorrezione.hidden = !giaRicevuto;
-  if (motivoCorrezione) motivoCorrezione.value = '';
+  if (boxCorrezione) boxCorrezione.hidden = !correzioneScrutinioId;
+  if (motivoCorrezione) motivoCorrezione.value = p.motivoCorrezione || '';
 
   $('#scElettori').value = p.elettori ?? '';
   $('#scVotanti').value = p.votanti ?? '';
