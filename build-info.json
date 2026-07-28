@@ -1,9 +1,9 @@
 {
-  "latestVersion": "13.4.3",
-  "minimumVersion": "13.4.3",
+  "latestVersion": "13.4.5",
+  "minimumVersion": "13.4.5",
   "buildDate": "2026-07-28",
   "environment": "production",
   "mandatory": true,
-  "version": "13.4.3",
-  "notes": "Release production-ready: assegnazioni multi-seggio corrette, correzioni univoche, scrutinio idempotente, validazione server rigorosa e trasporto POST senza dati sensibili in URL."
+  "version": "13.4.5",
+  "notes": "Hotfix correzioni: in modalità correzione tutti i pannelli dello scrutinio restano visibili e raggiungibili senza dipendere dalla navigazione a passaggi."
 }

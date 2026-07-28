@@ -1997,6 +1997,27 @@ function impostaDynPerNome(prefix, valori, campoNome) {
   $all('[id^="' + prefix + '_"]').forEach((inp) => { inp.value = mappa.get(inp.dataset.nome) ?? 0; });
 }
 
+function mostraPassaggioScrutinio(targetId, scorri) {
+  const target = document.getElementById(targetId);
+  if (!target || !target.classList.contains('scrutiny-card')) return false;
+  const modalitaCorrezione = $('#tab-scrutinio').classList.contains('correction-mode');
+  $all('.scrutiny-card').forEach((card) => {
+    const attiva = card === target;
+    // In correzione tutti i pannelli devono restare sempre raggiungibili:
+    // evita che una cache PWA o un problema nella barra dei passaggi nasconda
+    // il motivo della correzione e il comando finale.
+    card.hidden = modalitaCorrezione ? false : !attiva;
+    card.classList.toggle('active', attiva);
+  });
+  $all('.scrutiny-step').forEach((step) => {
+    const attiva = step.dataset.scrollStep === targetId;
+    step.classList.toggle('active', attiva);
+    step.setAttribute('aria-current', attiva ? 'step' : 'false');
+  });
+  if (scorri) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  return true;
+}
+
 function correggiScrutinio(idInvio) {
   const item = trovaInvioScrutinioCorreggibile(idInvio);
   if (!item || !item.payload) {
@@ -2049,18 +2070,9 @@ function correggiScrutinio(idInvio) {
   const btnCorreggi = $('#btnCorreggiScrutinio');
   if (btnCorreggi) btnCorreggi.hidden = true;
 
-  // La correzione riapre l'intero scrutinio dal primo passaggio.
-  $all('.scrutiny-step').forEach((step) => {
-    const numero = Number(step.dataset.step || step.dataset.stepNumber || 0);
-    step.classList.toggle('active', numero === 1);
-    step.setAttribute('aria-current', numero === 1 ? 'step' : 'false');
-  });
-
-  $all('.scrutiny-card').forEach((card) => {
-    const numero = Number(card.dataset.stepNumber || 0);
-    card.hidden = numero !== 1;
-    card.classList.toggle('active', numero === 1);
-  });
+  // La correzione riapre l'intero scrutinio dal primo passaggio. I pulsanti
+  // della barra mostrano poi esplicitamente il pannello scelto.
+  mostraPassaggioScrutinio('scrStepGenerali', false);
 
   aggiornaAvvisiScrutinio();
 
@@ -2970,9 +2982,7 @@ async function avvia() {
   $('#btnInfoDeviceCheck').addEventListener('click', () => { chiudiInfoApp(); eseguiControlloDispositivo(true); });
   $('#modalInfoApp').addEventListener('click', (e) => { if (e.target.id === 'modalInfoApp') chiudiInfoApp(); });
   $$('.scrutiny-step').forEach((btn) => btn.addEventListener('click', () => {
-    $$('.scrutiny-step').forEach((b) => b.classList.toggle('active', b === btn));
-    const target = document.getElementById(btn.dataset.scrollStep);
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    mostraPassaggioScrutinio(btn.dataset.scrollStep, true);
   }));
 
   $('#affMaschi').addEventListener('input', aggiornaTotaleAffluenza);
