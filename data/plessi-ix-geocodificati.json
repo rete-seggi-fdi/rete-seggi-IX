@@ -5,8 +5,8 @@
   "fonteIndirizzi": "sezioni_2022.csv + Viario elettorale 2022.csv; filtro Municipio=09",
   "fonteCoordinate": "Google Maps / Apps Script Maps service",
   "nota": "Controllare manualmente tutti i record con daVerificare=true.",
-  "plessiTotali": 39,
-  "plessiGeocodificati": 39,
+  "plessiTotali": 38,
+  "plessiGeocodificati": 38,
   "plessi": [
     {
       "id": "P01",
@@ -616,22 +616,6 @@
         "1691",
         "1692",
         "1693"
-      ]
-    },
-    {
-      "id": "P32",
-      "indirizzo": "VIA SALVATORE PINCHERLE N.140",
-      "cap": "00146",
-      "comune": "Roma",
-      "municipio": "09",
-      "lat": 41.852848,
-      "lng": 12.4694472,
-      "qualita": "ROOFTOP",
-      "fonteCoordinate": "Google Maps / Apps Script Maps service",
-      "displayName": "Via Salvatore Pincherle, 140, 00146 Roma RM, Italia",
-      "daVerificare": false,
-      "sezioni": [
-        "1294"
       ]
     },
     {
