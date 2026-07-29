@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#0a1833">
+  <title>SeggioLink Control Center - Municipio IX</title>
+  <link rel="stylesheet" href="control-center.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 14.0</small></div></div>
+      <nav aria-label="Navigazione Control Center">
+        <button class="nav-item active" data-view="overview">▦ <span>Riepilogo</span></button>
+        <button class="nav-item" data-view="map">⌖ <span>Mappa Municipio IX</span></button>
+        <button class="nav-item" data-view="sections">▤ <span>Sezioni e plessi</span></button>
+        <button class="nav-item" data-view="rankings">★ <span>Classifiche FdI</span></button>
+        <button class="nav-item" data-view="report">▣ <span>Report finale</span></button>
+      </nav>
+      <div class="side-footer"><span id="connectionDot"></span><span id="connectionText">Non collegato</span><small id="backendVersion">Backend -</small></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><p class="eyebrow">RETE SEGGI FDI</p><h1>IX Municipio Roma</h1><p id="lastUpdate">Dashboard elettorale</p></div>
+        <div class="actions"><button id="refreshBtn" class="btn secondary" hidden>Aggiorna</button><button id="printBtn" class="btn primary" hidden>Stampa / PDF</button><button id="logoutBtn" class="btn secondary" hidden>Esci</button></div>
+      </header>
+
+      <section id="loginView" class="login-card">
+        <h2>Accesso coordinamento</h2>
+        <p>Usa la stessa password della Dashboard coordinamento.</p>
+        <form id="loginForm"><label>Password<input id="password" type="password" minlength="16" autocomplete="current-password" required></label><button class="btn primary" type="submit">Accedi al Control Center</button></form>
+        <p id="loginError" class="error" role="alert"></p>
+      </section>
+
+      <div id="appView" hidden>
+        <section id="view-overview" class="view active">
+          <div class="metrics six">
+            <article><span>Sezioni attese</span><strong id="kpiExpected">-</strong><small>Municipio IX</small></article>
+            <article><span>Sezioni ricevute</span><strong id="kpiReceived">-</strong><small id="kpiProgress">-</small></article>
+            <article><span>Affluenza</span><strong id="kpiTurnout">-</strong><small id="kpiVoters">-</small></article>
+            <article><span>Scrutini</span><strong id="kpiScrutini">-</strong><small>sezioni con risultati</small></article>
+            <article><span>Voti FdI Comune</span><strong id="kpiFdiComune">-</strong><small id="kpiFdiComunePct">-</small></article>
+            <article><span>Voti FdI Municipio</span><strong id="kpiFdiMunicipio">-</strong><small id="kpiFdiMunicipioPct">-</small></article>
+          </div>
+
+          <div class="dashboard-grid">
+            <section class="panel progress-panel"><div class="panel-head"><h2>Avanzamento scrutinio</h2><span id="progressLabel">0%</span></div><div class="progress-track"><div id="progressBar"></div></div><div class="progress-legend"><span><i class="ok"></i> Ricevute <b id="legendReceived">0</b></span><span><i class="missing"></i> Mancanti <b id="legendMissing">0</b></span></div></section>
+            <section class="panel"><div class="panel-head"><h2>Ultimi invii</h2><button class="text-button" data-view-link="sections">Vedi tutte</button></div><div id="recentList" class="recent-list"></div></section>
+            <section class="panel"><div class="panel-head"><h2>Top sezioni FdI</h2><select id="rankLevel"><option value="Comune">Comune</option><option value="Municipio">Municipio</option></select></div><div id="topList" class="ranking-list"></div></section>
+            <section class="panel"><div class="panel-head"><h2>Sezioni mancanti</h2><span id="missingBadge" class="badge">0</span></div><div id="missingList" class="chips"></div></section>
+          </div>
+        </section>
+
+        <section id="view-map" class="view">
+          <div class="view-head"><div><h2>Mappa ufficiale Municipio IX</h2><p>Base cartografica fornita dal Municipio IX. I seggi sono consultabili nella colonna laterale per indirizzo.</p></div><label>Cerca sezione<input id="mapSearch" inputmode="numeric" placeholder="es. 1667"></label></div>
+          <div class="map-layout"><div class="map-panel"><img src="data/mappa-municipio-ix.png" alt="Mappa ufficiale del Municipio IX di Roma"><div class="map-note">I punti geografici saranno collocati solo dopo geocodifica verificata degli indirizzi; nessuna posizione viene inventata.</div></div><aside class="map-sections"><div id="mapSectionList"></div></aside></div>
+        </section>
+
+        <section id="view-sections" class="view">
+          <div class="view-head"><div><h2>Sezioni e plessi elettorali</h2><p id="registrySummary">Archivio territoriale</p></div><label>Filtra<input id="sectionSearch" placeholder="sezione o indirizzo"></label></div>
+          <div class="table-panel"><table><thead><tr><th>Sezione</th><th>Indirizzo del seggio</th><th>CAP</th><th>Vie assegnate</th><th>Stato</th></tr></thead><tbody id="sectionsBody"></tbody></table></div>
+        </section>
+
+        <section id="view-rankings" class="view">
+          <div class="view-head"><div><h2>Classifiche FdI</h2><p>Confronto per sezione sui voti validi.</p></div><label>Livello<select id="rankingLevel"><option value="Comune">Comune</option><option value="Municipio">Municipio</option></select></label></div>
+          <div class="two-columns"><section class="panel"><h3>Migliori sezioni</h3><div id="bestRankings" class="ranking-list large"></div></section><section class="panel"><h3>Sezioni da analizzare</h3><div id="worstRankings" class="ranking-list large"></div></section></div>
+        </section>
+
+        <section id="view-report" class="view report-view">
+          <div class="report-hero"><div><p class="eyebrow">DOSSIER ELETTORALE</p><h2>Report finale - Elezioni amministrative</h2><p>Riepilogo del Municipio IX, risultati FdI, sezioni e plessi.</p></div><button id="generateReportBtn" class="btn primary">Genera anteprima</button></div>
+          <div id="reportPreview" class="report-preview"><p>Premi “Genera anteprima” dopo aver caricato i dati.</p></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <dialog id="sectionDialog"><div class="dialog-card"><button id="closeDialog" class="dialog-close">×</button><div id="sectionDialogContent"></div></div></dialog>
+  <script src="config.js"></script><script src="control-center.js"></script>
+</body>
+</html>
