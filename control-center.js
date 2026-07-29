@@ -65,7 +65,82 @@ function statusFor(section){const sec=normSection(section);const scr=(live.scrut
 function filteredRegistry(q,status='all'){q=String(q||'').trim().toLowerCase();return registry.sezioni.filter(x=>{const matchesText=!q||String(x.sezione).includes(q)||String(x.indirizzo).toLowerCase().includes(q)||String(x.cap||'').includes(q);const st=statusFor(x.sezione);return matchesText&&(status==='all'||st.cls===status)})}
 function renderRegistry(){const rows=filteredRegistry($('#sectionSearch')?.value,$('#sectionStatus')?.value||'all');$('#registrySummary').textContent=`${fmt(registry.sezioniTotali)} sezioni in ${fmt(registry.plessiTotali)} plessi elettorali`;$('#sectionsBody').innerHTML=rows.map(r=>{const st=statusFor(r.sezione);return`<tr data-section="${esc(r.sezione)}"><td><strong>${esc(r.sezione)}</strong></td><td>${esc(r.indirizzo)}</td><td>${esc(r.cap)}</td><td>${fmt(r.numeroVie)}</td><td><span class="state ${st.cls}">${st.label}</span></td></tr>`}).join('')||'<tr><td colspan="5" class="empty-cell">Nessuna sezione corrisponde al filtro.</td></tr>';$$('#sectionsBody tr[data-section]').forEach(x=>x.onclick=()=>openSection(x.dataset.section))}
 function renderMapList(){const rows=filteredRegistry($('#mapSearch')?.value);$('#mapSectionList').innerHTML=rows.map(r=>{const st=statusFor(r.sezione);return`<div class="map-section-card" data-section="${esc(r.sezione)}"><strong>Sezione ${esc(r.sezione)}</strong><small>${esc(r.indirizzo)}</small><span class="state ${st.cls}">${st.label}</span></div>`}).join('')||'<p class="empty-state">Nessuna sezione corrisponde alla ricerca.</p>';$$('.map-section-card').forEach(x=>x.onclick=()=>openSection(x.dataset.section))}
-function openSection(section){const sec=normSection(section);const reg=registry.sezioni.find(x=>normSection(x.sezione)===sec);const aff=(live.sezioni||[]).find(x=>normSection(x.sezione)===sec);const results=(live.risultatiListe||[]).filter(x=>normSection(x.sezione)===sec);const comune=results.find(x=>x.livello==='Comune'),municipio=results.find(x=>x.livello==='Municipio');$('#sectionDialogContent').innerHTML=`<p class="eyebrow">DETTAGLIO SEZIONE</p><h2>Sezione ${esc(sec||section)}</h2><p><strong>${esc(reg?.indirizzo||'Indirizzo non disponibile')}</strong><br>${esc(reg?.cap||'')}</p><div class="report-grid"><div class="report-stat"><span>Affluenza</span><strong>${pct(aff?.percentuale)}</strong></div><div class="report-stat"><span>Votanti</span><strong>${fmt(aff?.totale||comune?.votanti)}</strong></div><div class="report-stat"><span>FdI Comune</span><strong>${fmt(comune?.fdiVoti)}</strong><small>${pct(comune?.fdiSuValidi)}</small></div><div class="report-stat"><span>FdI Municipio</span><strong>${fmt(municipio?.fdiVoti)}</strong><small>${pct(municipio?.fdiSuValidi)}</small></div></div><h3>Vie assegnate (${fmt(reg?.numeroVie)})</h3><p class="street-list">${(reg?.vieAssegnate||[]).slice(0,40).map(esc).join(' · ')||'—'}</p>`;$('#sectionDialog').showModal()}
+function openSection(section){
+  const sec=normSection(section);
+  const reg=registry.sezioni.find(x=>normSection(x.sezione)===sec);
+  const aff=(live.sezioni||[]).find(x=>normSection(x.sezione)===sec);
+
+  const scrutini=(live.scrutiniDettaglio||[]).filter(x=>normSection(x.sezione)===sec);
+  const scrutinio=scrutini.find(x=>String(x.stato||'').toUpperCase()==='ATTIVO')||scrutini[0]||null;
+
+  const results=(live.risultatiListe||[]).filter(x=>normSection(x.sezione)===sec);
+  const comune=results.find(x=>x.livello==='Comune');
+  const municipio=results.find(x=>x.livello==='Municipio');
+
+  const elettoriScrutinio=Number(
+    scrutinio?.elettori ??
+    scrutinio?.Elettori ??
+    scrutinio?.numeroElettori ??
+    0
+  );
+
+  const votantiScrutinio=Number(
+    scrutinio?.votanti ??
+    scrutinio?.Votanti ??
+    scrutinio?.totaleVotanti ??
+    0
+  );
+
+  const usaScrutinio=Boolean(scrutinio&&elettoriScrutinio>0);
+  const votantiFinali=usaScrutinio?votantiScrutinio:Number(aff?.totale||comune?.votanti||0);
+  const affluenzaFinale=usaScrutinio
+    ?(votantiScrutinio/elettoriScrutinio*100)
+    :aff?.percentuale;
+
+  const hasComune=Boolean(comune&&comune.fdiVoti!==''&&comune.fdiVoti!=null);
+  const hasMunicipio=Boolean(municipio&&municipio.fdiVoti!==''&&municipio.fdiVoti!=null);
+
+  const fdiComuneVoti=hasComune?fmt(comune.fdiVoti):'—';
+  const fdiComunePct=hasComune?pct(comune.fdiSuValidi):'Dato non disponibile';
+  const fdiMunicipioVoti=hasMunicipio?fmt(municipio.fdiVoti):'—';
+  const fdiMunicipioPct=hasMunicipio?pct(municipio.fdiSuValidi):'Dato non disponibile';
+
+  $('#sectionDialogContent').innerHTML=`
+    <p class="eyebrow">DETTAGLIO SEZIONE</p>
+    <h2>Sezione ${esc(sec||section)}</h2>
+    <p><strong>${esc(reg?.indirizzo||'Indirizzo non disponibile')}</strong><br>${esc(reg?.cap||'')}</p>
+
+    <div class="report-grid">
+      <div class="report-stat">
+        <span>${usaScrutinio?'Affluenza finale':'Affluenza'}</span>
+        <strong>${pct(affluenzaFinale)}</strong>
+      </div>
+
+      <div class="report-stat">
+        <span>Votanti</span>
+        <strong>${fmt(votantiFinali)}</strong>
+        ${usaScrutinio?`<small>su ${fmt(elettoriScrutinio)} elettori</small>`:''}
+      </div>
+
+      <div class="report-stat">
+        <span>FdI Comune</span>
+        <strong>${fdiComuneVoti}</strong>
+        <small>${fdiComunePct}</small>
+      </div>
+
+      <div class="report-stat">
+        <span>FdI Municipio</span>
+        <strong>${fdiMunicipioVoti}</strong>
+        <small>${fdiMunicipioPct}</small>
+      </div>
+    </div>
+
+    <h3>Vie assegnate (${fmt(reg?.numeroVie)})</h3>
+    <p class="street-list">${(reg?.vieAssegnate||[]).slice(0,40).map(esc).join(' · ')||'—'}</p>
+  `;
+
+  $('#sectionDialog').showModal();
+}
 function generateReport(){const c=summary('Comune'),m=summary('Municipio'),top=rankingRows('Comune').slice(0,10);$('#reportPreview').innerHTML=`<div class="report-sheet"><div class="report-title"><p class="eyebrow">RETE SEGGI FDI - IX MUNICIPIO ROMA</p><h2>Dossier elettorale - Elezioni amministrative</h2><p>Generato il ${new Date().toLocaleString('it-IT')}</p></div><div class="report-grid"><div class="report-stat"><span>Sezioni presidiate</span><strong>${fmt(live.sezioniAttese)}</strong></div><div class="report-stat"><span>Sezioni ricevute</span><strong>${fmt(live.sezioniRicevute)}</strong></div><div class="report-stat"><span>Affluenza</span><strong>${pct(live.totali?.percentuale)}</strong></div><div class="report-stat"><span>Votanti</span><strong>${fmt(live.totali?.totale)}</strong></div><div class="report-stat"><span>FdI Comune</span><strong>${fmt(c.fdiVoti)}</strong><small>${pct(c.fdiSuValidi)}</small></div><div class="report-stat"><span>FdI Municipio</span><strong>${fmt(m.fdiVoti)}</strong><small>${pct(m.fdiSuValidi)}</small></div><div class="report-stat"><span>Plessi</span><strong>${fmt(registry.plessiTotali)}</strong></div><div class="report-stat"><span>Sezioni territoriali</span><strong>${fmt(registry.sezioniTotali)}</strong></div></div><div class="report-table"><h3>Top 10 sezioni FdI - Comune</h3>${top.length?`<table><thead><tr><th>Pos.</th><th>Sezione</th><th>Voti FdI</th><th>% validi</th><th>Indirizzo</th></tr></thead><tbody>${top.map((r,i)=>{const reg=registry.sezioni.find(x=>normSection(x.sezione)===normSection(r.sezione));return`<tr><td>${i+1}</td><td>${esc(normSection(r.sezione)||r.sezione)}</td><td>${fmt(r.fdiVoti)}</td><td>${pct(r.fdiSuValidi)}</td><td>${esc(reg?.indirizzo||'')}</td></tr>`}).join('')}</tbody></table>`:'<p class="empty-state">Nessun risultato FdI valorizzato.</p>'}</div></div>`}
 function switchView(name){$$('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+name));$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===name));if(name==='rankings'){renderRankings($('#rankingLevel').value,'#bestRankings',15,false);renderRankings($('#rankingLevel').value,'#worstRankings',15,true)}if(name==='sections')renderRegistry();if(name==='map')renderMapList();if(name==='report'&&live)generateReport();window.scrollTo({top:0,behavior:'smooth'})}
 $('#loginForm').addEventListener('submit',async e=>{e.preventDefault();$('#loginError').textContent='';try{await login($('#password').value);$('#password').value='';await load()}catch(err){$('#loginError').textContent=err.message}});$('#refreshBtn').onclick=load;$('#logoutBtn').onclick=()=>showLogin();$('#printBtn').onclick=()=>{switchView('report');generateReport();setTimeout(()=>window.print(),100)};$('#generateReportBtn').onclick=generateReport;$('#closeDialog').onclick=()=>$('#sectionDialog').close();$$('.nav-item').forEach(b=>b.onclick=()=>switchView(b.dataset.view));$$('[data-view-link]').forEach(b=>b.onclick=()=>switchView(b.dataset.viewLink));$('#rankLevel').onchange=e=>renderRankings(e.target.value,'#topList',5,false);$('#rankingLevel').onchange=e=>{renderRankings(e.target.value,'#bestRankings',15,false);renderRankings(e.target.value,'#worstRankings',15,true)};$('#sectionSearch').oninput=renderRegistry;$('#sectionStatus').onchange=renderRegistry;$('#mapSearch').oninput=renderMapList;document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#sectionDialog').open)$('#sectionDialog').close()});
