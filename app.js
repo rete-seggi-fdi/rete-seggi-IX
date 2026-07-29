@@ -15,7 +15,7 @@
 const RUNTIME_CONFIG = window.SEGGI_CONFIG || {};
 const BACKEND_URL = String(RUNTIME_CONFIG.backendUrl || '').trim();
 const BACKEND_PROVIDER = String(RUNTIME_CONFIG.backendProvider || 'apps-script');
-const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '13.1.0');
+const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '13.5.0');
 const BUILD_DATE = String(RUNTIME_CONFIG.buildDate || '');
 const APP_ENVIRONMENT = String(RUNTIME_CONFIG.environment || 'test').toLowerCase();
 const LATEST_VERSION_URL = String(RUNTIME_CONFIG.latestVersionUrl || 'build-info.json');
@@ -95,25 +95,74 @@ function uuid() {
   throw new Error('Questo dispositivo non supporta la generazione sicura degli identificativi. Aggiorna il browser.');
 }
 
+function identitaStorageCorrente() {
+  const token = (() => { try { return JSON.parse(localStorage.getItem(LS.TOKEN) || '""'); } catch (e) { return ''; } })();
+  if (!token || String(token).indexOf('.') === -1) return '';
+  try {
+    const raw = String(token).split('.')[0].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = raw + '='.repeat((4 - raw.length % 4) % 4);
+    const payload = decodeURIComponent(Array.from(atob(padded)).map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join(''));
+    return String(payload.split('|')[0] || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 48);
+  } catch (e) { return ''; }
+}
+
+function chiaveStorageRisolta(key) {
+  const operative = [LS.QUEUE_AFF, LS.QUEUE_SCR, LS.MESSAGGI, LS.SERVER_HISTORY, LS.LAST_HISTORY_SYNC, LS.LAST_MESSAGE_CHECK];
+  if (operative.indexOf(key) === -1) return key;
+  const identita = identitaStorageCorrente();
+  return identita ? key + '__' + identita : key;
+}
+
+function compattaCodaLocale(val) {
+  if (!Array.isArray(val) || val.length <= 140) return val;
+  const nonSincronizzati = val.filter((item) => item && item.status !== 'synced');
+  const sincronizzati = val.filter((item) => item && item.status === 'synced')
+    .sort((a, b) => String(a.sincronizzatoIl || a.creato || '') < String(b.sincronizzatoIl || b.creato || '') ? 1 : -1)
+    .slice(0, 100);
+  return nonSincronizzati.concat(sincronizzati);
+}
+
 function loadJSON(key, fallback) {
-  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  try { const v = localStorage.getItem(chiaveStorageRisolta(key)); return v ? JSON.parse(v) : fallback; }
   catch (e) { return fallback; }
 }
 function saveJSON(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); return true; }
-  catch (e) { return false; }
+  try {
+    const valore = (key === LS.QUEUE_AFF || key === LS.QUEUE_SCR) ? compattaCodaLocale(val) : val;
+    localStorage.setItem(chiaveStorageRisolta(key), JSON.stringify(valore));
+    return true;
+  } catch (e) { return false; }
+}
+
+function migraDatiOperativiLegacy() {
+  const identita = identitaStorageCorrente();
+  if (!identita) return;
+  [LS.QUEUE_AFF, LS.QUEUE_SCR, LS.MESSAGGI, LS.SERVER_HISTORY, LS.LAST_HISTORY_SYNC, LS.LAST_MESSAGE_CHECK].forEach((key) => {
+    const scoped = chiaveStorageRisolta(key);
+    if (localStorage.getItem(scoped) !== null) return;
+    const legacy = localStorage.getItem(key);
+    if (legacy !== null) localStorage.setItem(scoped, legacy);
+  });
+  const prefisso = 'rs_scrutinio_draft_';
+  const chiavi = [];
+  for (let i = 0; i < localStorage.length; i++) chiavi.push(localStorage.key(i));
+  chiavi.filter((k) => k && k.indexOf(prefisso) === 0 && k.indexOf('__') === -1).forEach((k) => {
+    const destinazione = k + '__' + identita;
+    if (localStorage.getItem(destinazione) === null) localStorage.setItem(destinazione, localStorage.getItem(k));
+  });
 }
 
 function rimuoviBozzeScrutinioLocali() {
   const chiavi = [];
   for (let i = 0; i < localStorage.length; i++) chiavi.push(localStorage.key(i));
-  chiavi.filter((key) => key && key.indexOf('rs_scrutinio_draft_') === 0)
+  const identita = identitaStorageCorrente();
+  chiavi.filter((key) => key && key.indexOf('rs_scrutinio_draft_') === 0 && (!identita || key.endsWith('__' + identita)))
     .forEach((key) => localStorage.removeItem(key));
 }
 
 function pulisciDatiOperativiLocali() {
-  localStorage.removeItem(LS.QUEUE_AFF);
-  localStorage.removeItem(LS.QUEUE_SCR);
+  localStorage.removeItem(chiaveStorageRisolta(LS.QUEUE_AFF));
+  localStorage.removeItem(chiaveStorageRisolta(LS.QUEUE_SCR));
   rimuoviBozzeScrutinioLocali();
 }
 
@@ -432,6 +481,7 @@ async function onLogin() {
     saveJSON(LS.CODICE, 'sessione-attiva');
     saveJSON(LS.TOKEN, data.sessionToken);
     saveJSON(LS.TOKEN_EXPIRES, data.sessionExpiresAt || null);
+    migraDatiOperativiLegacy();
     aggiornaTokenInviiInCoda(data.sessionToken);
     STATE.persona = { nome: data.nome || 'Rappresentante', telefono: data.telefono || telefono };
     saveJSON(LS.PERSONA, STATE.persona);
@@ -1618,7 +1668,7 @@ function aggiornaAvvisiScrutinio() {
 }
 
 function chiaveBozza() {
-  return STATE.profile ? LS.SCR_DRAFT(STATE.profile.municipio, STATE.profile.sezione) : '';
+  return STATE.profile ? LS.SCR_DRAFT(STATE.profile.municipio, STATE.profile.sezione) + (identitaStorageCorrente() ? '__' + identitaStorageCorrente() : '') : '';
 }
 
 let timerBozzaScrutinio = null;
@@ -1757,7 +1807,7 @@ function eseguiEliminazioneBozzaScrutinio() {
 
 function aggiornaDocumentoBozzaDaInvio(item, stato) {
   if (!item || !item.payload) return;
-  const key = LS.SCR_DRAFT(item.payload.municipio, item.payload.sezione);
+  const key = LS.SCR_DRAFT(item.payload.municipio, item.payload.sezione) + (identitaStorageCorrente() ? '__' + identitaStorageCorrente() : '');
   const documento = estraiDocumentoBozza(loadJSON(key, null));
   if (!documento || documento.idInvio !== item.idInvio) return;
   documento.stato = stato;

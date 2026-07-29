@@ -7,7 +7,7 @@
    Le richieste verso il backend (Apps Script, altro dominio) non vengono
    mai intercettate: passano sempre direttamente alla rete. */
 
-const VERSIONE = 'seggiolink-v13.4.7';
+const VERSIONE = 'seggiolink-v13.5.0';
 const CACHE_SHELL = 'shell-' + VERSIONE;
 const CACHE_DATI = 'dati-' + VERSIONE;
 
@@ -29,7 +29,12 @@ const FILE_APP = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_SHELL).then((cache) => cache.addAll(FILE_APP))
+    caches.open(CACHE_SHELL).then(async (cache) => {
+      const essenziali = ['./', './index.html', './config.js', './styles.css', './app.js', './manifest.json'];
+      await cache.addAll(essenziali);
+      const opzionali = FILE_APP.filter((url) => essenziali.indexOf(url) === -1);
+      await Promise.allSettled(opzionali.map((url) => cache.add(url)));
+    })
   );
 });
 

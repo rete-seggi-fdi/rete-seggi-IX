@@ -1,9 +1,9 @@
 {
-  "latestVersion": "13.4.7",
-  "minimumVersion": "13.4.7",
-  "buildDate": "2026-07-28",
+  "latestVersion": "13.5.0",
+  "minimumVersion": "13.5.0",
+  "buildDate": "2026-07-29",
   "environment": "production",
   "mandatory": true,
-  "version": "13.4.7",
+  "version": "13.5.0",
   "notes": "Recovery code pregresse: se una vecchia coda ha perso correzioneDi, l'originale attivo viene recuperato dallo storico server."
 }
