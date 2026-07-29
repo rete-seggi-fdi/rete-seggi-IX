@@ -17,7 +17,7 @@
  * ------------------------------------------------------------------
  */
 
-const CODICE_BACKEND_VERSIONE = '13.5.0-production';
+const CODICE_BACKEND_VERSIONE = '13.6.0-production';
 const MUNICIPIO_ABILITATO = '09';
 
 // Archivio dati ufficiale: il backend legge e scrive sempre in questo file.
@@ -746,6 +746,41 @@ function leggiStoricoInvii(body) {
     it.stato = it.sostituito ? 'SOSTITUITO' : 'ATTIVO';
     delete it.statoPersistito;
     delete it.sostituitoDaPersistito;
+  });
+
+
+  // Dettaglio candidati Sindaco e Presidente per il report finale.
+  function leggiVotiCandidatiReport_(nomeFoglio, nomeColonna) {
+    const risultato = {};
+    const sh = ss.getSheetByName(nomeFoglio);
+    if (!sh || sh.getLastRow() < 2) return risultato;
+    const valori = sh.getDataRange().getValues();
+    const idx = mappaIntestazioni(valori[0]);
+    for (let i = 1; i < valori.length; i++) {
+      const r = valori[i];
+      const idInvio = String(valoreColonna(r, idx, ['ID Invio']) || '').trim();
+      if (!idInvio || !scrutinioPerId[idInvio]) continue;
+      const nome = String(valoreColonna(r, idx, [nomeColonna, 'Candidato']) || '').trim();
+      if (!nome) continue;
+      risultato[idInvio] = risultato[idInvio] || [];
+      risultato[idInvio].push({ nome: nome, voti: Number(valoreColonna(r, idx, ['Voti']) || 0) });
+    }
+    Object.keys(risultato).forEach(function(id) {
+      risultato[id].sort(function(a, b) { return b.voti - a.voti; });
+    });
+    return risultato;
+  }
+
+  const sindaciPerInvio = leggiVotiCandidatiReport_(FOGLI.VOTI_SINDACI, 'Candidato Sindaco');
+  const presidentiPerInvio = leggiVotiCandidatiReport_(FOGLI.VOTI_PRESIDENTI, 'Candidato Presidente');
+  const scrutiniDettaglio = Object.keys(ultimoScrutinioPerSezione).map(function(key) {
+    const scr = ultimoScrutinioPerSezione[key];
+    return Object.assign({}, scr, {
+      sindaci: sindaciPerInvio[scr.idInvio] || [],
+      presidenti: presidentiPerInvio[scr.idInvio] || []
+    });
+  }).sort(function(a, b) {
+    return Number(a.sezione || 0) - Number(b.sezione || 0);
   });
 
   const risposta = {
@@ -3545,7 +3580,13 @@ function leggiDashboardAffluenzaWeb_(dashboardToken) {
         elettori: Number(valoreColonna(r, idxScr, ['Elettori']) || 0),
         votanti: Number(valoreColonna(r, idxScr, ['Votanti']) || 0),
         valideComune: Number(valoreColonna(r, idxScr, ['Comune - Valide']) || 0),
-        valideMunicipio: Number(valoreColonna(r, idxScr, ['Municipio - Valide']) || 0)
+        biancheComune: Number(valoreColonna(r, idxScr, ['Comune - Bianche']) || 0),
+        nulleComune: Number(valoreColonna(r, idxScr, ['Comune - Nulle']) || 0),
+        contestateComune: Number(valoreColonna(r, idxScr, ['Comune - Contestate']) || 0),
+        valideMunicipio: Number(valoreColonna(r, idxScr, ['Municipio - Valide']) || 0),
+        biancheMunicipio: Number(valoreColonna(r, idxScr, ['Municipio - Bianche']) || 0),
+        nulleMunicipio: Number(valoreColonna(r, idxScr, ['Municipio - Nulle']) || 0),
+        contestateMunicipio: Number(valoreColonna(r, idxScr, ['Municipio - Contestate']) || 0)
       };
       scrutini.push(record);
       scrutinioPerId[idInvio] = record;
@@ -3701,6 +3742,7 @@ function leggiDashboardAffluenzaWeb_(dashboardToken) {
     mancanti: mancanti,
     ultimiInvii: records.slice(0, 100),
     risultatiListe: risultatiListe,
+    scrutiniDettaglio: scrutiniDettaglio,
     riepilogoFdi: riepilogoFdi,
     configurazioneFdi: {
       proprietaPersonalizzazione: 'DASHBOARD_FDI_LIST_NAMES',

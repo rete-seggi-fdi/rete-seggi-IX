@@ -40,6 +40,7 @@ function clearSession() {
 function showLogin(message = '') {
   $('#loginCard').hidden = false;
   $('#app').hidden = true;
+  $('#reportBtn').hidden = true;
   $('#refreshBtn').hidden = true;
   $('#logoutBtn').hidden = true;
   $('#loginError').textContent = message;
@@ -49,6 +50,7 @@ function showLogin(message = '') {
 function showApp() {
   $('#loginCard').hidden = true;
   $('#app').hidden = false;
+  $('#reportBtn').hidden = false;
   $('#refreshBtn').hidden = false;
   $('#logoutBtn').hidden = false;
 }
