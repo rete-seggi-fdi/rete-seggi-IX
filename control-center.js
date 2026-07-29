@@ -1,6 +1,6 @@
 'use strict';
 const CFG=window.SEGGI_CONFIG||{};
-const BACKEND=String(CFG.backendUrl||'');
+const BACKEND=String(CFG.backendUrl||'').trim();
 const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry';
 let dashboardToken=sessionStorage.getItem(TOKEN_KEY)||'',live=null;
 let registry={schemaVersion:0,sezioniTotali:0,plessiTotali:0,sezioni:[]};
@@ -9,7 +9,44 @@ const fmt=n=>Number(n||0).toLocaleString('it-IT');
 const pct=n=>(n===''||n==null||!Number.isFinite(Number(n)))?'—':Number(n).toLocaleString('it-IT',{maximumFractionDigits:1})+'%';
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const normSection=v=>String(Number(String(v??'').replace(/\D/g,''))||'');
-async function post(payload){const r=await fetch(BACKEND,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(payload),cache:'no-store'});if(!r.ok)throw new Error('Backend non raggiungibile ('+r.status+')');return r.json()}
+async function post(payload){
+  if(!BACKEND){
+    throw new Error('URL backend assente: config.js non caricato.');
+  }
+
+  const url=BACKEND+'?_='+Date.now();
+  let response;
+
+  try{
+    response=await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=UTF-8'},
+      body:JSON.stringify(payload),
+      cache:'no-store',
+      redirect:'follow'
+    });
+  }catch(error){
+    throw new Error('Connessione al backend non riuscita: '+error.message);
+  }
+
+  const testo=await response.text();
+
+  if(!response.ok){
+    console.error('Errore backend',{
+      status:response.status,
+      urlFinale:response.url,
+      risposta:testo
+    });
+    throw new Error('Backend HTTP '+response.status+'. URL finale: '+response.url);
+  }
+
+  try{
+    return JSON.parse(testo);
+  }catch(error){
+    console.error('Risposta backend non JSON:',testo);
+    throw new Error('Il backend ha restituito una risposta non valida.');
+  }
+}
 function setOnline(ok,text){$('#connectionDot').classList.toggle('online',ok);$('#connectionText').textContent=text}
 function showLogin(message=''){clearSession();$('#loginView').hidden=false;$('#appView').hidden=true;$('#loginError').textContent=message;['refreshBtn','printBtn','logoutBtn'].forEach(id=>$('#'+id).hidden=true);setOnline(false,'Non collegato')}
 function clearSession(){dashboardToken='';sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY)}
