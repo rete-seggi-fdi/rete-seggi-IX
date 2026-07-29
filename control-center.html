@@ -11,7 +11,7 @@
 <body>
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 14.0</small></div></div>
+      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 14.1</small></div></div>
       <nav aria-label="Navigazione Control Center">
         <button class="nav-item active" data-view="overview">▦ <span>Riepilogo</span></button>
         <button class="nav-item" data-view="map">⌖ <span>Mappa Municipio IX</span></button>
@@ -38,7 +38,7 @@
       <div id="appView" hidden>
         <section id="view-overview" class="view active">
           <div class="metrics six">
-            <article><span>Sezioni attese</span><strong id="kpiExpected">-</strong><small>Municipio IX</small></article>
+            <article><span>Sezioni presidiate</span><strong id="kpiExpected">-</strong><small id="kpiTerritory">168 sezioni territoriali</small></article>
             <article><span>Sezioni ricevute</span><strong id="kpiReceived">-</strong><small id="kpiProgress">-</small></article>
             <article><span>Affluenza</span><strong id="kpiTurnout">-</strong><small id="kpiVoters">-</small></article>
             <article><span>Scrutini</span><strong id="kpiScrutini">-</strong><small>sezioni con risultati</small></article>
@@ -55,13 +55,13 @@
         </section>
 
         <section id="view-map" class="view">
-          <div class="view-head"><div><h2>Mappa ufficiale Municipio IX</h2><p>Base cartografica fornita dal Municipio IX. I seggi sono consultabili nella colonna laterale per indirizzo.</p></div><label>Cerca sezione<input id="mapSearch" inputmode="numeric" placeholder="es. 1667"></label></div>
-          <div class="map-layout"><div class="map-panel"><img src="data/mappa-municipio-ix.png" alt="Mappa ufficiale del Municipio IX di Roma"><div class="map-note">I punti geografici saranno collocati solo dopo geocodifica verificata degli indirizzi; nessuna posizione viene inventata.</div></div><aside class="map-sections"><div id="mapSectionList"></div></aside></div>
+          <div class="view-head"><div><h2>Mappa ufficiale Municipio IX</h2><p>Base cartografica fornita dal Municipio IX. I seggi sono consultabili nella colonna laterale per indirizzo.</p></div><label>Cerca sezione<input id="mapSearch" name="cc-map-section-filter" inputmode="numeric" autocomplete="off" placeholder="es. 1667"></label></div>
+          <div class="map-layout"><div class="map-panel"><img src="data/mappa-municipio-ix.png" alt="Mappa ufficiale del Municipio IX di Roma"><div class="map-note">I punti geografici saranno collocati solo dopo geocodifica verificata degli indirizzi; nessuna posizione viene inventata.</div></div><aside class="map-sections"><div id="mapSectionList"><p class="empty-state">Caricamento sezioni…</p></div></aside></div>
         </section>
 
         <section id="view-sections" class="view">
-          <div class="view-head"><div><h2>Sezioni e plessi elettorali</h2><p id="registrySummary">Archivio territoriale</p></div><label>Filtra<input id="sectionSearch" placeholder="sezione o indirizzo"></label></div>
-          <div class="table-panel"><table><thead><tr><th>Sezione</th><th>Indirizzo del seggio</th><th>CAP</th><th>Vie assegnate</th><th>Stato</th></tr></thead><tbody id="sectionsBody"></tbody></table></div>
+          <div class="view-head"><div><h2>Sezioni e plessi elettorali</h2><p id="registrySummary">Archivio territoriale</p></div><label>Filtra<input id="sectionSearch" name="cc-registry-filter" autocomplete="off" placeholder="sezione o indirizzo"></label></div>
+          <div class="table-panel"><table><thead><tr><th>Sezione</th><th>Indirizzo del seggio</th><th>CAP</th><th>Vie assegnate</th><th>Stato</th></tr></thead><tbody id="sectionsBody"><tr><td colspan="5" class="empty-cell">Caricamento archivio territoriale…</td></tr></tbody></table></div>
         </section>
 
         <section id="view-rankings" class="view">
