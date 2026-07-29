@@ -11,13 +11,13 @@
 <body>
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 14.1</small></div></div>
+      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 14.2</small></div></div>
       <nav aria-label="Navigazione Control Center">
-        <button class="nav-item active" data-view="overview">▦ <span>Riepilogo</span></button>
-        <button class="nav-item" data-view="map">⌖ <span>Mappa Municipio IX</span></button>
-        <button class="nav-item" data-view="sections">▤ <span>Sezioni e plessi</span></button>
-        <button class="nav-item" data-view="rankings">★ <span>Classifiche FdI</span></button>
-        <button class="nav-item" data-view="report">▣ <span>Report finale</span></button>
+        <button class="nav-item active" data-view="overview"><span class="nav-icon" aria-hidden="true">▦</span><span>Riepilogo</span></button>
+        <button class="nav-item" data-view="map"><span class="nav-icon" aria-hidden="true">⌖</span><span>Mappa Municipio IX</span></button>
+        <button class="nav-item" data-view="sections"><span class="nav-icon" aria-hidden="true">▤</span><span>Sezioni e plessi</span></button>
+        <button class="nav-item" data-view="rankings"><span class="nav-icon" aria-hidden="true">★</span><span>Classifiche FdI</span></button>
+        <button class="nav-item" data-view="report"><span class="nav-icon" aria-hidden="true">▣</span><span>Report finale</span></button>
       </nav>
       <div class="side-footer"><span id="connectionDot"></span><span id="connectionText">Non collegato</span><small id="backendVersion">Backend -</small></div>
     </aside>
@@ -60,7 +60,7 @@
         </section>
 
         <section id="view-sections" class="view">
-          <div class="view-head"><div><h2>Sezioni e plessi elettorali</h2><p id="registrySummary">Archivio territoriale</p></div><label>Filtra<input id="sectionSearch" name="cc-registry-filter" autocomplete="off" placeholder="sezione o indirizzo"></label></div>
+          <div class="view-head"><div><h2>Sezioni e plessi elettorali</h2><p id="registrySummary">Archivio territoriale</p></div><div class="filters"><label>Stato<select id="sectionStatus"><option value="all">Tutti</option><option value="done">Scrutinio ricevuto</option><option value="partial">Solo affluenza</option><option value="missing">Nessun dato</option></select></label><label>Filtra<input id="sectionSearch" name="cc-registry-filter" autocomplete="off" placeholder="sezione, indirizzo o CAP"></label></div></div>
           <div class="table-panel"><table><thead><tr><th>Sezione</th><th>Indirizzo del seggio</th><th>CAP</th><th>Vie assegnate</th><th>Stato</th></tr></thead><tbody id="sectionsBody"><tr><td colspan="5" class="empty-cell">Caricamento archivio territoriale…</td></tr></tbody></table></div>
         </section>
 
@@ -71,7 +71,7 @@
 
         <section id="view-report" class="view report-view">
           <div class="report-hero"><div><p class="eyebrow">DOSSIER ELETTORALE</p><h2>Report finale - Elezioni amministrative</h2><p>Riepilogo del Municipio IX, risultati FdI, sezioni e plessi.</p></div><button id="generateReportBtn" class="btn primary">Genera anteprima</button></div>
-          <div id="reportPreview" class="report-preview"><p>Premi “Genera anteprima” dopo aver caricato i dati.</p></div>
+          <div id="reportPreview" class="report-preview"><p class="empty-state">L’anteprima viene generata automaticamente quando apri questa sezione.</p></div>
         </section>
       </div>
     </main>
