@@ -1,2336 +1,1692 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 2,
   "municipio": "09",
-  "nome": "Municipio IX EUR — archivio epurato provvisorio",
-  "fonteOriginale": "sezioni_2022.csv + Viario elettorale 2022.csv",
-  "criterioPulizia": {
-    "stato": "PROVVISORIO",
-    "suddivisioniTerritorialiAmmesse": [
-      "422",
-      "424",
-      "427",
-      "428",
-      "429"
-    ],
-    "nota": "Sono state mantenute solo le sezioni associate ai codici territoriali 422, 424, 427, 428 e 429. La validazione definitiva richiede confronto con anagrafica ufficiale del Municipio IX e plessi geocodificati di produzione.",
-    "sezioniOriginali": 168,
-    "sezioniMantenute": 95,
-    "sezioniRimosse": 73
-  },
-  "intervalloSezioni": "1603-1698",
-  "sezioniTotali": 95,
-  "plessiTotali": 19,
+  "generatoIl": "2026-07-30T16:55:00+02:00",
+  "fonte": "plessi-ix-geocodificati.json",
+  "nota": "Anagrafica completa sezione-indirizzo per Control Center. Le vie assegnate restano vuote se non presenti nella fonte.",
+  "intervalloSezioni": "1601-1768",
+  "sezioniTotali": 168,
+  "plessiTotali": 44,
   "sezioni": [
     {
-      "sezione": "1603",
-      "numero": 1603,
-      "indirizzo": "VIA ANDREA MILLEVOI N.800",
-      "cap": "00178",
-      "suddivisioniTerritoriali": [
-        "422"
-      ],
-      "vieAssegnate": [
-        "VIA ARDEATINA",
-        "VIA DELLA CECCHIGNOLA",
-        "VIA DEL PRIORATO",
-        "VIA ANDREA MILLEVOI",
-        "LARGO FABIO MONTAGNA",
-        "LARGO MAURIZIO POGGIALI",
-        "VIA MARIO D'ALEO"
-      ],
-      "numeroVie": 7
-    },
-    {
-      "sezione": "1604",
-      "numero": 1604,
-      "indirizzo": "VIA ANDREA MILLEVOI N.800",
-      "cap": "00178",
-      "suddivisioniTerritoriali": [
-        "422"
-      ],
-      "vieAssegnate": [
-        "VIA ARDEATINA",
-        "VIA DEL CASALE MARINI",
-        "VIA DELLA TENUTA DI S. CESAREO",
-        "VIA DI TOR CARBONE",
-        "VIA DI TORRICOLA",
-        "VIA DI TORRICOLA VECCHIA",
-        "VIA MARIO TAPARELLI",
-        "VIA ANDREA CASADEI",
-        "VIA GASTONE DE NICOLO'"
-      ],
-      "numeroVie": 9
-    },
-    {
-      "sezione": "1605",
-      "numero": 1605,
-      "indirizzo": "LARGO DINO BUZZATI N.15",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA CRISTOFORO COLOMBO",
-        "VIALE DELL'OCEANO ATLANTICO",
-        "VIA DINO CAMPANA",
-        "VIA SALVATORE QUASIMODO",
-        "VIA VITALIANO BRANCATI"
-      ],
-      "numeroVie": 5
-    },
-    {
-      "sezione": "1606",
-      "numero": 1606,
-      "indirizzo": "LARGO DINO BUZZATI N.15",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIALE CESARE PAVESE",
-        "VIA CORRADO GOVONI",
-        "VIA GIUSEPPE TOMASI DI LAMPEDUSA",
-        "VIA MASSIMO BONTEMPELLI",
-        "VIA SALVATORE QUASIMODO",
-        "LARGO GIUSEPPE UNGARETTI",
-        "VIA JOHN KEATS"
-      ],
-      "numeroVie": 7
-    },
-    {
-      "sezione": "1607",
-      "numero": 1607,
-      "indirizzo": "LARGO DINO BUZZATI N.15",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIALE CESARE PAVESE",
-        "VIA ELIO VITTORINI"
-      ],
-      "numeroVie": 2
-    },
-    {
-      "sezione": "1608",
-      "numero": 1608,
-      "indirizzo": "LARGO DINO BUZZATI N.15",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIALE CESARE PAVESE",
-        "LARGO DINO BUZZATI"
-      ],
-      "numeroVie": 2
-    },
-    {
-      "sezione": "1609",
-      "numero": 1609,
-      "indirizzo": "LARGO DINO BUZZATI N.15",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA ROCCO SCOTELLARO",
-        "VIA UMBERTO SABA"
-      ],
-      "numeroVie": 2
-    },
-    {
-      "sezione": "1610",
-      "numero": 1610,
-      "indirizzo": "LARGO DINO BUZZATI N.15",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "PIAZZA CARLO VITA FINZI",
-        "VIA LAURENTINA",
-        "VIALE DELL'OCEANO ATLANTICO",
-        "VIALE DELL'UMANESIMO",
-        "VIALE CESARE PAVESE",
-        "VIA GIACOMO DEBENEDETTI",
-        "LARGO ENRICO THOVEZ",
-        "VIA GIOVANNI COMISSO",
-        "VIALE GIOVANNI ALBERTO AGNELLI"
-      ],
-      "numeroVie": 9
-    },
-    {
-      "sezione": "1611",
-      "numero": 1611,
-      "indirizzo": "VIA LAURENTINA N.710",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA GIUSEPPE MAROTTA",
-        "VIA LUCIANO FOLGORE",
-        "VIALE IGNAZIO SILONE"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1612",
-      "numero": 1612,
-      "indirizzo": "VIA LAURENTINA N.710",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA FRANCESCO SAPORI",
-        "VIA GIACOMO NOVENTA",
-        "VIA GIAN PIETRO LUCINI",
-        "VIALE IGNAZIO SILONE",
-        "VIA NICOLA LISI"
-      ],
-      "numeroVie": 5
-    },
-    {
-      "sezione": "1613",
-      "numero": 1613,
-      "indirizzo": "VIA LAURENTINA N.710",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA PAOLO BUZZI"
-      ],
-      "numeroVie": 1
-    },
-    {
-      "sezione": "1614",
-      "numero": 1614,
-      "indirizzo": "VIA LAURENTINA N.710",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA FRANCESCO SAPORI",
-        "VIA JOYCE",
-        "VIA WOOLF"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1615",
-      "numero": 1615,
-      "indirizzo": "VIA LAURENTINA N.710",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA PAOLO BUZZI",
-        "VIA WOOLF",
-        "VIA ALFONSO GATTO",
-        "VIA FEDERICO VITTORE NARDELLI"
-      ],
-      "numeroVie": 4
-    },
-    {
-      "sezione": "1616",
-      "numero": 1616,
-      "indirizzo": "VIA LAURENTINA N.710",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA LAURENTINA",
-        "VIA MARIO ROSSI TANCREDI",
-        "VIA CURZIO MALAPARTE",
-        "VIALE FILIPPO TOMMASO MARINETTI",
-        "VIA BYRON",
-        "VIA CELINE"
-      ],
-      "numeroVie": 6
-    },
-    {
-      "sezione": "1617",
-      "numero": 1617,
-      "indirizzo": "PIAZZALE ELSA MORANTE N.9",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA GIUSEPPE DE ROBERTIS",
-        "VIA GIUSEPPE LIPPARINI",
-        "VIA PAOLA DRIGO",
-        "VIALE IGNAZIO SILONE",
-        "VIA VASCO PRATOLINI"
-      ],
-      "numeroVie": 5
-    },
-    {
-      "sezione": "1618",
-      "numero": 1618,
-      "indirizzo": "PIAZZALE ELSA MORANTE N.9",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA BEPPE FENOGLIO",
-        "VIA ENRICO PEA",
-        "VIALE IGNAZIO SILONE"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1619",
-      "numero": 1619,
-      "indirizzo": "PIAZZALE ELSA MORANTE N.9",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA CORRADO GOVONI",
-        "VIA DOMENICO GIULIOTTI",
-        "VIA FRANCESCO LANZA",
-        "VIALE IGNAZIO SILONE",
-        "VIA ACHILLE CAMPANILE"
-      ],
-      "numeroVie": 5
-    },
-    {
-      "sezione": "1620",
-      "numero": 1620,
-      "indirizzo": "PIAZZALE ELSA MORANTE N.9",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA MICHELE SAPONARO",
-        "VIA ORIO VERGANI",
-        "VIALE IGNAZIO SILONE"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1621",
-      "numero": 1621,
-      "indirizzo": "PIAZZALE ELSA MORANTE N.9",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA CRISTOFORO COLOMBO",
-        "VIA ALINDA BONACCI BRUNAMONTI",
-        "VIA TOMASO SILLANI",
-        "VIALE IGNAZIO SILONE",
-        "VIA GUIDO DA VERONA",
-        "VIALE CARLO LEVI",
-        "PIAZZA GUIDO PIOVENE",
-        "PIAZZALE ELSA MORANTE"
-      ],
-      "numeroVie": 8
-    },
-    {
-      "sezione": "1622",
-      "numero": 1622,
-      "indirizzo": "PIAZZALE ELSA MORANTE N.9",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA BAUDELAIRE",
-        "VIALE FILIPPO TOMMASO MARINETTI",
-        "VIA GARCIA LORCA",
-        "PIAZZA EUGENIO MONTALE"
-      ],
-      "numeroVie": 4
-    },
-    {
-      "sezione": "1623",
-      "numero": 1623,
-      "indirizzo": "VIA CARLO EMILIO GADDA N.80",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIALE IGNAZIO SILONE",
-        "VIALE FILIPPO TOMMASO MARINETTI",
-        "VIA GOGOL",
-        "VIA GUIDO DA VERONA",
-        "VIA CARLO EMILIO GADDA",
-        "VIA GIUSEPPE PREZZOLINI"
-      ],
-      "numeroVie": 6
-    },
-    {
-      "sezione": "1625",
-      "numero": 1625,
-      "indirizzo": "VIA CARLO EMILIO GADDA N.80",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA BALZAC",
-        "VIALE FILIPPO TOMMASO MARINETTI",
-        "VIA GOGOL",
-        "VIA KAFKA",
-        "VIA MELVILLE"
-      ],
-      "numeroVie": 5
-    },
-    {
-      "sezione": "1626",
-      "numero": 1626,
-      "indirizzo": "VIA CARLO EMILIO GADDA N.80",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA GIOVANNI GUARESCHI",
-        "VIA GIORGIO VIGOLO"
-      ],
-      "numeroVie": 2
-    },
-    {
-      "sezione": "1627",
-      "numero": 1627,
-      "indirizzo": "VIA CARLO EMILIO GADDA N.80",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA CLEMENTE REBORA",
-        "VIA GIORGIO VIGOLO"
-      ],
-      "numeroVie": 2
-    },
-    {
-      "sezione": "1628",
-      "numero": 1628,
-      "indirizzo": "VIA LAURENTINA N.710",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA DI ACQUA ACETOSA OSTIENSE",
-        "VIA DEL CASALE DI VALLERANO",
-        "VIA DEI CASALI DI S. SISTO",
-        "VIA LAURENTINA",
-        "VIA DEL FOSSO DI ACQUA ACETOSA OSTIENSE",
-        "VIA CAMILLO SBARBARO",
-        "VIA CARLO LINATI"
-      ],
-      "numeroVie": 7
-    },
-    {
-      "sezione": "1629",
-      "numero": 1629,
-      "indirizzo": "VIA CARLO EMILIO GADDA N.80",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA DEL CASALE DELL'ARA",
-        "VIA LAURENTINA",
-        "VICOLO DEL CASALE DI VALLERANO",
-        "VIALE ITALO CALVINO",
-        "VIA ANNA BANTI",
-        "VIA DIEGO VALERI",
-        "VIA MASSIMO GRILLANDI",
-        "LARGO PRIMO LEVI"
-      ],
-      "numeroVie": 8
-    },
-    {
-      "sezione": "1630",
-      "numero": 1630,
-      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIALE DELL'OCEANO PACIFICO",
-        "VIALE DELLA GRANDE MURAGLIA",
-        "VIALE CITTA' D'EUROPA",
-        "VIA EDIMBURGO",
-        "VIA LIONE",
-        "VIA ROTTERDAM",
-        "VIA SALISBURGO"
-      ],
-      "numeroVie": 7
-    },
-    {
-      "sezione": "1631",
-      "numero": 1631,
-      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIALE DELLA GRANDE MURAGLIA",
-        "VIA BERNA",
-        "VIA SIVIGLIA"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1632",
-      "numero": 1632,
-      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA DEL PIANETA GIOVE",
-        "VIA DEL PIANETA TERRA",
-        "VIA DEL PIANETA URANO",
-        "VIA DEL PIANETA VENERE"
-      ],
-      "numeroVie": 4
-    },
-    {
-      "sezione": "1633",
-      "numero": 1633,
-      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIALE DELLA GRANDE MURAGLIA",
-        "VIA DEL PIANETA MERCURIO",
-        "VIA DEL PIANETA SATURNO"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1634",
-      "numero": 1634,
-      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIALE DEGLI ASTRI",
-        "VIA DELLE COSTELLAZIONI",
-        "VIA DELL'ORSA MAGGIORE"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1635",
-      "numero": 1635,
-      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIALE DEGLI ASTRI",
-        "VIA DELL'ORSA MINORE",
-        "PIAZZA DEL SOLE"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1636",
-      "numero": 1636,
-      "indirizzo": "LARGO GIORGIO LABO' N.1",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA CATERINA TROIANI",
-        "VIA DI DECIMA",
-        "VIA DELLE COMETE"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1637",
-      "numero": 1637,
-      "indirizzo": "LARGO GIORGIO LABO' N.1",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA ACHILLE BARILATTI",
-        "VIA DOMENICO JACHINO",
-        "VIA MICHELANGELO PEROGLIO"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1638",
-      "numero": 1638,
-      "indirizzo": "LARGO GIORGIO LABO' N.1",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA PADRE ALBERTO GRAMMATICO",
-        "VIA PADRE GIOVANNI ANTONIO FILIPPINI",
-        "LARGO GIORGIO LABO'"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1639",
-      "numero": 1639,
-      "indirizzo": "LARGO GIORGIO LABO' N.1",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA CRISTOFORO COLOMBO",
-        "VIA S. ANDREA CORSINI",
-        "VIA BEATO BATTISTA SPAGNOLI",
-        "VIALE DON PASQUINO BORGHI",
-        "VIA PADRE ANGELO PAOLI",
-        "LARGO CLINIO MISSERVILLE"
-      ],
-      "numeroVie": 6
-    },
-    {
-      "sezione": "1640",
-      "numero": 1640,
-      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIALE DELLA GRANDE MURAGLIA",
-        "VIA DELL'ORSA MAGGIORE"
-      ],
-      "numeroVie": 2
-    },
-    {
-      "sezione": "1641",
-      "numero": 1641,
-      "indirizzo": "VIALE CAMILLO SABATINI N.111",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA CARLO MONETA",
-        "VIA GUSTAVO FARA",
-        "VIA RENATO TOGNI",
-        "VIA UGO PIZZARELLO",
-        "VIA VINCENZO UGO TABY"
-      ],
-      "numeroVie": 5
-    },
-    {
-      "sezione": "1642",
-      "numero": 1642,
-      "indirizzo": "VIALE CAMILLO SABATINI N.111",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA CARLO MONETA",
-        "VIA EFREM REATTO",
-        "VIA ERCOLINO SCALFARO",
-        "VIA IGNAZIO VIAN",
-        "VIA MICHELE BOCCASSINI",
-        "VIALE ROMUALDO CHIESA",
-        "VIA UGO PIZZARELLO"
-      ],
-      "numeroVie": 7
-    },
-    {
-      "sezione": "1643",
-      "numero": 1643,
-      "indirizzo": "VIALE DELL'OCEANO INDIANO N.64",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIALE DELL'OCEANO PACIFICO",
-        "VIA DI PRATO VERDE",
-        "VIALE CITTA' D'EUROPA"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1644",
-      "numero": 1644,
-      "indirizzo": "VIALE DELL'OCEANO INDIANO N.64",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA DI DECIMA",
-        "VIALE INIGO CAMPIONI",
-        "VIA DEL MARE",
-        "VIA OSTIENSE",
-        "VIA DELLA VALCHETTA ROCCHI",
-        "VIA CALCUTTA",
-        "VIA DURBAN",
-        "VIA MADRAS",
-        "VIA SINGAPORE"
-      ],
-      "numeroVie": 9
-    },
-    {
-      "sezione": "1645",
-      "numero": 1645,
-      "indirizzo": "VIALE DELL'OCEANO INDIANO N.64",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA ANTONIO DI NAPOLI",
-        "VIALE CAMILLO SABATINI",
-        "VIA DI DECIMA",
-        "PIAZZA FRANCESCO VANNETTI DONNINI",
-        "VIALE LUIGI MASCHERPA",
-        "VIA MARIO RUFFINI",
-        "VIA PIANA DI MONTORIO",
-        "VIA ROBERTO LORDI",
-        "VIA BOMBAY",
-        "VIA CALCUTTA",
-        "VIA MAPUTO",
-        "VIA SUEZ"
-      ],
-      "numeroVie": 12
-    },
-    {
-      "sezione": "1646",
-      "numero": 1646,
-      "indirizzo": "VIALE CAMILLO SABATINI N.111",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "LARGO FRANCESCO DE GREGORI",
-        "VIA GASTONE GIACOMINI",
-        "VIA GINO FRUSCHELLI",
-        "VIA GIUSEPPE FELICI",
-        "VIA MARIO BATA'",
-        "VIALE SABATO MARTELLI CASTALDI"
-      ],
-      "numeroVie": 6
-    },
-    {
-      "sezione": "1647",
-      "numero": 1647,
-      "indirizzo": "VIALE CAMILLO SABATINI N.111",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA ALDO PINI",
-        "VIALE CAMILLO SABATINI",
-        "VIA GIUSEPPE LOPRESTI",
-        "VIA MARIO MONA",
-        "PIAZZA OTELLO BOCCHERINI",
-        "VIALE ROMUALDO CHIESA"
-      ],
-      "numeroVie": 6
-    },
-    {
-      "sezione": "1648",
-      "numero": 1648,
-      "indirizzo": "PIAZZALE EZIO TARANTELLI N.10",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIALE CAMILLO SABATINI",
-        "VIA DEL CASALE DEL TORRINO",
-        "VIA DEL FOSSO DEL TORRINO",
-        "VIA DELL'IPPICA",
-        "VIA DELL'IPPODROMO DI TOR DI VALLE",
-        "CIRCONVALLAZIONE MERIDIONALE",
-        "VIA DI MOSTACCIANO",
-        "VIA OSTIENSE",
-        "PONTE DI SPINACETO",
-        "VIA TOR DI VALLE",
-        "VIA DOMENICO SANSOTTA",
-        "VIA CINA",
-        "PIAZZALE EZIO TARANTELLI",
-        "VIA DELL'EQUITAZIONE",
-        "VIA DEL TROTTO"
-      ],
-      "numeroVie": 15
-    },
-    {
-      "sezione": "1649",
-      "numero": 1649,
-      "indirizzo": "PIAZZALE EZIO TARANTELLI N.10",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIALE CAMILLO SABATINI",
-        "VIA DEL DERBY",
-        "PIAZZA AZOLINO HAZON",
-        "VIA CINA",
-        "VIA FIUME BIANCO",
-        "LARGO PIAZZA TIEN AN MEN"
-      ],
-      "numeroVie": 6
-    },
-    {
-      "sezione": "1650",
-      "numero": 1650,
-      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIALE AVIGNONE",
-        "VIA BILBAO",
-        "VIA MALAGA",
-        "VIA TOLOSA",
-        "VIALE GIORGIO RIBOTTA",
-        "VIA SEVERINO DELOGU",
-        "VIA PARIDE STEFANINI",
-        "VIA LUIGI CONDORELLI",
-        "VIA GIOVANNI L'ELTORE"
-      ],
-      "numeroVie": 9
-    },
-    {
-      "sezione": "1651",
-      "numero": 1651,
-      "indirizzo": "VIA CINA N.4",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA FIUME DELLE PERLE",
-        "VIA MAR DELLA CINA"
-      ],
-      "numeroVie": 2
-    },
-    {
-      "sezione": "1652",
-      "numero": 1652,
-      "indirizzo": "VIA CINA N.4",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA DEI BAMBU'",
-        "VIA CINA",
-        "VIALE DELLA GRANDE MURAGLIA",
-        "VIA MAR DELLA CINA"
-      ],
-      "numeroVie": 4
-    },
-    {
-      "sezione": "1653",
-      "numero": 1653,
-      "indirizzo": "VIA CINA N.4",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA CINA",
-        "VIA MAR DELLA CINA",
-        "VIA MONTE DEI NOVE DRAGHI"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1654",
-      "numero": 1654,
-      "indirizzo": "VIA CINA N.4",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA DEL MARE",
-        "VIA DI MOSTACCIANO",
-        "VIA OSTIENSE",
-        "VIA CINA",
-        "VIA FIUME GIALLO"
-      ],
-      "numeroVie": 5
-    },
-    {
-      "sezione": "1655",
-      "numero": 1655,
-      "indirizzo": "VIA CINA N.4",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA FIUME GIALLO"
-      ],
-      "numeroVie": 1
-    },
-    {
-      "sezione": "1656",
-      "numero": 1656,
-      "indirizzo": "VIA FIUME GIALLO N.45",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA CINA",
-        "VIA FIUME AZZURRO",
-        "VIA FIUME GIALLO"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1657",
-      "numero": 1657,
-      "indirizzo": "VIA FIUME GIALLO N.45",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA FIUME GIALLO",
-        "VIA PAGODA BIANCA"
-      ],
-      "numeroVie": 2
-    },
-    {
-      "sezione": "1658",
-      "numero": 1658,
-      "indirizzo": "VIA FIUME GIALLO N.45",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VICOLO DI TRAFUSA",
-        "VIA NANCHINO",
-        "VIA SCIANGAI",
-        "VIA COLLINA PROFUMATA",
-        "VIA PALAZZO D'ESTATE"
-      ],
-      "numeroVie": 5
-    },
-    {
-      "sezione": "1659",
-      "numero": 1659,
-      "indirizzo": "VIA FIUME GIALLO N.45",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "PIAZZALE CINA",
-        "VIA DESERTO DI GOBI",
-        "VIA DELLA SETA",
-        "VIA TEMPIO DEL CIELO"
-      ],
-      "numeroVie": 4
-    },
-    {
-      "sezione": "1660",
-      "numero": 1660,
-      "indirizzo": "VIA FIUME GIALLO N.45",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA CANTON"
-      ],
-      "numeroVie": 1
-    },
-    {
-      "sezione": "1661",
-      "numero": 1661,
-      "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA ANTONIO SCHIVARDI",
-        "VIALE BEATA VERGINE DEL CARMELO",
-        "VIA ILDEBRANDO VIVANTI",
-        "PIAZZA MONTE DI TAI",
-        "VIALE PECHINO",
-        "PARCO MATTEO DI FAZIO"
-      ],
-      "numeroVie": 6
-    },
-    {
-      "sezione": "1662",
-      "numero": 1662,
-      "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA ADOLFO VIGORELLI",
-        "VIALE BEATA VERGINE DEL CARMELO",
-        "PIAZZA BEATA VERGINE DEL CARMELO"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1663",
-      "numero": 1663,
-      "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VICOLO DI MOSTACCIANO",
-        "VIA ALBERTO LITTA MODIGNANI",
-        "VIA GIUSEPPE PEREGO",
-        "VIA LORENZO BROSADOLA"
-      ],
-      "numeroVie": 4
-    },
-    {
-      "sezione": "1664",
-      "numero": 1664,
-      "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA GIUSEPPE MENDOZZA",
-        "VIA ILDEBRANDO VIVANTI",
-        "VIA GUGLIELMO PALLAVICINI",
-        "VIA FULVIO TOMASSUCCI",
-        "VIA GIOVANNI SONCELLI"
-      ],
-      "numeroVie": 5
-    },
-    {
-      "sezione": "1665",
-      "numero": 1665,
-      "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA LEONARDO UMILE",
-        "VIA SERGIO FORTI"
-      ],
-      "numeroVie": 2
-    },
-    {
-      "sezione": "1666",
-      "numero": 1666,
-      "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
-      "cap": "00144",
-      "suddivisioniTerritoriali": [
-        "427"
-      ],
-      "vieAssegnate": [
-        "VIA DI DECIMA",
-        "VIA PONTINA",
-        "VIA BRUNO BRANDELLERO",
-        "VIA DOMENICO JACHINO",
-        "PIAZZA DOMENICO QUARANTA",
-        "VIA EDMONDO BRUNO ARNAUD",
-        "VIA ELIO CHIANESI",
-        "VIA ENRICO GIACHINO",
-        "VIA FERMO OGNIBENE"
-      ],
-      "numeroVie": 9
-    },
-    {
-      "sezione": "1667",
-      "numero": 1667,
-      "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "CIRCONVALLAZIONE MERIDIONALE",
-        "VIA PONTINA",
-        "VIA ELIO CHIANESI",
-        "VIA GIUSEPPE FAILLA",
-        "VIA MARIO MENCATELLI",
-        "VIA MASSIMO MELICONI",
-        "VIA PAOLO BRACCINI",
-        "VIA RICCARDO BOSCHIERO",
-        "VIA SERGIO DE VITIS",
-        "VIA VINICIO CORTESE",
-        "VIA VITTORIO MALLOZZI",
-        "VIA FRATELLI CERVI",
-        "LARGO GUGLIELMO LA PEGNA"
-      ],
-      "numeroVie": 13
-    },
-    {
-      "sezione": "1668",
-      "numero": 1668,
-      "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA CARMELO MAESTRINI",
-        "VIA IRIS VERSARI",
-        "VIA ARMANDO BRASINI",
-        "VIA LUIGI PICCINATO",
-        "VIA ENRICO DEL DEBBIO",
-        "VIA GIUSEPPE TERRAGNI",
-        "VIA ATTILIO LAPADULA"
-      ],
-      "numeroVie": 7
-    },
-    {
-      "sezione": "1669",
-      "numero": 1669,
-      "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA PONTINA",
-        "VIA FRANCESCO TUMIATI",
-        "VIA GIOVANNI GASTALDI",
-        "VIA LUIGINO TANDURA",
-        "VIA MARCELLO GAROSI",
-        "VIA PIERFRANCO BONETTI",
-        "VIA CARMELO MAESTRINI"
-      ],
-      "numeroVie": 7
-    },
-    {
-      "sezione": "1670",
-      "numero": 1670,
-      "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIALE DEI CADUTI NELLA GUERRA DI LIBERAZIO",
-        "VIALE DEI CADUTI PER LA RESISTENZA",
-        "VIA CARLO ZACCAGNINI",
-        "VIA DEGLI EROI DELLA DIFESA DI ROMA",
-        "VIA DI MEZZOCAMMINO",
-        "LARGO ANTONIO ANNARUMMA",
-        "LARGO ALDO DE PALMA",
-        "PARCO BAMBINI DI SARAJEVO"
-      ],
-      "numeroVie": 8
-    },
-    {
-      "sezione": "1671",
-      "numero": 1671,
-      "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIALE DEI CADUTI NELLA GUERRA DI LIBERAZIO",
-        "VIA GIOVANNI FRIGNANI",
-        "VIA PONTINA"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1672",
-      "numero": 1672,
-      "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIALE DEI CADUTI PER LA RESISTENZA",
-        "VIA DEGLI EROI DI COO",
-        "VIA ETTORE ARENA",
-        "VIA DI MEZZOCAMMINO",
-        "PARCO CADUTI DELLE FORZE DELL'ORDINE",
-        "VIA ANDREA GIOVANNI MICHELETTI",
-        "VIA CARMELO MAESTRINI",
-        "VIA FELICE CASCIONE"
-      ],
-      "numeroVie": 8
-    },
-    {
-      "sezione": "1673",
-      "numero": 1673,
-      "indirizzo": "VIA CARLO AVOLIO N.91",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIALE DEI CADUTI NELLA GUERRA DI LIBERAZIO",
-        "VIA RAFFAELE AVERSA"
-      ],
-      "numeroVie": 2
-    },
-    {
-      "sezione": "1674",
-      "numero": 1674,
-      "indirizzo": "VIA CARLO AVOLIO N.91",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA DEI CADUTI CIVILI",
-        "VIALE DEI CADUTI NELLA GUERRA DI LIBERAZIO",
-        "VIALE DEI CADUTI PER LA RESISTENZA",
-        "VIA NICOLA STAME",
-        "VIA MICHELE BOLGIA"
-      ],
-      "numeroVie": 5
-    },
-    {
-      "sezione": "1675",
-      "numero": 1675,
-      "indirizzo": "VIA CARLO AVOLIO N.91",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIALE DEI CADUTI NELLA GUERRA DI LIBERAZIO",
-        "VIALE DEI CADUTI PER LA RESISTENZA",
-        "VIA CARLO AVOLIO",
-        "VIA DEGLI EROI DI TRILY",
-        "VIA DEI MARTIRI DI MARZABOTTO",
-        "LARGO NICOLO' CANNELLA",
-        "VIALE ANNA LA BARBERA"
-      ],
-      "numeroVie": 7
-    },
-    {
-      "sezione": "1676",
-      "numero": 1676,
-      "indirizzo": "VIA CARLO AVOLIO N.91",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA ETTORE ARENA"
-      ],
-      "numeroVie": 1
-    },
-    {
-      "sezione": "1677",
-      "numero": 1677,
-      "indirizzo": "VIA CARLO AVOLIO N.91",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA CARLO MARCHIONNI",
-        "VIA ERNESTO BASILE",
-        "VIA FILIPPO BARIGIONI",
-        "VIA FRANCESCO BARTOLOMEO RASTRELLI"
-      ],
-      "numeroVie": 4
-    },
-    {
-      "sezione": "1678",
-      "numero": 1678,
-      "indirizzo": "VIA CARLO AVOLIO N.91",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA FILIPPO RAGUZZINI",
-        "VIA FRANCESCO BARTOLOMEO RASTRELLI",
-        "VIA GAETANO BUTERA",
-        "LARGO GERARDO SERGI",
-        "VIA ANGELO SANTE BASTIANI"
-      ],
-      "numeroVie": 5
-    },
-    {
-      "sezione": "1679",
-      "numero": 1679,
-      "indirizzo": "VIA PAOLO RENZI N.47",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA FILIPPO DE GRENET"
-      ],
-      "numeroVie": 1
-    },
-    {
-      "sezione": "1680",
-      "numero": 1680,
-      "indirizzo": "VIA PAOLO RENZI N.47",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIALE DEI CADUTI PER LA RESISTENZA",
-        "VIA DOMENICO DE' GIOVANNI",
-        "VIALE DEGLI EROI DI CEFALONIA",
-        "PARCO CADUTI DI TUTTE LE GUERRE"
-      ],
-      "numeroVie": 4
-    },
-    {
-      "sezione": "1681",
-      "numero": 1681,
-      "indirizzo": "VIA PAOLO RENZI N.47",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA SALVATORE LORIZZO"
-      ],
-      "numeroVie": 1
-    },
-    {
-      "sezione": "1682",
-      "numero": 1682,
-      "indirizzo": "VIA PAOLO RENZI N.47",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIALE DEI CADUTI NELLA GUERRA DI LIBERAZIO",
-        "VIA PAOLO RENZI"
-      ],
-      "numeroVie": 2
-    },
-    {
-      "sezione": "1683",
-      "numero": 1683,
-      "indirizzo": "VIA PAOLO RENZI N.47",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA AUGUSTO RENZINI",
-        "VIALE DEI CADUTI NELLA GUERRA DI LIBERAZIO",
-        "VIA DEI MARTIRI DELLA DEPORTAZIONE",
-        "VIA UMBERTO GRANI"
-      ],
-      "numeroVie": 4
-    },
-    {
-      "sezione": "1684",
-      "numero": 1684,
-      "indirizzo": "VIA PAOLO RENZI N.47",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA ALBERTO COZZI",
-        "VIA DARDANO FENULLI",
-        "VIALE DEGLI EROI DI CEFALONIA",
-        "VIALE DEGLI EROI DI RODI",
-        "LARGO FRANCESCO PEPICELLI",
-        "VIA PADRE ROMUALDO FORMATO",
-        "VIA PONTINA"
-      ],
-      "numeroVie": 7
-    },
-    {
-      "sezione": "1685",
-      "numero": 1685,
-      "indirizzo": "VIA SANTI SAVARINO N.16",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIALE DEI CADUTI PER LA RESISTENZA",
-        "VIA GIUSEPPE BANDI",
-        "VIA LUIGI ALBERTINI",
-        "VIA OLGA OSSANI",
-        "VIA PONTINA",
-        "VIA RAFFAELLO BARBIERA",
-        "VIA RENZO BERTANI",
-        "VIA SCIPIONE FRANCHETTI"
-      ],
-      "numeroVie": 8
-    },
-    {
-      "sezione": "1686",
-      "numero": 1686,
-      "indirizzo": "VIA CARLO EMILIO GADDA N.80",
-      "cap": "00143",
-      "suddivisioniTerritoriali": [
-        "424"
-      ],
-      "vieAssegnate": [
-        "VIA PONTINA",
-        "VIA CAMUS",
-        "VIA GIDE",
-        "VIA MAURIAC",
-        "VIA PROUST",
-        "VIA ALBERTO MORAVIA"
-      ],
-      "numeroVie": 6
-    },
-    {
-      "sezione": "1687",
-      "numero": 1687,
-      "indirizzo": "VIA SANTI SAVARINO N.16",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA FILIPPO CLEMENTI",
-        "VIA VITALIANO ROTELLINI",
-        "VIA VITTORIO VELTRONI",
-        "VIA ITALO ORTO",
-        "VIA ROMEO COLLALTI"
-      ],
-      "numeroVie": 5
-    },
-    {
-      "sezione": "1688",
-      "numero": 1688,
-      "indirizzo": "VIA SANTI SAVARINO N.16",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIALE DEI CADUTI PER LA RESISTENZA",
-        "VIA VITALIANO ROTELLINI",
-        "VIA SANTI SAVARINO"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1689",
-      "numero": 1689,
-      "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIALE DEI CADUTI PER LA RESISTENZA",
-        "VIA CANDIDO MANCA",
-        "VIA DAVIDE ALBERTARIO",
-        "VIA GAETANO DE FELICE",
-        "VIA GIACOMO GOBBI BELCREDI",
-        "VIA LIVIO MARCHETTI",
-        "VIA MATILDE SERAO",
-        "VIA PONTINA",
-        "VIA SCIPIONE FRANCHETTI"
-      ],
-      "numeroVie": 9
-    },
-    {
-      "sezione": "1690",
-      "numero": 1690,
-      "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIALE DEI CADUTI PER LA RESISTENZA",
-        "VIA ALDO BANZI"
-      ],
-      "numeroVie": 2
-    },
-    {
-      "sezione": "1691",
-      "numero": 1691,
-      "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "LARGO LIDO DURANTI",
-        "VIA ROMOLO GIGLIOZZI",
-        "PARCO FERNANDO PEREIRA"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1692",
-      "numero": 1692,
-      "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA TOR DE' CENCI",
-        "VIA FERDINANDO AGNINI",
-        "VIA ROMOLO GIGLIOZZI",
-        "VIA VITTORIO FANTINI",
-        "VIALE CHERUBINO MALPELI",
-        "VIA CAMILLO MASTROCINQUE",
-        "VIA EBE STIGNANI",
-        "VIA ENRICO GUAZZONI",
-        "VIA FOSCO GIACHETTI",
-        "VIA GIACOMO LAURI VOLPI",
-        "VIA MARIANO STABILE",
-        "VIA MARIO LANZA",
-        "PIAZZALE AMEDEO NAZZARI"
-      ],
-      "numeroVie": 13
-    },
-    {
-      "sezione": "1693",
-      "numero": 1693,
-      "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA ANDROMEDA",
-        "VIA DEL CAPRICORNO",
-        "VIA CESARE BAZZANI",
-        "LARGO DELLA CROCE DEL SUD",
-        "VIA DI MEZZOCAMMINO",
-        "VICOLO DI MEZZOCAMMINO",
-        "VIA PEGASO",
-        "LARGO DELLE PLEIADI",
-        "VIA DEL RISARO",
-        "VIA TOR DE' CENCI",
-        "VICOLO TOR DE' CENCI",
-        "VIALE ODONE BELLUZZI",
-        "VIA ANNIBALE NINCHI",
-        "VIA ELIO PETRI",
-        "VIA ELSA MERLINI",
-        "VIA EMILIO GHIONE",
-        "VIA ISA MIRANDA",
-        "VIA PEPPINO DE FILIPPO",
-        "VIA VITO PANDOLFI",
-        "VIA ALDO FABRIZI",
-        "VIA CLAUDIO VILLA",
-        "VIA EDUARDO DE FILIPPO",
-        "VIA RENATO RASCEL"
-      ],
-      "numeroVie": 23
-    },
-    {
-      "sezione": "1694",
-      "numero": 1694,
-      "indirizzo": "VIA ORAZIO CONSOLE N.35",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA ARMANDO BUSSI",
-        "VIALE DEGLI EROI DI RODI",
-        "VIA ORAZIO CONSOLE"
-      ],
-      "numeroVie": 3
-    },
-    {
-      "sezione": "1695",
-      "numero": 1695,
-      "indirizzo": "VIA ORAZIO CONSOLE N.35",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA ALDO ELUISI",
-        "VIALE DEI CADUTI PER LA RESISTENZA",
-        "LARGO CARLO CROCE",
-        "VIALE DEGLI EROI DI CEFALONIA",
-        "VIA QUIRINO ROSCIONI"
-      ],
-      "numeroVie": 5
-    },
-    {
-      "sezione": "1696",
-      "numero": 1696,
-      "indirizzo": "VIA ORAZIO CONSOLE N.35",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA ASCANIO VITOZZI",
-        "VIA CALCEDONIO GIORDANO",
-        "VIALE DEGLI EROI DI CEFALONIA",
-        "VIA FILIPPO DE GRENET",
-        "LARGO FILIPPO JUVARA",
-        "VIA GIUSEPPE PIERMARINI",
-        "LARGO ILARIO ZAMBELLI",
-        "LARGO MANFREDI TALAMO",
-        "VIA DI MEZZOCAMMINO"
-      ],
-      "numeroVie": 9
-    },
-    {
-      "sezione": "1697",
-      "numero": 1697,
-      "indirizzo": "VIA ORAZIO CONSOLE N.35",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "428"
-      ],
-      "vieAssegnate": [
-        "VIA ALDO DELLA ROCCA",
-        "VIA ALFONSINE",
-        "VIA ARIETE",
-        "VIA ARISTOTILE FIORAVANTI",
-        "VIA AURIGA",
-        "VIA CESARE BAZZANI",
-        "VIA COSIMO MORELLI",
-        "VIA EDGARDO NEGRI",
-        "VIA GAETANO KOCH",
-        "VIA GIUSEPPE MENGONI",
-        "VIA GUSTAVO GIOVANNONI",
-        "VIA DI MEZZOCAMMINO",
-        "VIA SEBASTIANO SERLIO",
-        "VIA TULLIO PASSARELLI",
-        "VIA VINCENZO SCAMOZZI"
-      ],
-      "numeroVie": 15
-    },
-    {
-      "sezione": "1698",
-      "numero": 1698,
-      "indirizzo": "VIA SANTI SAVARINO N.16",
-      "cap": "00128",
-      "suddivisioniTerritoriali": [
-        "429"
-      ],
-      "vieAssegnate": [
-        "VIA CAMPO ASCOLANO",
-        "VIA DI CASTEL ROMANO",
-        "VIA DEL FOSSO DEL SALCETO",
-        "VIA DEL FOSSO DEL TELLINARO",
-        "VIA DE LA COMUNELLA",
-        "VIA DE LE MACCHIOZZE",
-        "VIA DEL PONTE DI PISCINA CUPA",
-        "VIA PONTINA",
-        "VIA DI PRATICA",
-        "VIA TULLIO GIORDANA",
-        "VIA GASTONE SILVANO SPINETTI",
-        "VIA GIGI GHIROTTI",
-        "VIA MANLIO MASCI",
-        "VIA MARIO MISSIROLI",
-        "VIA TOMMASO MARTELLA",
-        "VIA DEL FOSSO DELLA SANTOLA",
-        "VIA DEL PONTE DEL FIGURONE",
-        "VIA ENZO BALDONI",
-        "VIA GIUSTINO FERRI"
-      ],
-      "numeroVie": 19
-    }
-  ],
-  "righeRimosse": [
-    {
+      "municipio": "09",
       "sezione": "1601",
       "indirizzo": "VIA FRANCESCO SAVERIO BENUCCI N.32",
       "cap": "00149",
-      "suddivisioniTerritoriali": [
-        "307"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P01",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1602",
       "indirizzo": "VIA FRANCESCO SAVERIO BENUCCI N.32",
       "cap": "00149",
-      "suddivisioniTerritoriali": [
-        "307"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P01",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
+      "sezione": "1603",
+      "indirizzo": "VIA ANDREA MILLEVOI N.800",
+      "cap": "00178",
+      "comune": "Roma",
+      "plessoId": "P02",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1604",
+      "indirizzo": "VIA ANDREA MILLEVOI N.800",
+      "cap": "00178",
+      "comune": "Roma",
+      "plessoId": "P02",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1605",
+      "indirizzo": "LARGO DINO BUZZATI N.15",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P03",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1606",
+      "indirizzo": "LARGO DINO BUZZATI N.15",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P03",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1607",
+      "indirizzo": "LARGO DINO BUZZATI N.15",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P03",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1608",
+      "indirizzo": "LARGO DINO BUZZATI N.15",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P03",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1609",
+      "indirizzo": "LARGO DINO BUZZATI N.15",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P03",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1610",
+      "indirizzo": "LARGO DINO BUZZATI N.15",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P03",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1611",
+      "indirizzo": "VIA LAURENTINA N.710",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P04",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1612",
+      "indirizzo": "VIA LAURENTINA N.710",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P04",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1613",
+      "indirizzo": "VIA LAURENTINA N.710",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P04",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1614",
+      "indirizzo": "VIA LAURENTINA N.710",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P04",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1615",
+      "indirizzo": "VIA LAURENTINA N.710",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P04",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1616",
+      "indirizzo": "VIA LAURENTINA N.710",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P04",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1617",
+      "indirizzo": "PIAZZALE ELSA MORANTE N.9",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P05",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1618",
+      "indirizzo": "PIAZZALE ELSA MORANTE N.9",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P05",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1619",
+      "indirizzo": "PIAZZALE ELSA MORANTE N.9",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P05",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1620",
+      "indirizzo": "PIAZZALE ELSA MORANTE N.9",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P05",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1621",
+      "indirizzo": "PIAZZALE ELSA MORANTE N.9",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P05",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1622",
+      "indirizzo": "PIAZZALE ELSA MORANTE N.9",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P05",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1623",
+      "indirizzo": "VIA CARLO EMILIO GADDA N.80",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P06",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
       "sezione": "1624",
       "indirizzo": "VIA S.S. AUDIFACE ED ABACUC N.41",
       "cap": "00166",
-      "suddivisioniTerritoriali": [
-        "448"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P07",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
+      "sezione": "1625",
+      "indirizzo": "VIA CARLO EMILIO GADDA N.80",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P06",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1626",
+      "indirizzo": "VIA CARLO EMILIO GADDA N.80",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P06",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1627",
+      "indirizzo": "VIA CARLO EMILIO GADDA N.80",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P06",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1628",
+      "indirizzo": "VIA LAURENTINA N.710",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P04",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1629",
+      "indirizzo": "VIA CARLO EMILIO GADDA N.80",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P06",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1630",
+      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P08",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1631",
+      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P08",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1632",
+      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P08",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1633",
+      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P08",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1634",
+      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P08",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1635",
+      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P08",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1636",
+      "indirizzo": "LARGO GIORGIO LABO' N.1",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P09",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1637",
+      "indirizzo": "LARGO GIORGIO LABO' N.1",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P09",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1638",
+      "indirizzo": "LARGO GIORGIO LABO' N.1",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P09",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1639",
+      "indirizzo": "LARGO GIORGIO LABO' N.1",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P09",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1640",
+      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P08",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1641",
+      "indirizzo": "VIALE CAMILLO SABATINI N.111",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P10",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1642",
+      "indirizzo": "VIALE CAMILLO SABATINI N.111",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P10",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1643",
+      "indirizzo": "VIALE DELL'OCEANO INDIANO N.64",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P11",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1644",
+      "indirizzo": "VIALE DELL'OCEANO INDIANO N.64",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P11",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1645",
+      "indirizzo": "VIALE DELL'OCEANO INDIANO N.64",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P11",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1646",
+      "indirizzo": "VIALE CAMILLO SABATINI N.111",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P10",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1647",
+      "indirizzo": "VIALE CAMILLO SABATINI N.111",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P10",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1648",
+      "indirizzo": "PIAZZALE EZIO TARANTELLI N.10",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P12",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1649",
+      "indirizzo": "PIAZZALE EZIO TARANTELLI N.10",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P12",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1650",
+      "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P08",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1651",
+      "indirizzo": "VIA CINA N.4",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P13",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1652",
+      "indirizzo": "VIA CINA N.4",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P13",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1653",
+      "indirizzo": "VIA CINA N.4",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P13",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1654",
+      "indirizzo": "VIA CINA N.4",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P13",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1655",
+      "indirizzo": "VIA CINA N.4",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P13",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1656",
+      "indirizzo": "VIA FIUME GIALLO N.45",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P14",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1657",
+      "indirizzo": "VIA FIUME GIALLO N.45",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P14",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1658",
+      "indirizzo": "VIA FIUME GIALLO N.45",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P14",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1659",
+      "indirizzo": "VIA FIUME GIALLO N.45",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P14",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1660",
+      "indirizzo": "VIA FIUME GIALLO N.45",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P14",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1661",
+      "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P15",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1662",
+      "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P15",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1663",
+      "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P15",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1664",
+      "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P15",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1665",
+      "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P15",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1666",
+      "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P15",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1667",
+      "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P16",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1668",
+      "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P16",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1669",
+      "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P16",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1670",
+      "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P16",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1671",
+      "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P16",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1672",
+      "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P16",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1673",
+      "indirizzo": "VIA CARLO AVOLIO N.91",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P17",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1674",
+      "indirizzo": "VIA CARLO AVOLIO N.91",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P17",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1675",
+      "indirizzo": "VIA CARLO AVOLIO N.91",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P17",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1676",
+      "indirizzo": "VIA CARLO AVOLIO N.91",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P17",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1677",
+      "indirizzo": "VIA CARLO AVOLIO N.91",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P17",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1678",
+      "indirizzo": "VIA CARLO AVOLIO N.91",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P17",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1679",
+      "indirizzo": "VIA PAOLO RENZI N.47",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P18",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1680",
+      "indirizzo": "VIA PAOLO RENZI N.47",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P18",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1681",
+      "indirizzo": "VIA PAOLO RENZI N.47",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P18",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1682",
+      "indirizzo": "VIA PAOLO RENZI N.47",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P18",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1683",
+      "indirizzo": "VIA PAOLO RENZI N.47",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P18",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1684",
+      "indirizzo": "VIA PAOLO RENZI N.47",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P18",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1685",
+      "indirizzo": "VIA SANTI SAVARINO N.16",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P19",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1686",
+      "indirizzo": "VIA CARLO EMILIO GADDA N.80",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P06",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1687",
+      "indirizzo": "VIA SANTI SAVARINO N.16",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P19",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1688",
+      "indirizzo": "VIA SANTI SAVARINO N.16",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P19",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1689",
+      "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P20",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1690",
+      "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P20",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1691",
+      "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P20",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1692",
+      "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P20",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1693",
+      "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P20",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1694",
+      "indirizzo": "VIA ORAZIO CONSOLE N.35",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P21",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1695",
+      "indirizzo": "VIA ORAZIO CONSOLE N.35",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P21",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1696",
+      "indirizzo": "VIA ORAZIO CONSOLE N.35",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P21",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1697",
+      "indirizzo": "VIA ORAZIO CONSOLE N.35",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P21",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
+      "sezione": "1698",
+      "indirizzo": "VIA SANTI SAVARINO N.16",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P19",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "municipio": "09",
       "sezione": "1699",
       "indirizzo": "VIA DELL'ARCO DEL MONTE N.99",
       "cap": "00186",
-      "suddivisioniTerritoriali": [
-        "107"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P22",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1700",
       "indirizzo": "VIA GIULIA N.25",
       "cap": "00186",
-      "suddivisioniTerritoriali": [
-        "107"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P23",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1701",
       "indirizzo": "VIA GIULIA N.25",
       "cap": "00186",
-      "suddivisioniTerritoriali": [
-        "107"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P23",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1702",
       "indirizzo": "VIA DELLA PALOMBELLA N.4",
       "cap": "00186",
-      "suddivisioniTerritoriali": [
-        "108"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P24",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1703",
       "indirizzo": "VIA DELLA PALOMBELLA N.4",
       "cap": "00186",
-      "suddivisioniTerritoriali": [
-        "108"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P24",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1704",
       "indirizzo": "VIA DELLA PALOMBELLA N.4",
       "cap": "00186",
-      "suddivisioniTerritoriali": [
-        "109"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P24",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1705",
       "indirizzo": "PIAZZA DEL COLLEGIO ROMANO N.4",
       "cap": "00186",
-      "suddivisioniTerritoriali": [
-        "109"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P25",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1706",
       "indirizzo": "PIAZZA DEL COLLEGIO ROMANO N.4",
       "cap": "00186",
-      "suddivisioniTerritoriali": [
-        "111"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P25",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1707",
       "indirizzo": "VIA GIULIA N.25",
       "cap": "00186",
-      "suddivisioniTerritoriali": [
-        "113"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P23",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1708",
       "indirizzo": "VIA GIULIA N.25",
       "cap": "00186",
-      "suddivisioniTerritoriali": [
-        "113"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P23",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1709",
       "indirizzo": "VIA DELLA PAGLIA N.50",
       "cap": "00153",
-      "suddivisioniTerritoriali": [
-        "113"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P26",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1710",
       "indirizzo": "VIA DELLA PAGLIA N.50",
       "cap": "00153",
-      "suddivisioniTerritoriali": [
-        "113"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P26",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1711",
       "indirizzo": "VIA NICOLA FABRIZI N.7",
       "cap": "00153",
-      "suddivisioniTerritoriali": [
-        "113"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P27",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1712",
       "indirizzo": "VIA NICOLA FABRIZI N.7",
       "cap": "00153",
-      "suddivisioniTerritoriali": [
-        "113"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P27",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1713",
       "indirizzo": "VIA DELLA PAGLIA N.50",
       "cap": "00153",
-      "suddivisioniTerritoriali": [
-        "113"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P26",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1714",
       "indirizzo": "VIA DELLA MADONNA DELL'ORTO N.2",
       "cap": "00153",
-      "suddivisioniTerritoriali": [
-        "113"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P28",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1715",
       "indirizzo": "VIA DELLA MADONNA DELL'ORTO N.2",
       "cap": "00153",
-      "suddivisioniTerritoriali": [
-        "113"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P28",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1716",
       "indirizzo": "VIA DEI GENOVESI N.30/C",
       "cap": "00153",
-      "suddivisioniTerritoriali": [
-        "113"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P29",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1717",
       "indirizzo": "VIA DELLA MADONNA DELL'ORTO N.2",
       "cap": "00153",
-      "suddivisioniTerritoriali": [
-        "113"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P28",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1718",
       "indirizzo": "VIA DEI GENOVESI N.30/C",
       "cap": "00153",
-      "suddivisioniTerritoriali": [
-        "113"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P29",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1719",
       "indirizzo": "VIA DEL FALCO N.43",
       "cap": "00193",
-      "suddivisioniTerritoriali": [
-        "114"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P30",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1720",
       "indirizzo": "VIA DEL FALCO N.43",
       "cap": "00193",
-      "suddivisioniTerritoriali": [
-        "114"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P30",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1721",
       "indirizzo": "VIA DEL FALCO N.43",
       "cap": "00193",
-      "suddivisioniTerritoriali": [
-        "114"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P30",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1722",
       "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P31",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1723",
       "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P31",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1724",
       "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P31",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1725",
       "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P31",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1726",
       "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P31",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1727",
       "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P31",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1728",
       "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P32",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1729",
       "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P32",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1730",
       "indirizzo": "VIA PONZONE N.23",
       "cap": "00166",
-      "suddivisioniTerritoriali": [
-        "448"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P33",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1731",
       "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P32",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1732",
       "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P32",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1733",
       "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P32",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1734",
       "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P32",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1735",
       "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P32",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1736",
       "indirizzo": "LARGO S. PIO V N.20",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P34",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1737",
       "indirizzo": "LARGO S. PIO V N.20",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P34",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1738",
       "indirizzo": "LARGO S. PIO V N.20",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P34",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1739",
       "indirizzo": "LARGO S. PIO V N.20",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P34",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1740",
       "indirizzo": "LARGO S. PIO V N.20",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P34",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1741",
       "indirizzo": "LARGO S. PIO V N.20",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P34",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1742",
       "indirizzo": "LARGO S. PIO V N.21",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P35",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1743",
       "indirizzo": "LARGO S. PIO V N.21",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P35",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1744",
       "indirizzo": "LARGO S. PIO V N.21",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P35",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1745",
       "indirizzo": "LARGO S. PIO V N.21",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P35",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1746",
       "indirizzo": "LARGO S. PIO V N.21",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P35",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1747",
       "indirizzo": "LARGO S. PIO V N.21",
       "cap": "00165",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P35",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1748",
       "indirizzo": "VIA GIANNOZZO MANETTI N.6",
       "cap": "00167",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P36",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1749",
       "indirizzo": "VIA GIANNOZZO MANETTI N.6",
       "cap": "00167",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P36",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1750",
       "indirizzo": "VIA GIANNOZZO MANETTI N.6",
       "cap": "00167",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P36",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1751",
       "indirizzo": "VIA GIANNOZZO MANETTI N.6",
       "cap": "00167",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P36",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1752",
       "indirizzo": "VIA GIANNOZZO MANETTI N.6",
       "cap": "00167",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P36",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1753",
       "indirizzo": "VIA ETTORE STAMPINI N.38",
       "cap": "00167",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P37",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1754",
       "indirizzo": "VIA ETTORE STAMPINI N.38",
       "cap": "00167",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P37",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1755",
       "indirizzo": "VIA FRANCESCO CILEA N.269",
       "cap": "00124",
-      "suddivisioniTerritoriali": [
-        "430"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P38",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1756",
       "indirizzo": "VIA ETTORE STAMPINI N.38",
       "cap": "00167",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P37",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1757",
       "indirizzo": "VIA DON PRIMO MAZZOLARI N.323",
       "cap": "00132",
-      "suddivisioniTerritoriali": [
-        "410"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P39",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1758",
       "indirizzo": "VIA FRANCESCO ALBERGOTTI N.37",
       "cap": "00167",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P40",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1759",
       "indirizzo": "VIA FRANCESCO ALBERGOTTI N.37",
       "cap": "00167",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P40",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1760",
       "indirizzo": "VIA FRANCESCO ALBERGOTTI N.37",
       "cap": "00167",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P40",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1761",
       "indirizzo": "VIA FRANCESCO ALBERGOTTI N.37",
       "cap": "00167",
-      "suddivisioniTerritoriali": [
-        "213"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P40",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1762",
       "indirizzo": "VIA ITALO SVEVO N.31",
       "cap": "00137",
-      "suddivisioniTerritoriali": [
-        "404"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P41",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1763",
       "indirizzo": "VIA GIANNOZZO MANETTI N.6",
       "cap": "00167",
-      "suddivisioniTerritoriali": [
-        "214"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P36",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1764",
       "indirizzo": "VIA LUIGI RIZZO N.1",
       "cap": "00136",
-      "suddivisioniTerritoriali": [
-        "214"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P42",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1765",
       "indirizzo": "VIA GIORDANO BRUNO N.2",
       "cap": "00195",
-      "suddivisioniTerritoriali": [
-        "214"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P43",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1766",
       "indirizzo": "VIA GIORDANO BRUNO N.2",
       "cap": "00195",
-      "suddivisioniTerritoriali": [
-        "214"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P43",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1767",
       "indirizzo": "VIA GIORDANO BRUNO N.2",
       "cap": "00195",
-      "suddivisioniTerritoriali": [
-        "214"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P43",
+      "numeroVie": 0,
+      "vieAssegnate": []
     },
     {
+      "municipio": "09",
       "sezione": "1768",
       "indirizzo": "VIA ANDREA DORIA N.18",
       "cap": "00192",
-      "suddivisioniTerritoriali": [
-        "214"
-      ],
-      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+      "comune": "Roma",
+      "plessoId": "P44",
+      "numeroVie": 0,
+      "vieAssegnate": []
     }
   ]
 }
