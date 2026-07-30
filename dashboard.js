@@ -26,6 +26,61 @@ const esc = (value) => String(value ?? '')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#039;');
 
+const asNumber = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+};
+
+const percentage = (part, whole) =>
+  whole > 0 ? (part / whole) * 100 : '';
+
+function officialSectionKeys() {
+  const keys = new Set();
+  const add = (item) => {
+    const municipality = String(item?.municipio ?? '').trim();
+    const section = String(item?.sezione ?? '').trim();
+    if (municipality && section) keys.add(municipality + '|' + section);
+  };
+
+  (data?.sezioni || []).forEach(add);
+  (data?.mancanti || []).forEach(add);
+  return keys;
+}
+
+function isOfficialResult(item, validKeys) {
+  const municipality = String(item?.municipio ?? '').trim();
+  const section = String(item?.sezione ?? '').trim();
+  if (!municipality || !section) return false;
+
+  // Quando il backend fornisce l'anagrafica delle sezioni, accettiamo
+  // esclusivamente risultati appartenenti a quell'elenco. In questo modo
+  // sezioni tecniche come 9001/9002 non entrano nelle statistiche.
+  return validKeys.size === 0 || validKeys.has(municipality + '|' + section);
+}
+
+function normalizeResult(item) {
+  const elettori = asNumber(item.elettori);
+  const votanti = asNumber(item.votanti);
+  const votiValidi = asNumber(item.votiValidi);
+  const fdiVoti = asNumber(item.fdiVoti);
+
+  return {
+    ...item,
+    elettori,
+    votanti,
+    votiValidi,
+    fdiVoti,
+    altriVoti: Math.max(0, votiValidi - fdiVoti),
+    fdiSuValidi: percentage(fdiVoti, votiValidi),
+    fdiSuVotanti: percentage(fdiVoti, votanti),
+    fdiSuIscritti: percentage(fdiVoti, elettori),
+    liste: (item.liste || []).map((party) => ({
+      ...party,
+      percentuale: percentage(asNumber(party.voti), votiValidi)
+    }))
+  };
+}
+
 function setStatus(text) {
   $('#status').textContent = text;
 }
@@ -179,12 +234,11 @@ function renderFdiSummary(rows, level) {
     return acc;
   }, { sezioni: 0, elettori: 0, votanti: 0, validi: 0, fdi: 0, prime: 0 });
 
-  const percent = (part, whole) => whole > 0 ? part / whole * 100 : '';
   $('#fdiSummary').innerHTML = `
     <article><span>Voti FdI</span><strong>${fmt(aggregate.fdi)}</strong></article>
-    <article><span>FdI sui validi</span><strong>${pct(percent(aggregate.fdi, aggregate.validi))}</strong></article>
-    <article><span>FdI sui votanti</span><strong>${pct(percent(aggregate.fdi, aggregate.votanti))}</strong></article>
-    <article><span>FdI sugli iscritti</span><strong>${pct(percent(aggregate.fdi, aggregate.elettori))}</strong></article>
+    <article><span>FdI sui validi</span><strong>${pct(percentage(aggregate.fdi, aggregate.validi))}</strong></article>
+    <article><span>FdI sui votanti</span><strong>${pct(percentage(aggregate.fdi, aggregate.votanti))}</strong></article>
+    <article><span>FdI sugli iscritti</span><strong>${pct(percentage(aggregate.fdi, aggregate.elettori))}</strong></article>
     <article><span>FdI primo</span><strong>${fmt(aggregate.prime)}/${fmt(aggregate.sezioni)}</strong></article>
   `;
 }
@@ -195,11 +249,15 @@ function renderResults() {
   const sectionQuery = $('#filterSezione').value.trim();
   const level = $('#filterLivello').value;
 
-  const rows = (data.risultatiListe || []).filter((item) =>
-    item.livello === level &&
-    (!municipality || item.municipio === municipality) &&
-    (!sectionQuery || String(item.sezione).includes(sectionQuery))
-  );
+  const validKeys = officialSectionKeys();
+  const rows = (data.risultatiListe || [])
+    .filter((item) =>
+      item.livello === level &&
+      isOfficialResult(item, validKeys) &&
+      (!municipality || item.municipio === municipality) &&
+      (!sectionQuery || String(item.sezione).includes(sectionQuery))
+    )
+    .map(normalizeResult);
 
   renderFdiSummary(rows, level);
 
