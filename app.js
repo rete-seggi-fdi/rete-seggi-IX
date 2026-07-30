@@ -270,12 +270,58 @@ window.addEventListener('offline', () => { aggiornaStatoConnessione(); renderNot
 // ---------------------------------------------------------------------
 // CARICAMENTO DATI SEZIONI/VIE (file statici per municipio)
 // ---------------------------------------------------------------------
+function normalizzaArchivioTerritorialeIX_(data) {
+  if (!data || !Array.isArray(data.sezioni)) return [];
+  return data.sezioni.map((r) => ({
+    s: String(r.sezione || '').trim(),
+    addr: String(r.indirizzo || '').trim(),
+    cap: String(r.cap || '').trim(),
+    v: Array.isArray(r.vieAssegnate)
+      ? r.vieAssegnate.filter(Boolean).map((via) => [String(via), 'T', null, null])
+      : [],
+    plessoId: String(r.plessoId || '').trim(),
+  })).filter((r) => r.s);
+}
+
+function unisciArchivioMunicipioIX_(municipioData, archivioIX) {
+  const base = municipioData && Array.isArray(municipioData.sezioni)
+    ? municipioData.sezioni.slice()
+    : [];
+  const perSezione = new Map();
+  base.forEach((r) => perSezione.set(String(r.s || '').replace(/^0+/, ''), r));
+
+  normalizzaArchivioTerritorialeIX_(archivioIX).forEach((r) => {
+    // L'anagrafica territoriale condivisa con il Control Center è autorevole
+    // per indirizzo, CAP e plesso delle sezioni assegnate nel Municipio IX.
+    perSezione.set(String(r.s).replace(/^0+/, ''), r);
+  });
+
+  return {
+    ...(municipioData || {}),
+    m: '09',
+    sezioni: [...perSezione.values()].sort((a, b) => Number(a.s) - Number(b.s)),
+  };
+}
+
 async function caricaDatiMunicipio(mu) {
   const cacheKey = LS.MUN_DATA(mu);
   try {
-    const res = await fetch('data/municipio-' + mu + '.json', { cache: 'force-cache' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
+    const richieste = [
+      fetch('data/municipio-' + mu + '.json', { cache: 'no-cache' })
+    ];
+    if (String(mu).padStart(2, '0') === '09') {
+      richieste.push(fetch('data/sezioni-ix-control.json', { cache: 'no-cache' }));
+    }
+
+    const risposte = await Promise.all(richieste);
+    if (!risposte[0].ok) throw new Error('HTTP ' + risposte[0].status);
+    let data = await risposte[0].json();
+
+    if (risposte[1]) {
+      if (!risposte[1].ok) throw new Error('Archivio IX HTTP ' + risposte[1].status);
+      data = unisciArchivioMunicipioIX_(data, await risposte[1].json());
+    }
+
     saveJSON(cacheKey, data);
     return data;
   } catch (e) {

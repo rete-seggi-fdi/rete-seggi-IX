@@ -1,9 +1,9 @@
 {
-  "latestVersion": "13.6.0",
-  "minimumVersion": "13.6.0",
-  "buildDate": "2026-07-29",
+  "latestVersion": "13.6.1",
+  "minimumVersion": "13.6.1",
+  "buildDate": "2026-07-30",
   "environment": "production",
   "mandatory": true,
-  "version": "13.6.0",
-  "notes": "Recovery code pregresse: se una vecchia coda ha perso correzioneDi, l'originale attivo viene recuperato dallo storico server."
+  "version": "13.6.1",
+  "notes": "Anagrafica sezioni e plessi Municipio IX condivisa con il Control Center; le assegnazioni restano nel foglio Rappresentanti."
 }
