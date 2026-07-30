@@ -6,18 +6,18 @@
   <meta name="robots" content="noindex,nofollow">
   <meta name="theme-color" content="#0a1833">
   <title>SeggioLink Control Center - Municipio IX</title>
-  <link rel="stylesheet" href="control-center.css">
+  <link rel="stylesheet" href="control-center.css?v=14.4.1">
 </head>
 <body>
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 14.2.4</small></div></div>
+      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 14.4.1</small></div></div>
       <nav aria-label="Navigazione Control Center">
-        <button class="nav-item active" data-view="overview"><span class="nav-icon" aria-hidden="true">▦</span><span>Riepilogo</span></button>
-        <button class="nav-item" data-view="map"><span class="nav-icon" aria-hidden="true">⌖</span><span>Mappa Municipio IX</span></button>
-        <button class="nav-item" data-view="sections"><span class="nav-icon" aria-hidden="true">▤</span><span>Sezioni e plessi</span></button>
-        <button class="nav-item" data-view="rankings"><span class="nav-icon" aria-hidden="true">★</span><span>Classifiche FdI</span></button>
-        <button class="nav-item" data-view="report"><span class="nav-icon" aria-hidden="true">▣</span><span>Report finale</span></button>
+        <button type="button" class="nav-item active" data-view="overview"><span class="nav-icon" aria-hidden="true">▦</span><span>Riepilogo</span></button>
+        <button type="button" class="nav-item" data-view="map"><span class="nav-icon" aria-hidden="true">⌖</span><span>Mappa Municipio IX</span></button>
+        <button type="button" class="nav-item" data-view="sections"><span class="nav-icon" aria-hidden="true">▤</span><span>Sezioni e plessi</span></button>
+        <button type="button" class="nav-item" data-view="rankings"><span class="nav-icon" aria-hidden="true">★</span><span>Classifiche FdI</span></button>
+        <button type="button" class="nav-item" data-view="report"><span class="nav-icon" aria-hidden="true">▣</span><span>Report finale</span></button>
       </nav>
       <div class="side-footer"><span id="connectionDot"></span><span id="connectionText">Non collegato</span><small id="backendVersion">Backend -</small></div>
     </aside>
@@ -25,7 +25,7 @@
     <main class="main">
       <header class="topbar">
         <div><p class="eyebrow">RETE SEGGI FDI</p><h1>IX Municipio Roma</h1><p id="lastUpdate">Dashboard elettorale</p></div>
-        <div class="actions"><button id="refreshBtn" class="btn secondary" hidden>Aggiorna</button><button id="printBtn" class="btn primary" hidden>Stampa / PDF</button><button id="logoutBtn" class="btn secondary" hidden>Esci</button></div>
+        <div class="actions"><button type="button" id="refreshBtn" class="btn secondary" hidden>Aggiorna</button><button type="button" id="printBtn" class="btn primary" hidden>Stampa / PDF</button><button type="button" id="logoutBtn" class="btn secondary" hidden>Esci</button></div>
       </header>
 
       <section id="loginView" class="login-card">
@@ -48,7 +48,7 @@
 
           <div class="dashboard-grid">
             <section class="panel progress-panel"><div class="panel-head"><h2>Avanzamento scrutinio</h2><span id="progressLabel">0%</span></div><div class="progress-track"><div id="progressBar"></div></div><div class="progress-legend"><span><i class="ok"></i> Ricevute <b id="legendReceived">0</b></span><span><i class="missing"></i> Mancanti <b id="legendMissing">0</b></span></div></section>
-            <section class="panel"><div class="panel-head"><h2>Ultimi invii</h2><button class="text-button" data-view-link="sections">Vedi tutte</button></div><div id="recentList" class="recent-list"></div></section>
+            <section class="panel"><div class="panel-head"><h2>Ultimi invii</h2><button type="button" class="text-button" data-view-link="sections">Vedi tutte</button></div><div id="recentList" class="recent-list"></div></section>
             <section class="panel"><div class="panel-head"><h2>Top sezioni FdI</h2><select id="rankLevel"><option value="Comune">Comune</option><option value="Municipio">Municipio</option></select></div><div id="topList" class="ranking-list"></div></section>
             <section class="panel"><div class="panel-head"><h2>Sezioni mancanti</h2><span id="missingBadge" class="badge">0</span></div><div id="missingList" class="chips"></div></section>
           </div>
@@ -70,14 +70,14 @@
         </section>
 
         <section id="view-report" class="view report-view">
-          <div class="report-hero"><div><p class="eyebrow">DOSSIER ELETTORALE</p><h2>Report finale - Elezioni amministrative</h2><p>Riepilogo del Municipio IX, risultati FdI, sezioni e plessi.</p></div><button id="generateReportBtn" class="btn primary">Genera anteprima</button></div>
-          <div id="reportPreview" class="report-preview"><p class="empty-state">L’anteprima viene generata automaticamente quando apri questa sezione.</p></div>
+          <div class="report-hero"><div><p class="eyebrow">DOSSIER ELETTORALE</p><h2>Report finale - Elezioni amministrative</h2><p>Riepilogo del Municipio IX, risultati FdI, sezioni e plessi.</p></div><button type="button" id="generateReportBtn" class="btn primary">Genera anteprima</button></div>
+          <div id="reportPreview" class="report-preview" aria-live="polite"><p class="empty-state">L’anteprima viene generata automaticamente quando apri questa sezione.</p></div>
         </section>
       </div>
     </main>
   </div>
-  <dialog id="sectionDialog"><div class="dialog-card"><button id="closeDialog" class="dialog-close">×</button><div id="sectionDialogContent"></div></div></dialog>
+  <dialog id="sectionDialog"><div class="dialog-card"><button type="button" id="closeDialog" class="dialog-close">×</button><div id="sectionDialogContent"></div></div></dialog>
   <script src="config.js?v=13.6.1"></script>
-  <script src="control-center.js?v=14.2.4"></script>
+  <script src="control-center.js?v=14.4.1"></script>
 </body>
 </html>
