@@ -1,46 +1,26 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "municipio": "09",
-  "nome": "Municipio IX EUR",
-  "fonte": "sezioni_2022.csv + Viario elettorale 2022.csv",
-  "intervalloSezioni": "1601-1768",
-  "sezioniTotali": 168,
-  "plessiTotali": 44,
+  "nome": "Municipio IX EUR — archivio epurato provvisorio",
+  "fonteOriginale": "sezioni_2022.csv + Viario elettorale 2022.csv",
+  "criterioPulizia": {
+    "stato": "PROVVISORIO",
+    "suddivisioniTerritorialiAmmesse": [
+      "422",
+      "424",
+      "427",
+      "428",
+      "429"
+    ],
+    "nota": "Sono state mantenute solo le sezioni associate ai codici territoriali 422, 424, 427, 428 e 429. La validazione definitiva richiede confronto con anagrafica ufficiale del Municipio IX e plessi geocodificati di produzione.",
+    "sezioniOriginali": 168,
+    "sezioniMantenute": 95,
+    "sezioniRimosse": 73
+  },
+  "intervalloSezioni": "1603-1698",
+  "sezioniTotali": 95,
+  "plessiTotali": 19,
   "sezioni": [
-    {
-      "sezione": "1601",
-      "numero": 1601,
-      "indirizzo": "VIA FRANCESCO SAVERIO BENUCCI N.32",
-      "cap": "00149",
-      "suddivisioniTerritoriali": [
-        "307"
-      ],
-      "vieAssegnate": [
-        "VIA DELL'IMBRECCIATO",
-        "VIA AMBROGIO FUSINIERI",
-        "VIA ENRICO MEDI",
-        "VIA EMILIO ALMANSI"
-      ],
-      "numeroVie": 4
-    },
-    {
-      "sezione": "1602",
-      "numero": 1602,
-      "indirizzo": "VIA FRANCESCO SAVERIO BENUCCI N.32",
-      "cap": "00149",
-      "suddivisioniTerritoriali": [
-        "307"
-      ],
-      "vieAssegnate": [
-        "VIA BOLGHERI",
-        "VIA CASTAGNETO CARDUCCI",
-        "VIA DELL'IMBRECCIATO",
-        "VICOLO DI PAPA LEONE",
-        "VIA EMILIO ALMANSI",
-        "VIA GIUSEPPE VITALI"
-      ],
-      "numeroVie": 6
-    },
     {
       "sezione": "1603",
       "numero": 1603,
@@ -391,35 +371,6 @@
         "VIA GIUSEPPE PREZZOLINI"
       ],
       "numeroVie": 6
-    },
-    {
-      "sezione": "1624",
-      "numero": 1624,
-      "indirizzo": "VIA S.S. AUDIFACE ED ABACUC N.41",
-      "cap": "00166",
-      "suddivisioniTerritoriali": [
-        "448"
-      ],
-      "vieAssegnate": [
-        "VIA GAVARDO",
-        "VIA REZZATO",
-        "PIAZZA SABBIONETA",
-        "VIA BRONI",
-        "VIA CASOREZZO",
-        "VIA SENAGO",
-        "VIA CIVATE",
-        "VIA DARFO",
-        "LARGO INES BEDESCHI",
-        "VIA CISLAGO",
-        "VIA COLZATE",
-        "VIA MALNATE",
-        "VIA ARTOGNE",
-        "VIA LURANO",
-        "VIA MALGRATE",
-        "VIA QUINTANO",
-        "VIA SANTI MARTIRI DI SELVA CANDIDA"
-      ],
-      "numeroVie": 17
     },
     {
       "sezione": "1625",
@@ -1721,1741 +1672,665 @@
         "VIA GIUSTINO FERRI"
       ],
       "numeroVie": 19
+    }
+  ],
+  "righeRimosse": [
+    {
+      "sezione": "1601",
+      "indirizzo": "VIA FRANCESCO SAVERIO BENUCCI N.32",
+      "cap": "00149",
+      "suddivisioniTerritoriali": [
+        "307"
+      ],
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+    },
+    {
+      "sezione": "1602",
+      "indirizzo": "VIA FRANCESCO SAVERIO BENUCCI N.32",
+      "cap": "00149",
+      "suddivisioniTerritoriali": [
+        "307"
+      ],
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
+    },
+    {
+      "sezione": "1624",
+      "indirizzo": "VIA S.S. AUDIFACE ED ABACUC N.41",
+      "cap": "00166",
+      "suddivisioniTerritoriali": [
+        "448"
+      ],
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1699",
-      "numero": 1699,
       "indirizzo": "VIA DELL'ARCO DEL MONTE N.99",
       "cap": "00186",
       "suddivisioniTerritoriali": [
         "107"
       ],
-      "vieAssegnate": [
-        "VIA DELL'ARCO DEL MONTE",
-        "VIA DEI BALESTRARI",
-        "VIA DEI BANCHI VECCHI",
-        "VIA DEI BAULLARI",
-        "CAMPO DE' FIORI",
-        "PIAZZA CAPO DI FERRO",
-        "VIA DEI CAPPELLARI",
-        "VIA DELLA CORDA",
-        "PIAZZA FARNESE",
-        "VICOLO DEL GALLO",
-        "VICOLO DEL GIGLIO",
-        "VIA DEI GIUBBONARI",
-        "VICOLO DELLE GROTTE",
-        "VICOLO DELLA MADONNELLA",
-        "VIA DI MONSERRATO",
-        "PIAZZA DEL MONTE DI PIETA'",
-        "VIA DI MONTORO",
-        "VIA DEL PELLEGRINO",
-        "VIA DELLA PIETA'",
-        "PIAZZA DELLA QUERCIA",
-        "VICOLO DEI VENTI"
-      ],
-      "numeroVie": 21
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1700",
-      "numero": 1700,
       "indirizzo": "VIA GIULIA N.25",
       "cap": "00186",
       "suddivisioniTerritoriali": [
         "107"
       ],
-      "vieAssegnate": [
-        "VIA DELL'ARCO DE' CENCI",
-        "VIA ARENULA",
-        "VIA DI S. BARTOLOMEO DE' VACCINARI",
-        "VIA BEATRICE CENCI",
-        "VIA DI S. BENEDETTO IN ARENULA",
-        "PIAZZA BENEDETTO CAIROLI",
-        "VICOLO DE' CATINARI",
-        "LUNGOTEVERE DE' CENCI",
-        "MONTE DE' CENCI",
-        "PIAZZA CENCI",
-        "VICOLO DEI CENCI",
-        "VIA DEL CONSERVATORIO",
-        "VIA DI S. MARIA DE' CALDERARI",
-        "VIA DI S. MARIA IN MONTICELLI",
-        "VIA DI S. MARIA DEL PIANTO",
-        "VIA DEL MELANGOLO",
-        "PIAZZA DI S. PAOLO ALLA REGOLA",
-        "VIA DI S. PAOLO ALLA REGOLA",
-        "VIA DEI PETTINARI",
-        "VIA DEI POMPIERI",
-        "PIAZZA DI S. SALVATORE IN CAMPO",
-        "VIA DI S. SALVATORE IN CAMPO",
-        "VIA DELLA SEGGIOLA",
-        "VIA DEGLI SPECCHI",
-        "VIA DEGLI STRENGARI",
-        "PIAZZA DELLA TRINITA' DEI PELLEGRINI",
-        "VIA DELLA TRINITA' DEI PELLEGRINI",
-        "LUNGOTEVERE DEI VALLATI",
-        "VIA DELLE ZOCCOLETTE",
-        "PIAZZA DELLE CINQUE SCOLE"
-      ],
-      "numeroVie": 30
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1701",
-      "numero": 1701,
       "indirizzo": "VIA GIULIA N.25",
       "cap": "00186",
       "suddivisioniTerritoriali": [
         "107"
       ],
-      "vieAssegnate": [
-        "VICOLO DELL'ARCACCIO",
-        "VIA DELL'ARMATA",
-        "VIA DI S. AUREA",
-        "VIA DEI BANCHI VECCHI",
-        "VIA DELLA BARCHETTA",
-        "PIAZZA CAPO DI FERRO",
-        "VIA CAPO DI FERRO",
-        "VIA DELLE CARCERI",
-        "VIA IN CATERINA",
-        "PIAZZA DI S. CATERINA DELLA ROTA",
-        "VIA DI S. ELIGIO",
-        "PIAZZA FARNESE",
-        "VIA DE' FARNESI",
-        "VIA S. FILIPPO NERI",
-        "VIA DI S. GIROLAMO DELLA CARITA'",
-        "VIA GIULIA",
-        "LARGO LORENZO PEROSI",
-        "VICOLO DEL MALPASSO",
-        "VIA DEL MASCHERONE",
-        "VIA DI MONSERRATO",
-        "VICOLO DELLA MORETTA",
-        "VIA DEI PETTINARI",
-        "VICOLO DEL POLVERONE",
-        "VICOLO DELLE PRIGIONI",
-        "PIAZZA DELLA QUERCIA",
-        "PIAZZA DE' RICCI",
-        "VICOLO DELLA SCIMIA",
-        "LUNGOTEVERE DEI TEBALDI",
-        "VICOLO DEI VENTI",
-        "PIAZZA S. VINCENZO PALLOTTI"
-      ],
-      "numeroVie": 30
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1702",
-      "numero": 1702,
       "indirizzo": "VIA DELLA PALOMBELLA N.4",
       "cap": "00186",
       "suddivisioniTerritoriali": [
         "108"
       ],
-      "vieAssegnate": [
-        "PIAZZA DI S. ANASTASIA",
-        "PIAZZA DI S. ANDREA DELLA VALLE",
-        "VIA DI S. ANNA",
-        "PIAZZA D'ARACOELI",
-        "VIA D'ARACOELI",
-        "SCALA DELL'ARCE CAPITOLINA",
-        "VIA DELL'ARCO DI SETTIMIO",
-        "LARGO ARENULA",
-        "VIA ARENULA",
-        "CLIVO ARGENTARIO",
-        "VICOLO DEGLI ASTALLI",
-        "VIA DEI BARBIERI",
-        "PIAZZA BENEDETTO CAIROLI",
-        "VIA DI S. BONAVENTURA",
-        "PIAZZALE CAFFARELLI",
-        "RAMPA CAFFARELLI",
-        "PIAZZA DEL CAMPIDOGLIO",
-        "VIA DEL CAMPIDOGLIO",
-        "PIAZZA DI CAMPITELLI",
-        "PIAZZA CAPIZUCCHI",
-        "VIA CAPIZUCCHI",
-        "VIA CAVALLETTI",
-        "VIA DEI CERCHI",
-        "VIA DEI CHIAVARI",
-        "VICOLO DE' CHIODAROLI",
-        "PIAZZA DELLA CONSOLAZIONE",
-        "VIA DELLA CONSOLAZIONE",
-        "VIA DELLA CURIA",
-        "VIA DEI DELFINI",
-        "VIA DI S. ELENA",
-        "VIA DEI FALEGNAMI",
-        "VIA DEI FIENILI",
-        "VIA DEI FORAGGI",
-        "VIA DEI FORI IMPERIALI",
-        "FORO ROMANO",
-        "PIAZZA DI S. FRANCESCA ROMANA",
-        "VIA GIOVANNI BORGI",
-        "VIA DEI GIUBBONARI",
-        "VIA DI S. GREGORIO",
-        "VICO JUGARIO",
-        "VIA DI S. MARCO",
-        "PIAZZA MARGANA",
-        "VIA MARGANA",
-        "VICOLO MARGANA",
-        "PIAZZA DI S. MARIA NOVA",
-        "VIA DI S. MARIA DEL PIANTO",
-        "VIA IN MIRANDA",
-        "VIA MONTANARA",
-        "VIA DI MONTE CAPRINO",
-        "VIA DEL MONTE DELLA FARINA",
-        "VIA MONTERONE",
-        "VIA DI MONTE TARPEO",
-        "LARGO DEL PALLARO",
-        "VIA DI S. PIETRO IN CARCERE",
-        "VIA IN PUBLICOLIS",
-        "VIA DEI REDENTORISTI",
-        "LARGO DELLA SALARA VECCHIA",
-        "VIA SACRA",
-        "VIA DELLA SALARA VECCHIA",
-        "VICOLO SINIBALDI",
-        "VIA DEL SUDARIO",
-        "BELVEDERE TARPEO",
-        "VIA DEL TEATRO DI MARCELLO",
-        "LARGO DEL TEATRO VALLE",
-        "VIA DEL TEMPIO DI GIOVE",
-        "VIA DI S. TEODORO",
-        "VIA DI TOR MARGANA",
-        "LARGO DI TORRE ARGENTINA",
-        "VIA DI TORRE ARGENTINA",
-        "VIA DELLE TRE PILE",
-        "VIA DELLA TRIBUNA DI TOR DE' SPECCHI",
-        "VIA DEL TULLIANO",
-        "VIA DI S. VENANZIO",
-        "CLIVO DI VENERE FELICE",
-        "PIAZZA VIDONI",
-        "VIA DI VILLA CAFFARELLI",
-        "CORSO VITTORIO EMANUELE II",
-        "PIAZZA DI VENERE E ROMA",
-        "LARGO GUGLIELMO GATTI",
-        "VICOLO CAPIZUCCHI"
-      ],
-      "numeroVie": 80
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1703",
-      "numero": 1703,
       "indirizzo": "VIA DELLA PALOMBELLA N.4",
       "cap": "00186",
       "suddivisioniTerritoriali": [
         "108"
       ],
-      "vieAssegnate": [
-        "PIAZZA DI S. AGOSTINO",
-        "VIA DI S. AGOSTINO",
-        "PIAZZA IN CAMPO MARZIO",
-        "PIAZZA DEI CAPRETTARI",
-        "PIAZZA DI S. CHIARA",
-        "VIA DI S. CHIARA",
-        "PIAZZA DELLE CINQUE LUNE",
-        "PIAZZA DELLE COPPELLE",
-        "VIA DELLE COPPELLE",
-        "VICOLO DELLE COPPELLE",
-        "SALITA DE' CRESCENZI",
-        "VIA DELLA DOGANA VECCHIA",
-        "PIAZZA DI S. EUSTACHIO",
-        "VIA DI S. EUSTACHIO",
-        "VIA DI S. GIOVANNA D'ARCO",
-        "LARGO GIUSEPPE TONIOLO",
-        "VIA GIUSTINIANI",
-        "PIAZZA DI S. LUIGI DE' FRANCESI",
-        "PIAZZA MADAMA",
-        "PIAZZA DELLA MADDALENA",
-        "VIA DELLA MADDALENA",
-        "VIA DEL MELONE",
-        "VIA MONTERONE",
-        "VIA DE' NARI",
-        "VIA DELLA PALOMBELLA",
-        "VIA DEL PANTHEON",
-        "VIA DEI PIANELLARI",
-        "VIA DEI PORTOGHESI",
-        "VIA DEL POZZO DELLE CORNACCHIE",
-        "CORSO DEL RINASCIMENTO",
-        "PIAZZA RONDANINI",
-        "VIA DELLA ROSETTA",
-        "PIAZZA DELLA ROTONDA",
-        "VIA DELLA ROTONDA",
-        "VIA DEL SALVATORE",
-        "LARGO DELLA SAPIENZA",
-        "VIA DELLA SCROFA",
-        "VIA DEI SEDIARI",
-        "VIA DEGLI SPAGNOLI",
-        "VIA DEGLI STADERARI",
-        "VIA DELLA STELLETTA",
-        "VIA DEL TEATRO VALLE",
-        "VIA DI TORRE ARGENTINA",
-        "VICOLO DELLA VACCARELLA",
-        "LARGO DELLA COSTITUENTE"
-      ],
-      "numeroVie": 45
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1704",
-      "numero": 1704,
       "indirizzo": "VIA DELLA PALOMBELLA N.4",
       "cap": "00186",
       "suddivisioniTerritoriali": [
         "109"
       ],
-      "vieAssegnate": [
-        "VIA DELL'ARCO DELLA CIAMBELLA",
-        "VIA BEATO ANGELICO",
-        "VIA DI S. CATERINA DA SIENA",
-        "VIA DEI CESTARI",
-        "VICOLO DELLE CESTE",
-        "PIAZZA DI S. CHIARA",
-        "VIA DI S. CHIARA",
-        "VIA DEL GESU'",
-        "VIA DI S. IGNAZIO",
-        "PIAZZA DI S. MACUTO",
-        "PIAZZA DELLA MINERVA",
-        "VIA DELLA MINERVA",
-        "VICOLO DELLA MINERVA",
-        "VIA DELLA PALOMBELLA",
-        "VIA DI PIE' DI MARMO",
-        "PIAZZA DELLA PIGNA",
-        "VIA DELLA PIGNA",
-        "PIAZZA DELLA ROTONDA",
-        "VIA DELLA ROTONDA",
-        "LARGO DELLE STIMMATE",
-        "LARGO DI TORRE ARGENTINA",
-        "VIA DI TORRE ARGENTINA",
-        "CORSO VITTORIO EMANUELE II"
-      ],
-      "numeroVie": 23
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1705",
-      "numero": 1705,
       "indirizzo": "PIAZZA DEL COLLEGIO ROMANO N.4",
       "cap": "00186",
       "suddivisioniTerritoriali": [
         "109"
       ],
-      "vieAssegnate": [
-        "VIA D'ARACOELI",
-        "VIA DELL'ARCO DE' GINNASI",
-        "VIA DEGLI ASTALLI",
-        "VIA DELLE BOTTEGHE OSCURE",
-        "PIAZZA DEI CALCARARI",
-        "VIA DEL CARAVITA",
-        "VIA CELSA",
-        "PIAZZA DEL COLLEGIO ROMANO",
-        "VIA DEL COLLEGIO ROMANO",
-        "VIA DEL CORSO",
-        "VICOLO DORIA",
-        "VIA DELLA GATTA",
-        "PIAZZA DEL GESU'",
-        "VIA DEL GESU'",
-        "LARGO GINNASI",
-        "PIAZZA GRAZIOLI",
-        "VIA LATA",
-        "LARGO DI S. LUCIA FILIPPINI",
-        "PIAZZA DI S. MACUTO",
-        "PIAZZA DI S. MARCO",
-        "VIA DI S. MARCO",
-        "VIA DI S. NICOLA DE CESARINI",
-        "VICOLO DI S. NICOLA DE CESARINI",
-        "VIA DI PIE' DI MARMO",
-        "VIA DEL PLEBISCITO",
-        "VIA S. STEFANO DEL CACCO",
-        "PIAZZA VENEZIA",
-        "CORSO VITTORIO EMANUELE II",
-        "VIA ALESSANDRO SPECCHI"
-      ],
-      "numeroVie": 29
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1706",
-      "numero": 1706,
       "indirizzo": "PIAZZA DEL COLLEGIO ROMANO N.4",
       "cap": "00186",
       "suddivisioniTerritoriali": [
         "111"
       ],
-      "vieAssegnate": [
-        "VIA DI S. AMBROGIO",
-        "VIA DI S. ANGELO IN PESCHERIA",
-        "VIA D'ARACOELI",
-        "LARGO ARENULA",
-        "VIA DELLE BOTTEGHE OSCURE",
-        "PIAZZA DI CAMPITELLI",
-        "VIA CATALANA",
-        "VIA CAVALLETTI",
-        "LUNGOTEVERE DE' CENCI",
-        "PIAZZA COSTAGUTI",
-        "VICOLO COSTAGUTI",
-        "VIA DEI DELFINI",
-        "VIA DI S. ELENA",
-        "VICOLO DI S. ELENA",
-        "VIA DEI FALEGNAMI",
-        "VICOLO DEI FALEGNAMI",
-        "VIA FLORIDA",
-        "VIA DEL FORO PISCARIO",
-        "VIA DEI FUNARI",
-        "PIAZZA LOVATELLI",
-        "PIAZZA MARGANA",
-        "VIA MARGANA",
-        "VIA DI S. MARIA DEL PIANTO",
-        "PIAZZA MATTEI",
-        "VIA MICHELANGELO CAETANI",
-        "VIA MONTANARA",
-        "PIAZZA DI MONTE SAVELLO",
-        "VIA DI MONTE SAVELLO",
-        "PIAZZA PAGANICA",
-        "VIA PAGANICA",
-        "VICOLO PAGANICA",
-        "VIA DEI POLACCHI",
-        "VICOLO DEI POLACCHI",
-        "VIA DEL PORTICO D'OTTAVIA",
-        "VIA IN PUBLICOLIS",
-        "VICOLO IN PUBLICOLIS",
-        "VIA DELLA REGINELLA",
-        "VIA DEL TEATRO DI MARCELLO",
-        "VIA DEL TEMPIO",
-        "VIA DELLA TRIBUNA DI CAMPITELLI",
-        "PIAZZA DELLE CINQUE SCOLE",
-        "PIAZZA DELL'ENCICLOPEDIA ITALIANA",
-        "VIA ELIO TOAFF"
-      ],
-      "numeroVie": 43
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1707",
-      "numero": 1707,
       "indirizzo": "VIA GIULIA N.25",
       "cap": "00186",
       "suddivisioniTerritoriali": [
         "113"
       ],
-      "vieAssegnate": [
-        "SALITA DEL BUON PASTORE",
-        "PIAZZA DELLA ROVERE",
-        "VIA DI S. FRANCESCO DI SALES",
-        "VICOLO DI S. FRANCESCO DI SALES",
-        "LUNGOTEVERE GIANICOLENSE",
-        "VIA DEL GIANICOLO",
-        "VIA DELLA LUNGARA",
-        "VIA DELLE MANTELLATE",
-        "PIAZZA DI S. ONOFRIO",
-        "SALITA DI S. ONOFRIO",
-        "VIA DI S. ONOFRIO",
-        "VICOLO DI S. ONOFRIO",
-        "VIA DEGLI ORTI D'ALIBERT",
-        "VIA DELLA PENITENZA",
-        "VICOLO DELLA PENITENZA",
-        "VIA URBANO VIII",
-        "PARCO CARDINALE ANTONIO FRANCESCO ORIOLI",
-        "SALITA DELLA LUNGARA",
-        "RAMPA DEL SANGALLO"
-      ],
-      "numeroVie": 19
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1708",
-      "numero": 1708,
       "indirizzo": "VIA GIULIA N.25",
       "cap": "00186",
       "suddivisioniTerritoriali": [
         "113"
       ],
-      "vieAssegnate": [
-        "VIA BENEDETTA",
-        "VICOLO DEL BOLOGNA",
-        "VIA DEL CIPRESSO",
-        "VIA CORSINI",
-        "LARGO CRISTINA DI SVEZIA",
-        "VIA DI S. DOROTEA",
-        "LUNGOTEVERE DELLA FARNESINA",
-        "PIAZZA DI S. GIOVANNI DELLA MALVA",
-        "PONTE GIUSEPPE MAZZINI",
-        "VIA DELLA LUNGARA",
-        "VICOLO MORONI",
-        "VIA DI PONTE SISTO",
-        "VIA DI PORTA SETTIMIANA",
-        "VICOLO DEL QUARTIERE",
-        "PIAZZA DE' RENZI",
-        "VIA DEI RIARI",
-        "PIAZZA DELLA SCALA",
-        "PIAZZA TRILUSSA"
-      ],
-      "numeroVie": 18
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1709",
-      "numero": 1709,
       "indirizzo": "VIA DELLA PAGLIA N.50",
       "cap": "00153",
       "suddivisioniTerritoriali": [
         "113"
       ],
-      "vieAssegnate": [
-        "VICOLO DEL CEDRO",
-        "PIAZZA DI S. EGIDIO",
-        "VICOLO DELLA FRUSTA",
-        "VIA GARIBALDI",
-        "VIA GIACOMO VENEZIAN",
-        "VIA GOFFREDO MAMELI",
-        "VICOLO DEL LEOPARDO",
-        "VIA LUIGI MASI",
-        "LARGO MARIA DOMENICA FUMASONI BIONDI",
-        "VIA DEL MATTONATO",
-        "VICOLO DEL MATTONATO",
-        "RAMPA DI MONTE AUREO",
-        "VIA DELLA PAGLIA",
-        "VIA DEI PANIERI",
-        "VICOLO DEI PANIERI",
-        "PIAZZA DELLA SCALA",
-        "VIA DELLA SCALA",
-        "VICOLO DELLA SCALA"
-      ],
-      "numeroVie": 18
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1710",
-      "numero": 1710,
       "indirizzo": "VIA DELLA PAGLIA N.50",
       "cap": "00153",
       "suddivisioniTerritoriali": [
         "113"
       ],
-      "vieAssegnate": [
-        "PIAZZA DI S. APOLLONIA",
-        "VIA DELL'ARCO DI S. CALISTO",
-        "VIA BARTOLOMEO FILIPPERI",
-        "PIAZZA DI S. CALISTO",
-        "VIA DI S. CALISTO",
-        "VIA DEL CIPRESSO",
-        "VIA COLOMBA ANTONIETTI",
-        "VICOLO DE' CINQUE",
-        "VIA DELLA FONTE D'OLIO",
-        "VIA DELLA LUNGARETTA",
-        "VICOLO DI S. MARGHERITA",
-        "PIAZZA DI S. MARIA IN TRASTEVERE",
-        "VICOLO DI S. MARIA IN TRASTEVERE",
-        "VIA DEL MORO",
-        "VIA DELLA PELLICCIA",
-        "VICOLO DEL PIEDE",
-        "VIA DEL POLITEAMA",
-        "LUNGOTEVERE RAFFAELLO SANZIO",
-        "VIA DELLA RENELLA",
-        "VICOLO DELLA RENELLA",
-        "PIAZZA DE' RENZI",
-        "VICOLO DE' RENZI",
-        "PONTE SISTO"
-      ],
-      "numeroVie": 23
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1711",
-      "numero": 1711,
       "indirizzo": "VIA NICOLA FABRIZI N.7",
       "cap": "00153",
       "suddivisioniTerritoriali": [
         "113"
       ],
-      "vieAssegnate": [
-        "VIALE ADOLFO LEDUCQ",
-        "PIAZZETTA DELL'ANFITEATRO",
-        "VIA ANGELO MASINA",
-        "PIAZZALE ANITA GARIBALDI",
-        "VIALE ANTONIETTA KLITSCHE DE LA GRANGE",
-        "SALITA DEL BOSCO PARRASIO",
-        "VIA CALANDRELLI",
-        "VIA DANDOLO",
-        "PIAZZALE DEL FARO",
-        "VIA GARIBALDI",
-        "VIA GIACOMO MEDICI",
-        "PARCO GIANICOLENSE",
-        "PASSEGGIATA DEL GIANICOLO",
-        "PIAZZALE GIUSEPPE GARIBALDI",
-        "VIALE GUSTAVO SPADA",
-        "VIALE MARGARET FULLER OSSOLI",
-        "VIA NICOLA FABRIZI",
-        "VIALE PAOLO NARDUCCI",
-        "VIALE DEL PARCO DI VILLA CORSINI",
-        "PIAZZA DI S. PIETRO IN MONTORIO",
-        "VIA DI S. PIETRO IN MONTORIO",
-        "VIA PIETRO ROSELLI",
-        "LARGO DI PORTA S. PANCRAZIO",
-        "VIA DI PORTA S. PANCRAZIO",
-        "RAMPA DELLA QUERCIA",
-        "VIALE ROSA VAGNOZZI",
-        "SCALEA DEL TAMBURINO",
-        "VIALE TRENTA APRILE",
-        "VIA ULISSE SENI",
-        "VIALE GIUSEPPE WERN",
-        "PIAZZALE WURTS",
-        "LARGO FILIPPO MINUTILLI",
-        "SCALA GIOVANNI IACOBUCCI"
-      ],
-      "numeroVie": 33
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1712",
-      "numero": 1712,
       "indirizzo": "VIA NICOLA FABRIZI N.7",
       "cap": "00153",
       "suddivisioniTerritoriali": [
         "113"
       ],
-      "vieAssegnate": [
-        "VIA ANGELO TITTONI",
-        "VIA BARTOLOMEO GALLETTI",
-        "VIA DANDOLO",
-        "VIA FILIPPO CASINI",
-        "VIA GAETANO SACCHI",
-        "VIALE GLORIOSO",
-        "VIA ORESTE TIBURZI",
-        "VIA TEODORO PATERAS"
-      ],
-      "numeroVie": 8
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1713",
-      "numero": 1713,
       "indirizzo": "VIA DELLA PAGLIA N.50",
       "cap": "00153",
       "suddivisioniTerritoriali": [
         "113"
       ],
-      "vieAssegnate": [
-        "VIA AGOSTINO BERTANI",
-        "VIA EMILIO MOROSINI",
-        "VIA FRANCESCO STURBINETTI",
-        "VIA GOFFREDO MAMELI",
-        "VIA LUCIANO MANARA",
-        "VIA LUIGI SANTINI"
-      ],
-      "numeroVie": 6
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1714",
-      "numero": 1714,
       "indirizzo": "VIA DELLA MADONNA DELL'ORTO N.2",
       "cap": "00153",
       "suddivisioniTerritoriali": [
         "113"
       ],
-      "vieAssegnate": [
-        "PIAZZA DI S. COSIMATO",
-        "VIA DANDOLO",
-        "VIA DI S. FRANCESCO A RIPA",
-        "VIA LUCIANO MANARA",
-        "VIA NATALE DEL GRANDE",
-        "VIA ROMA LIBERA"
-      ],
-      "numeroVie": 6
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1715",
-      "numero": 1715,
       "indirizzo": "VIA DELLA MADONNA DELL'ORTO N.2",
       "cap": "00153",
       "suddivisioniTerritoriali": [
         "113"
       ],
-      "vieAssegnate": [
-        "VIA DANDOLO",
-        "VIA EMILIO MOROSINI",
-        "PIAZZA S. FRANCESCO D'ASSISI",
-        "VICOLO DI S. FRANCESCO A RIPA",
-        "VIA DEI MARESCOTTI",
-        "VIALE DI TRASTEVERE"
-      ],
-      "numeroVie": 6
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1716",
-      "numero": 1716,
       "indirizzo": "VIA DEI GENOVESI N.30/C",
       "cap": "00153",
       "suddivisioniTerritoriali": [
         "113"
       ],
-      "vieAssegnate": [
-        "VICOLO DI S. AGATA",
-        "LUNGOTEVERE DEGLI ANGUILLARA",
-        "VIA BARTOLOMEO FILIPPERI",
-        "VIA DI S. BONOSA",
-        "VICOLO DEL BUCO",
-        "VIA CARDINALE MERRY DEL VAL",
-        "VIA DELLA CISTERNA",
-        "VIA DI S. COSIMATO",
-        "PIAZZA DEL DRAGO",
-        "VIA DEI FIENAROLI",
-        "VIA DI S. FRANCESCO A RIPA",
-        "VIA DELLE FRATTE DI TRASTEVERE",
-        "VIA DI S. GALLICANO",
-        "PONTE GARIBALDI",
-        "PIAZZA DELLA GENSOLA",
-        "VIA DELLA GENSOLA",
-        "VIA GIGGI ZANAZZO",
-        "LARGO S. GIOVANNI DE MATHA",
-        "PIAZZA GIUDITTA TAVANI ARQUATI",
-        "VIA GIULIO CESARE SANTINI",
-        "PIAZZA GIUSEPPE GIOACHINO BELLI",
-        "VIA GUSTAVO MODENA",
-        "VIA DELLA LUCE",
-        "VICOLO DELLA LUCE",
-        "VIA LUCIANO MANARA",
-        "VIA DELLA LUNGARETTA",
-        "VIA DELLA LUNGARINA",
-        "VICOLO DI MAZZAMURELLI",
-        "VIA DI MONTE FIORE",
-        "VIA DELL'OLMETTO",
-        "PIAZZA IN PISCINULA",
-        "LUNGOTEVERE RAFFAELLO SANZIO",
-        "PIAZZA DI S. RUFINA",
-        "VICOLO DI S. RUFINA",
-        "VIA DELLA VII COORTE",
-        "PIAZZA SIDNEY SONNINO",
-        "VIA DEGLI STEFANESCHI",
-        "VICOLO DELLA TORRE",
-        "VIALE DI TRASTEVERE"
-      ],
-      "numeroVie": 39
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1717",
-      "numero": 1717,
       "indirizzo": "VIA DELLA MADONNA DELL'ORTO N.2",
       "cap": "00153",
       "suddivisioniTerritoriali": [
         "113"
       ],
-      "vieAssegnate": [
-        "VIA ANICIA",
-        "VIA DELL'ARCO DE' TOLOMEI",
-        "LARGO ASCIANGHI",
-        "VICOLO DEL CANALE",
-        "VIA CARDINALE MARMAGGI",
-        "VIA CARDINALE MERRY DEL VAL",
-        "VIA CARLO TAVOLACCI",
-        "VIA DI S. CRISOGONO",
-        "VIA DANDOLO",
-        "PIAZZA S. FRANCESCO D'ASSISI",
-        "VIA DI S. FRANCESCO A RIPA",
-        "VIA DEI GENOVESI",
-        "VIA GIROLAMO INDUNO",
-        "VIA GIULIO CESARE SANTINI",
-        "VIA JACOPA DE' SETTESOLI",
-        "VIA DELLA LUCE",
-        "VIA DELLA MADONNA DELL'ORTO",
-        "PIAZZA MASTAI",
-        "PIAZZA DEI MERCANTI",
-        "VIA DI S. MICHELE",
-        "PIAZZA DI PORTA PORTESE",
-        "VIA DI PORTA PORTESE",
-        "VIA DEL PORTO",
-        "LUNGOTEVERE RIPA",
-        "PORTO DI RIPA GRANDE",
-        "VIA DEI SALUMI",
-        "PIAZZA SIDNEY SONNINO",
-        "VICOLO DEI TABACCHI",
-        "VIALE DI TRASTEVERE"
-      ],
-      "numeroVie": 29
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1718",
-      "numero": 1718,
       "indirizzo": "VIA DEI GENOVESI N.30/C",
       "cap": "00153",
       "suddivisioniTerritoriali": [
         "113"
       ],
-      "vieAssegnate": [
-        "LUNGOTEVERE DEGLI ALBERTESCHI",
-        "VIA DELL'ARCO DE' TOLOMEI",
-        "VICOLO DELL'ATLETA",
-        "VIA AUGUSTO JANDOLO",
-        "VIA DELLA BOTTICELLA",
-        "PIAZZA CASTELLANI",
-        "PIAZZA DI S. CECILIA",
-        "VIA DI S. CECILIA",
-        "VIA DEI GENOVESI",
-        "VICOLO DI S. MARIA IN CAPPELLA",
-        "PONTE PALATINO",
-        "VIA PIETRO PERETTI",
-        "VIA IN PISCINULA",
-        "PIAZZA DEI PONZIANI",
-        "LUNGOTEVERE RIPA",
-        "VIA RIPENSE",
-        "VIA DEI SALUMI",
-        "VICOLO DELLA SCALACCIA",
-        "VIA TITTA SCARPETTA",
-        "VIA DEI VASCELLARI",
-        "VICOLO DEI VASCELLARI"
-      ],
-      "numeroVie": 21
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1719",
-      "numero": 1719,
       "indirizzo": "VIA DEL FALCO N.43",
       "cap": "00193",
       "suddivisioniTerritoriali": [
         "114"
       ],
-      "vieAssegnate": [
-        "BORGO ANGELICO",
-        "PIAZZA DELLA CITTA' LEONINA",
-        "VIA DEL FALCO",
-        "VICOLO DEL FARINONE",
-        "VIA DELLE GRAZIE",
-        "VIA DEL MASCHERINO",
-        "BORGO PIO",
-        "PIAZZA DEL RISORGIMENTO",
-        "VIA STEFANO PORCARI",
-        "BORGO VITTORIO"
-      ],
-      "numeroVie": 10
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1720",
-      "numero": 1720,
       "indirizzo": "VIA DEL FALCO N.43",
       "cap": "00193",
       "suddivisioniTerritoriali": [
         "114"
       ],
-      "vieAssegnate": [
-        "PIAZZA ADRIANA",
-        "VIA ALBERICO II",
-        "PIAZZA AMERICO CAPPONI",
-        "VIA DEI BASTIONI",
-        "VIA DELLE FOSSE DI CASTELLO",
-        "VIA GIOVANNI VITELLESCHI",
-        "VIA DEGLI OMBRELLARI",
-        "VICOLO D'ORFEO",
-        "VICOLO DELLE PALLINE",
-        "BORGO PIO",
-        "VIA PLAUTO",
-        "LARGO DI PORTA CASTELLO",
-        "VIA DI PORTA CASTELLO",
-        "PIAZZA DELLE VASCHETTE",
-        "BORGO VITTORIO"
-      ],
-      "numeroVie": 15
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1721",
-      "numero": 1721,
       "indirizzo": "VIA DEL FALCO N.43",
       "cap": "00193",
       "suddivisioniTerritoriali": [
         "114"
       ],
-      "vieAssegnate": [
-        "LARGO DEGLI ALICORNI",
-        "BORGO S. ANGELO",
-        "VICOLO DEL CAMPANILE",
-        "LUNGOTEVERE CASTELLO",
-        "PIAZZA DEL CATALONE",
-        "VIA DEI CAVALIERI DEL SANTO SEPOLCRO",
-        "LARGO DEL COLONNATO",
-        "VIA DELLA CONCILIAZIONE",
-        "VIA DEI CORRIDORI",
-        "VIA DELL'ERBA",
-        "VICOLO DELL'INFERRIATA",
-        "SALITA SS. MICHELE E MAGNO",
-        "VIA DELL'OSPEDALE",
-        "VIA PADRE PANCRAZIO PFEIFFER",
-        "VIA DEI PENITENZIERI",
-        "PIAZZA PIA",
-        "BORGO PIO",
-        "VIA S. PIO X",
-        "PIAZZA PIO XII",
-        "VIA DI PORTA ANGELICA",
-        "VIA DI PORTA S. SPIRITO",
-        "GALLERIA PRINCIPE AMEDEO SAVOIA AOSTA",
-        "VIA RUSTICUCCI",
-        "PIAZZA DEL SANT'UFFIZIO",
-        "VIA DEL SANT'UFFIZIO",
-        "LUNGOTEVERE IN SASSIA",
-        "VIA SCOSSACAVALLI",
-        "BORGO S. SPIRITO",
-        "VIA DELLA TRASPONTINA",
-        "VIA DEI TRE PUPAZZI",
-        "LUNGOTEVERE VATICANO",
-        "PONTE VITTORIO EMANUELE II",
-        "VIALE GIUSEPPE CECCARELLI",
-        "VIALE CARDINALE ANGELO DELL'ACQUA",
-        "VIALE FRATEL AURELIANO SCAFOLETTI",
-        "VIALE FRATEL PORFIRIO CIPRARI",
-        "LARGO PADRE PAOLO CARESANA",
-        "LARGO GIOVANNI XXIII",
-        "VIA PAOLO VI",
-        "LARGO ILDEBRANDO GREGORI",
-        "PARCO ADRIANO",
-        "LARGO MARIO DELL'ARCO"
-      ],
-      "numeroVie": 42
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1722",
-      "numero": 1722,
       "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "PIAZZALE AURELIO",
-        "VIA DELLE FORNACI",
-        "VIA GIUSEPPE MISSORI",
-        "VIA S. LIBERIO",
-        "RAMPA DELLE MURA AURELIE",
-        "VIALE DELLE MURA AURELIE",
-        "VIA NUOVA DELLE FORNACI",
-        "VIA DI S. PANCRAZIO",
-        "VIA S. TELESFORO"
-      ],
-      "numeroVie": 9
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1723",
-      "numero": 1723,
       "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA ALCIDE DE GASPERI",
-        "VIA DOMENICO SILVERI",
-        "VIA DELLE FORNACI",
-        "PIAZZA DI S. MARIA ALLE FORNACI",
-        "VIA DI S. MARIA ALLE FORNACI",
-        "VIA PELAGIO I",
-        "PIAZZA DELLA STAZIONE DI S. PIETRO",
-        "VIA DELLA STAZIONE DI S. PIETRO",
-        "GIARDINO SANTA BRIGIDA"
-      ],
-      "numeroVie": 9
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1724",
-      "numero": 1724,
       "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA BONIFACIO VIII",
-        "VIA CARDINAL AGLIARDI",
-        "VIA CARDINALE LUALDI",
-        "VIA DEL CROCIFISSO",
-        "VIA INNOCENZO III",
-        "VIA NICOLO' III",
-        "VIA PAOLO II",
-        "VIA DI PORTA FABBRICA"
-      ],
-      "numeroVie": 8
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1725",
-      "numero": 1725,
       "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA ALESSANDRO III",
-        "RAMPA AURELIA",
-        "VIA AURELIA",
-        "VIA DEI CAVALLEGGERI",
-        "VIA DELLE FORNACI",
-        "PIAZZALE GREGORIO VII",
-        "LARGO DI PORTA CAVALLEGGERI",
-        "VIA DI PORTA CAVALLEGGERI",
-        "VIA DELLA STAZIONE DI S. PIETRO",
-        "VIA DELLA STAZIONE VATICANA"
-      ],
-      "numeroVie": 10
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1726",
-      "numero": 1726,
       "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "CLIVO S. ANTONINO",
-        "VIA AURELIA",
-        "VIA BENEDETTO XIV",
-        "VIA LEONE IX",
-        "VIA NICOLO' V",
-        "VIA DI PORTA PERTUSA",
-        "VIALE VATICANO",
-        "RAMPA DEL VIALE VATICANO"
-      ],
-      "numeroVie": 8
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1727",
-      "numero": 1727,
       "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA CARDINAL CASSETTA",
-        "VIA CARDINALE SILJ",
-        "VIA DEL COTTOLENGO",
-        "VIA DEL GELSOMINO",
-        "VIA GREGORIO VII",
-        "VIA LEONE IX",
-        "VIA SERGIO I"
-      ],
-      "numeroVie": 7
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1728",
-      "numero": 1728,
       "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA DELLA CAVA AURELIA",
-        "SALITA DI MONTE DEL GALLO",
-        "VIA DI MONTE DEL GALLO"
-      ],
-      "numeroVie": 3
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1729",
-      "numero": 1729,
       "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA ANGELO RANUCCI",
-        "VIA ANTONIO CERIANI",
-        "VIA DELL'ARGILLA",
-        "RAMPA BRANCALEONE",
-        "VIA DELLA CAVA AURELIA",
-        "VIA CLEMENTE ALESSANDRINO",
-        "VIA DEL LAGO TERRIONE",
-        "CLIVO DI MONTE DEL GALLO",
-        "VIA DI MONTE DEL GALLO",
-        "VICOLO DI MONTE DEL GALLO",
-        "VICOLO DEL VICARIO"
-      ],
-      "numeroVie": 11
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1730",
-      "numero": 1730,
       "indirizzo": "VIA PONZONE N.23",
       "cap": "00166",
       "suddivisioniTerritoriali": [
         "448"
       ],
-      "vieAssegnate": [
-        "VIA MEZZENILE",
-        "VIA FEDERICO FILIPPINI",
-        "VIA MONTANARO",
-        "VIA ENZO TOLU"
-      ],
-      "numeroVie": 4
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1731",
-      "numero": 1731,
       "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA S. DAMASO",
-        "PIAZZA FRANCESCO BORGONGINI DUCA",
-        "VIA GREGORIO VII",
-        "VIA S. SILVERIO",
-        "VIA BARTOLOMEO ROVERELLA",
-        "LARGO CARDINAL CLEMENTE MICARA",
-        "GIARDINO MARCO BIAGI",
-        "GIARDINO MARIO MODERNI"
-      ],
-      "numeroVie": 8
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1732",
-      "numero": 1732,
       "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA S. AGATONE PAPA",
-        "RAMPA ANTONIO CERIANI",
-        "VIA DELL'ARGILLA",
-        "LARGO CARDINALE AGOSTINO GALAMINI",
-        "VICOLO DEL GELSOMINO",
-        "VIA GREGORIO VII",
-        "LARGO ORESTE GIORGI",
-        "VIA ORMISDA",
-        "VIA S. SOTERO"
-      ],
-      "numeroVie": 9
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1733",
-      "numero": 1733,
       "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA ANGELO DI PIETRO",
-        "VIA DOMENICO BARONE",
-        "VIA FRANCESCO PACELLI",
-        "VIA GREGORIO VII",
-        "VIA INNOCENZO XI",
-        "PIAZZA PIO XI"
-      ],
-      "numeroVie": 6
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1734",
-      "numero": 1734,
       "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA S. ADEODATO",
-        "VIA AGOSTINO VALIERO",
-        "LARGO DOMENICO JACOBINI",
-        "VIA S. EVARISTO",
-        "VIA S. FABIANO",
-        "VIA GIAN FRANCESCO ALBANI",
-        "VIA GREGORIO VII",
-        "VIA S. LUCIO",
-        "VIA NICOLO' PICCOLOMINI",
-        "VIA SABINIANO",
-        "GIARDINO MASSIMO D'ANTONA",
-        "PARCO ENRICO MODIGLIANI"
-      ],
-      "numeroVie": 12
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1735",
-      "numero": 1735,
       "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA AURELIA ANTICA",
-        "LARGO CARDINAL DOMENICO FERRATA",
-        "VIA CARDINAL DOMENICO FERRATA",
-        "VIA FILIPPO BERNARDINI",
-        "VIA FRANCESCO MARCHETTI SELVAGGIANI",
-        "VIA GIOVANNI BESSARIONE",
-        "VIA GIUSEPPE PECCI",
-        "VIA LEONE DEHON",
-        "VIA LEONE XIII",
-        "VIA PIO IV",
-        "VIA DI VILLA BETANIA",
-        "VIA GIOVANNI DOMINICI"
-      ],
-      "numeroVie": 12
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1736",
-      "numero": 1736,
       "indirizzo": "LARGO S. PIO V N.20",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA AURELIA ANTICA",
-        "VIA CARDINAL PACCA",
-        "VIA DEL CASALE DI S. PIO V",
-        "VIA GREGORIO VII",
-        "VIA DI TORRE ROSSA",
-        "PIAZZA DI VILLA CARPEGNA"
-      ],
-      "numeroVie": 6
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1737",
-      "numero": 1737,
       "indirizzo": "LARGO S. PIO V N.20",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA CAMILLO CACCIA DOMINIONI",
-        "VIA DELLA MADONNA DEL RIPOSO",
-        "LARGO S. PIO V",
-        "PIAZZA DI VILLA CARPEGNA"
-      ],
-      "numeroVie": 4
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1738",
-      "numero": 1738,
       "indirizzo": "LARGO S. PIO V N.20",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA CARLO ZUCCHI",
-        "VIA FILIPPO MARIA PIRELLI",
-        "VIA DEI GOZZADINI",
-        "VIA S. PIO V",
-        "VIA DEI SAVORELLI"
-      ],
-      "numeroVie": 5
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1739",
-      "numero": 1739,
       "indirizzo": "LARGO S. PIO V N.20",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA FRANCESCO SATOLLI",
-        "VIA GREGORIO VII",
-        "VIA LUDOVICO MICARA",
-        "PIAZZA PIO XI",
-        "VIA TEODORO VALFRE'"
-      ],
-      "numeroVie": 5
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1740",
-      "numero": 1740,
       "indirizzo": "LARGO S. PIO V N.20",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA AGOSTINO RICHELMY",
-        "VIA ANASTASIO II",
-        "VIA CARDINALE TRIPEPI",
-        "VIA GREGORIO VII",
-        "VIA INNOCENZO XI"
-      ],
-      "numeroVie": 5
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1741",
-      "numero": 1741,
       "indirizzo": "LARGO S. PIO V N.20",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA ANASTASIO II",
-        "VIA MARCELLO II",
-        "VIA DEI SAVORELLI"
-      ],
-      "numeroVie": 3
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1742",
-      "numero": 1742,
       "indirizzo": "LARGO S. PIO V N.21",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA AURELIA",
-        "VIA CARDINAL BOFONDI",
-        "VIA CARDINAL MISTRANGELO",
-        "VIA EGIDIO ALBORNOZ",
-        "VIA DEI GOZZADINI",
-        "VIA CASIMIRO GENNARI"
-      ],
-      "numeroVie": 6
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1743",
-      "numero": 1743,
       "indirizzo": "LARGO S. PIO V N.21",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "CIRCONVALLAZIONE AURELIA",
-        "VIA AURELIA",
-        "VIA GIUSEPPE PALOMBINI",
-        "VIA LUDOVICO ALTIERI",
-        "VIA DELLA MADONNA DEL RIPOSO",
-        "LARGO S. PIO V"
-      ],
-      "numeroVie": 6
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1744",
-      "numero": 1744,
       "indirizzo": "LARGO S. PIO V N.21",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "CIRCONVALLAZIONE AURELIA",
-        "VIA AURELIA",
-        "VIA CARDINAL PAROCCHI",
-        "VIA CARDINAL SANFELICE",
-        "VIA DEI CARPEGNA",
-        "PIAZZA IRNERIO",
-        "VIA PASQUALE FIORE"
-      ],
-      "numeroVie": 7
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1745",
-      "numero": 1745,
       "indirizzo": "LARGO S. PIO V N.21",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA ACCURSIO",
-        "VIA ANTONIO SALA",
-        "VIA BARTOLO DA SASSOFERRATO",
-        "LARGO DI BOCCEA",
-        "VIA DI BOCCEA",
-        "PIAZZA CARDINAL FERRARI",
-        "VIA CARDINAL PAROCCHI",
-        "CIRCONVALLAZIONE CORNELIA",
-        "VIA GIUSEPPE DE CAMILLIS",
-        "PIAZZA IRNERIO",
-        "VIA PIER DELLE VIGNE",
-        "LARGO ALESSANDRO CARAVILLANI"
-      ],
-      "numeroVie": 12
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1746",
-      "numero": 1746,
       "indirizzo": "LARGO S. PIO V N.21",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA BALDO DEGLI UBALDI",
-        "VIA GRAZIANO",
-        "VIA PROSPERO FARINACCI"
-      ],
-      "numeroVie": 3
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1747",
-      "numero": 1747,
       "indirizzo": "LARGO S. PIO V N.21",
       "cap": "00165",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA AURELIA",
-        "VIA BALDO DEGLI UBALDI"
-      ],
-      "numeroVie": 2
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1748",
-      "numero": 1748,
       "indirizzo": "VIA GIANNOZZO MANETTI N.6",
       "cap": "00167",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA BALDO DEGLI UBALDI",
-        "VIA GIACOMO GIRI",
-        "VIA GIOVAN BATTISTA GANDINO",
-        "VIA GIOVANNI DEVOTI",
-        "VIA GIROLAMO VITELLI",
-        "VIA UMBERTO MORICCA",
-        "PARCO GIOVANNI PAOLO I"
-      ],
-      "numeroVie": 7
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1749",
-      "numero": 1749,
       "indirizzo": "VIA GIANNOZZO MANETTI N.6",
       "cap": "00167",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA BALDO DEGLI UBALDI",
-        "VIA CARDINAL MISTRANGELO",
-        "VIA FILIPPO ERMINI"
-      ],
-      "numeroVie": 3
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1750",
-      "numero": 1750,
       "indirizzo": "VIA GIANNOZZO MANETTI N.6",
       "cap": "00167",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA AURELIA",
-        "VIA GIACINTO DE VECCHI PIERALICE",
-        "VIA DI S. MARIA MEDIATRICE",
-        "VIA PAOLO BENTIVOGLIO",
-        "VIA PAOLO III",
-        "VIA PIETRO CIRIACI",
-        "VIA DI VILLA ALBERICI"
-      ],
-      "numeroVie": 7
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1751",
-      "numero": 1751,
       "indirizzo": "VIA GIANNOZZO MANETTI N.6",
       "cap": "00167",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA CARLO PASCAL",
-        "VIA GIACINTO DE VECCHI PIERALICE",
-        "VIA GIANNOZZO MANETTI",
-        "VIA GIORGIO MERULA",
-        "VIA GIULIO SACCHETTI",
-        "VIA GIOVANNI AURISPA"
-      ],
-      "numeroVie": 6
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1752",
-      "numero": 1752,
       "indirizzo": "VIA GIANNOZZO MANETTI N.6",
       "cap": "00167",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA BALDO DEGLI UBALDI",
-        "VIA CARLO PASCAL",
-        "VIA GIACINTO DE VECCHI PIERALICE",
-        "VIA UMBERTO MORICCA",
-        "VIA CARLO GALASSI PALUZZI"
-      ],
-      "numeroVie": 5
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1753",
-      "numero": 1753,
       "indirizzo": "VIA ETTORE STAMPINI N.38",
       "cap": "00167",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA AURELIO BACCIARINI",
-        "VICOLO DEI FORNACIARI",
-        "VIA GIUSEPPE BONACCORSI",
-        "VIA DI VALLE AURELIA",
-        "VIALE DI VALLE AURELIA"
-      ],
-      "numeroVie": 5
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1754",
-      "numero": 1754,
       "indirizzo": "VIA ETTORE STAMPINI N.38",
       "cap": "00167",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIALE DI VALLE AURELIA"
-      ],
-      "numeroVie": 1
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1755",
-      "numero": 1755,
       "indirizzo": "VIA FRANCESCO CILEA N.269",
       "cap": "00124",
       "suddivisioniTerritoriali": [
         "430"
       ],
-      "vieAssegnate": [
-        "VIA ANTONIO BAZZINI",
-        "VIA ANTONIO SCONTRINO",
-        "VIA CANAZEI",
-        "VIA ERMANNO WOLF FERRARI",
-        "VIA GINO TAGLIAPIETRA",
-        "VIA TOMASO ALBINONI",
-        "VIA BRUNO MADERNA",
-        "VIA ERIK SATIE",
-        "VIA EDOARDO VITALE",
-        "VIA MANUEL DE FALLA",
-        "VIA GIAN FRANCESCO MALIPIERO",
-        "VIA DEGLI STRAUSS",
-        "VIA VITTORIO GUI"
-      ],
-      "numeroVie": 13
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1756",
-      "numero": 1756,
       "indirizzo": "VIA ETTORE STAMPINI N.38",
       "cap": "00167",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA ETTORE STAMPINI",
-        "VIA FEDERICO PATETTA",
-        "VIA GIOVAN BATTISTA GANDINO",
-        "VIA SALVATORE D'AMELIO",
-        "VIA UMBERTO MORICCA",
-        "VIA VITTORIO POLACCO"
-      ],
-      "numeroVie": 6
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1757",
-      "numero": 1757,
       "indirizzo": "VIA DON PRIMO MAZZOLARI N.323",
       "cap": "00132",
       "suddivisioniTerritoriali": [
         "410"
       ],
-      "vieAssegnate": [
-        "VIA LUCILLE TEASDALE CORTI",
-        "VIA DON TONINO BELLO",
-        "VIA PADRE FELICE MARIA CAPPELLO",
-        "VIA DON RUGGERO CAPUTO",
-        "VIA ALBERTO MARVELLI",
-        "VIA MARIA LUIGIA TANCREDI",
-        "VIA PADRE GIUSEPPE FERRO"
-      ],
-      "numeroVie": 7
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1758",
-      "numero": 1758,
       "indirizzo": "VIA FRANCESCO ALBERGOTTI N.37",
       "cap": "00167",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA BONAVENTURA CERRETTI",
-        "VIA FRANCESCO SCADUTO",
-        "LARGO LUIGI MONTI",
-        "VIA DEI MONTI DI CRETA"
-      ],
-      "numeroVie": 4
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1759",
-      "numero": 1759,
       "indirizzo": "VIA FRANCESCO ALBERGOTTI N.37",
       "cap": "00167",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA S. BERNADETTE",
-        "LARGO DI BOCCEA",
-        "VIA DEI MONTI DI CRETA"
-      ],
-      "numeroVie": 3
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1760",
-      "numero": 1760,
       "indirizzo": "VIA FRANCESCO ALBERGOTTI N.37",
       "cap": "00167",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA ANDREA ALCIATO",
-        "VIA DIONISIO ANZILOTTI",
-        "VIA DOMENICO TARDINI",
-        "VIA ENRICO BESTA",
-        "VIA FEDERICO PATETTA",
-        "VIA FRANCESCO ALBERGOTTI",
-        "VIA NOSTRA SIGNORA DI LOURDES",
-        "VIA VITTORIO POLACCO"
-      ],
-      "numeroVie": 8
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1761",
-      "numero": 1761,
       "indirizzo": "VIA FRANCESCO ALBERGOTTI N.37",
       "cap": "00167",
       "suddivisioniTerritoriali": [
         "213"
       ],
-      "vieAssegnate": [
-        "VIA FRANCESCO SCHUPFER",
-        "VIA NOSTRA SIGNORA DI LOURDES"
-      ],
-      "numeroVie": 2
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1762",
-      "numero": 1762,
       "indirizzo": "VIA ITALO SVEVO N.31",
       "cap": "00137",
       "suddivisioniTerritoriali": [
         "404"
       ],
-      "vieAssegnate": [
-        "VIA UMBERTO FRACCHIA",
-        "VIA ALDO PALAZZESCHI",
-        "VIALE EZRA POUND",
-        "VIA ROBERT MUSIL"
-      ],
-      "numeroVie": 4
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1763",
-      "numero": 1763,
       "indirizzo": "VIA GIANNOZZO MANETTI N.6",
       "cap": "00167",
       "suddivisioniTerritoriali": [
         "214"
       ],
-      "vieAssegnate": [
-        "VIA ANASTASIO II",
-        "VIA ANGELO EMO",
-        "VIA AURELIA",
-        "VIA INNOCENZO XIII",
-        "VIA PIO VIII",
-        "VIA DI VALLE AURELIA"
-      ],
-      "numeroVie": 6
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1764",
-      "numero": 1764,
       "indirizzo": "VIA LUIGI RIZZO N.1",
       "cap": "00136",
       "suddivisioniTerritoriali": [
         "214"
       ],
-      "vieAssegnate": [
-        "VIA ANGELO EMO",
-        "VIA FRANCESCO DUODO",
-        "VIA GIOVANNI SECHI",
-        "VIA GIUSEPPE DI BARTOLO",
-        "VIA DI PORTA PERTUSA",
-        "VIALE VATICANO"
-      ],
-      "numeroVie": 6
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1765",
-      "numero": 1765,
       "indirizzo": "VIA GIORDANO BRUNO N.2",
       "cap": "00195",
       "suddivisioniTerritoriali": [
         "214"
       ],
-      "vieAssegnate": [
-        "VIALE DEGLI AMMIRAGLI",
-        "VIA ANASTASIO II",
-        "VIA ANGELO EMO",
-        "VIA FRANCESCO DELL'ANNO",
-        "VIA FRANCESCO SIVORI",
-        "CLIVO DELLE MURA VATICANE"
-      ],
-      "numeroVie": 6
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1766",
-      "numero": 1766,
       "indirizzo": "VIA GIORDANO BRUNO N.2",
       "cap": "00195",
       "suddivisioniTerritoriali": [
         "214"
       ],
-      "vieAssegnate": [
-        "VIA ANGELO EMO",
-        "VIA ANTONIO CANAL",
-        "VIA DOMENICO MILLELIRE",
-        "VIA FRANCESCO SIVORI",
-        "VIA MARCANTONIO BRAGADIN",
-        "PIAZZA S. MARIA DELLE GRAZIE",
-        "VIALE VATICANO",
-        "VIA VITTOR PISANI"
-      ],
-      "numeroVie": 8
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1767",
-      "numero": 1767,
       "indirizzo": "VIA GIORDANO BRUNO N.2",
       "cap": "00195",
       "suddivisioniTerritoriali": [
         "214"
       ],
-      "vieAssegnate": [
-        "VIA CANDIA",
-        "VIA FRANCESCO CARACCIOLO",
-        "VIA LA GOLETTA",
-        "VIA MOCENIGO",
-        "VIA SEBASTIANO VENIERO",
-        "VIA TUNISI",
-        "VIALE VATICANO",
-        "VIA VITTOR PISANI"
-      ],
-      "numeroVie": 8
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     },
     {
       "sezione": "1768",
-      "numero": 1768,
       "indirizzo": "VIA ANDREA DORIA N.18",
       "cap": "00192",
       "suddivisioniTerritoriali": [
         "214"
       ],
-      "vieAssegnate": [
-        "VIA CANDIA",
-        "VIA LEONE IV",
-        "VIA SANTAMAURA",
-        "VIA SEBASTIANO VENIERO",
-        "VIA TUNISI",
-        "VIALE VATICANO"
-      ],
-      "numeroVie": 6
+      "motivo": "suddivisione territoriale non appartenente al nucleo IX usato per la pulizia provvisoria"
     }
   ]
 }
