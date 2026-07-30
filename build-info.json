@@ -4,6 +4,7 @@
   "buildDate": "2026-07-29",
   "environment": "production",
   "mandatory": true,
-  "version": "14.5.0",
-  "notes": "Recovery code pregresse: se una vecchia coda ha perso correzioneDi, l'originale attivo viene recuperato dallo storico server."
+  "version": "14.5.1",
+  "notes": "Ripristinate tutte le 174 sezioni uniche presenti nei 38 plessi; nessun filtro distruttivo.",
+  "build": "2026-07-31-sezioni-corrette-174"
 }

@@ -55,8 +55,8 @@ function showLogin(message=''){clearSession();$('#loginView').hidden=false;$('#a
 function clearSession(){dashboardToken='';localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY)}
 async function login(password){const x=await post({tipo:'dashboard_login',password});if(!x.ok)throw new Error(x.error||'Accesso non riuscito');dashboardToken=x.dashboardToken;localStorage.setItem(TOKEN_KEY,dashboardToken);localStorage.setItem(EXP_KEY,x.expiresAt||'');sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY)}
 function validateRegistry(data){if(!data||typeof data!=='object'||!Array.isArray(data.sezioni))throw new Error('Archivio sezioni non valido.');const rows=data.sezioni.filter(x=>x&&x.sezione&&x.indirizzo).map(x=>({...x,sezione:normSection(x.sezione),numeroVie:Number(x.numeroVie||((x.vieAssegnate||[]).length)),vieAssegnate:Array.isArray(x.vieAssegnate)?x.vieAssegnate:[]}));if(!rows.length)throw new Error('Archivio sezioni vuoto.');const plessi=new Set(rows.map(x=>String(x.indirizzo).trim()+'|'+String(x.cap||'').trim()));return {...data,sezioni:rows,sezioniTotali:rows.length,plessiTotali:Number(data.plessiTotali||plessi.size)}}
-async function loadRegistry(){const url='data/sezioni-ix-control.json?v=14.5.0';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
-async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=14.5.0';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
+async function loadRegistry(){const url='data/sezioni-ix-control.json?v=14.5.1';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
+async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=14.5.1';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
 
 function rebuildRegistryIndex(){
   registryBySection=new Map();
@@ -66,40 +66,38 @@ function rebuildRegistryIndex(){
   });
 }
 function mergeRegistryWithGeo(){
-  // L’anagrafica delle 168 sezioni è l’unica fonte autorizzata.
-  // Il file geografico completa indirizzi/coordinate, ma non può aggiungere
-  // sezioni esterne o ereditate da altri municipi.
+  // L’elenco corretto è composto da tutte le sezioni associate ai 38 plessi
+  // del file geografico. Il registro completa vie e metadati, ma non elimina
+  // nessuna sezione presente nei plessi.
   const rows=new Map();
   (registry.sezioni||[]).forEach(row=>{
     const sec=normSection(row.sezione);
     if(sec)rows.set(sec,{...row,sezione:sec});
   });
-  const territoriali=new Set(rows.keys());
-  const plessiFiltrati=[];
+  const plessiCompleti=[];
   (geoPlessi.plessi||[]).forEach(plesso=>{
-    const sezioni=(plesso.sezioni||[]).map(normSection).filter(sec=>territoriali.has(sec));
+    const sezioni=[...new Set((plesso.sezioni||[]).map(normSection).filter(Boolean))];
     if(!sezioni.length)return;
-    plessiFiltrati.push({...plesso,sezioni});
+    plessiCompleti.push({...plesso,sezioni});
     sezioni.forEach(sec=>{
       const precedente=rows.get(sec)||{};
       rows.set(sec,{
         ...precedente,
         sezione:sec,
-        municipio:String(precedente.municipio||'09'),
-        indirizzo:String(precedente.indirizzo||plesso.indirizzo||'').trim(),
-        cap:String(precedente.cap||plesso.cap||'').trim(),
-        comune:String(precedente.comune||plesso.comune||'Roma').trim(),
-        plessoId:String(precedente.plessoId||plesso.id||'').trim(),
+        municipio:String(precedente.municipio||plesso.municipio||'09').padStart(2,'0'),
+        indirizzo:String(plesso.indirizzo||precedente.indirizzo||'').trim(),
+        cap:String(plesso.cap||precedente.cap||'').trim(),
+        comune:String(plesso.comune||precedente.comune||'Roma').trim(),
+        plessoId:String(plesso.id||precedente.plessoId||'').trim(),
         numeroVie:Number(precedente.numeroVie||((precedente.vieAssegnate||[]).length)||0),
         vieAssegnate:Array.isArray(precedente.vieAssegnate)?precedente.vieAssegnate:[]
       });
     });
   });
-  const complete=[...rows.values()].filter(x=>x.sezione&&x.indirizzo)
+  const complete=[...rows.values()].filter(x=>x.sezione)
     .sort((a,b)=>Number(a.sezione)-Number(b.sezione));
-  const plessi=new Set(complete.map(x=>String(x.indirizzo).trim()+'|'+String(x.cap||'').trim()));
-  registry={...registry,sezioni:complete,sezioniTotali:complete.length,plessiTotali:plessi.size};
-  geoPlessi={...geoPlessi,plessi:plessiFiltrati,plessiGeocodificati:plessiFiltrati.length,plessiTotali:plessiFiltrati.length};
+  registry={...registry,sezioni:complete,sezioniTotali:complete.length,plessiTotali:plessiCompleti.length};
+  geoPlessi={...geoPlessi,plessi:plessiCompleti,plessiGeocodificati:plessiCompleti.length,plessiTotali:plessiCompleti.length};
   rebuildRegistryIndex();
 }
 function registryForSection(section){
@@ -139,7 +137,7 @@ function prepareMapLayout(){
     list.style.padding='2px 4px 8px 2px';
   }
   const version=[...document.querySelectorAll('small,.brand-subtitle')].find(x=>/CONTROL CENTER/i.test(x.textContent||''));
-  if(version)version.textContent='CONTROL CENTER 14.4.2';
+  if(version)version.textContent='CONTROL CENTER 14.5.1';
   return {layout,aside,list};
 }
 function ensureMapContainer(){
@@ -165,7 +163,7 @@ async function loadMunicipioBoundary(L){if(boundaryLayer)return boundaryLayer;co
 function addBoundaryToggle(L){if($('#mapBoundaryToggle'))return;const Control=L.Control.extend({options:{position:'topright'},onAdd(){const box=L.DomUtil.create('div','leaflet-bar');const b=L.DomUtil.create('button','',box);b.id='mapBoundaryToggle';b.type='button';b.title='Mostra o nascondi il confine del Municipio IX';b.setAttribute('aria-label',b.title);b.style.cssText='width:auto;min-width:40px;height:34px;padding:0 10px;border:0;background:white;font-weight:700;cursor:pointer';const sync=()=>b.textContent=boundaryVisible?'Confine ✓':'Confine';sync();L.DomEvent.disableClickPropagation(box);L.DomEvent.on(b,'click',()=>{if(!boundaryLayer)return;if(boundaryVisible){mapInstance.removeLayer(boundaryLayer);boundaryVisible=false}else{boundaryLayer.addTo(mapInstance);boundaryVisible=true}sync()});return box}});mapInstance.addControl(new Control())}
 
 async function renderGeoMap(){const el=ensureMapContainer();if(!el||!geoPlessi.plessi.length)return;const L=await ensureLeaflet();if(!mapInstance){mapInstance=L.map(el,{zoomControl:true,scrollWheelZoom:true}).setView([41.805,12.47],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(mapInstance);addBoundaryToggle(L)}mapMarkers.forEach(m=>m.remove());mapMarkers=[];const bounds=[];geoPlessi.plessi.forEach(p=>{const cls=statusForPlesso(p);const sez=(p.sezioni||[]).map(normSection).filter(Boolean);const marker=L.marker([Number(p.lat),Number(p.lng)],{icon:markerIcon(cls),title:p.indirizzo}).addTo(mapInstance);marker.bindPopup(`<div style="min-width:230px"><strong>${esc(p.id)} · ${esc(p.indirizzo)}</strong><br><small>${esc(p.cap||'')} ${esc(p.comune||'Roma')}</small><p style="margin:.55rem 0 0"><b>Sezioni:</b> ${sez.map(esc).join(', ')||'—'}</p></div>`);marker._seggiSections=new Set(sez);mapMarkers.push(marker);bounds.push([Number(p.lat),Number(p.lng)])});let confineOk=false;try{await loadMunicipioBoundary(L);confineOk=true}catch(e){console.warn(e)}if(bounds.length)mapInstance.fitBounds(bounds,{padding:[42,42],maxZoom:13});const info=$('#mapGeoSummary');if(info)info.textContent=`${fmt(geoPlessi.plessiGeocodificati)} punti visibili · ${fmt(geoPlessi.plessiGeocodificati)}/${fmt(geoPlessi.plessiTotali||geoPlessi.plessi.length)} plessi geocodificati${confineOk?' · confine Municipio IX attivo':' · confine non disponibile'}`;setTimeout(()=>mapInstance.invalidateSize(),80)}
-function focusSectionOnMap(section){const sec=normSection(section);const marker=mapMarkers.find(m=>m._seggiSections?.has(sec));if(marker&&mapInstance){mapInstance.setView(marker.getLatLng(),16,{animate:true});marker.openPopup()}}
+function focusSectionOnMap(section){const sec=normSection(section);const marker=mapMarkers.find(m=>m._seggiSections?.has(sec));if(marker&&mapInstance){mapInstance.setView(marker.getLatLng(),16,{animate:true});marker.openPopup();return true}openSection(sec);return false}
 function restoreLiveCache(){
   if(live)return false;
   try{
