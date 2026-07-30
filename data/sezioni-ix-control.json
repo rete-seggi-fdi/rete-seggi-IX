@@ -1,30 +1,639 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 8,
   "municipio": "09",
-  "generatoIl": "2026-07-30T16:55:00+02:00",
-  "fonte": "plessi-ix-geocodificati.json",
-  "nota": "Anagrafica completa sezione-indirizzo per Control Center. Le vie assegnate restano vuote se non presenti nella fonte.",
-  "intervalloSezioni": "1601-1768",
-  "sezioniTotali": 168,
-  "plessiTotali": 44,
+  "generatoIl": "2026-07-31T00:38:00+02:00",
+  "fonte": "plessi-ix-geocodificati.json; tutte le associazioni di sezione presenti nei 38 plessi",
+  "nota": "Anagrafica corretta: 174 sezioni uniche. Nessuna sezione del file geografico viene scartata.",
+  "sezioniTotali": 174,
+  "plessiTotali": 38,
   "sezioni": [
     {
+      "sezione": "595",
       "municipio": "09",
-      "sezione": "1601",
-      "indirizzo": "VIA FRANCESCO SAVERIO BENUCCI N.32",
-      "cap": "00149",
+      "indirizzo": "LARGO FRANCO BIGNOTTI N.3",
+      "cap": "00127",
       "comune": "Roma",
-      "plessoId": "P01",
+      "plessoId": "P02",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "849",
       "municipio": "09",
-      "sezione": "1602",
-      "indirizzo": "VIA FRANCESCO SAVERIO BENUCCI N.32",
-      "cap": "00149",
+      "indirizzo": "VIA BRUNO DE FINETTI N.170/B",
+      "cap": "00134",
       "comune": "Roma",
-      "plessoId": "P01",
+      "plessoId": "P12",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "850",
+      "municipio": "09",
+      "indirizzo": "VIA BRUNO DE FINETTI N.170/B",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P12",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "936",
+      "municipio": "09",
+      "indirizzo": "VIA BRUNO DE FINETTI N.170/B",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P12",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "949",
+      "municipio": "09",
+      "indirizzo": "VIA ARDEATINA N.1276",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P11",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1009",
+      "municipio": "09",
+      "indirizzo": "VIA BRUNO DE FINETTI N.170/B",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P12",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1011",
+      "municipio": "09",
+      "indirizzo": "LARGO FRANCO BIGNOTTI N.3",
+      "cap": "00127",
+      "comune": "Roma",
+      "plessoId": "P02",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1059",
+      "municipio": "09",
+      "indirizzo": "VIA LUIGI CHIARINI N.400",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P28",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1074",
+      "municipio": "09",
+      "indirizzo": "LARGO FRANCO BIGNOTTI N.3",
+      "cap": "00127",
+      "comune": "Roma",
+      "plessoId": "P02",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1196",
+      "municipio": "09",
+      "indirizzo": "VIA ARDEATINA N.1276",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P11",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1197",
+      "municipio": "09",
+      "indirizzo": "VIA ARDEATINA N.1276",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P11",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1198",
+      "municipio": "09",
+      "indirizzo": "VIA ARDEATINA N.1276",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P11",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1199",
+      "municipio": "09",
+      "indirizzo": "VIA BRUNO DE FINETTI N.170/B",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P12",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1200",
+      "municipio": "09",
+      "indirizzo": "VIA ARDEATINA N.1276",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P11",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1201",
+      "municipio": "09",
+      "indirizzo": "VIA ARDEATINA N.1276",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P11",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1202",
+      "municipio": "09",
+      "indirizzo": "VIA ARDEATINA N.1276",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P11",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1203",
+      "municipio": "09",
+      "indirizzo": "VIA ARDEATINA N.1274",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P10",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1204",
+      "municipio": "09",
+      "indirizzo": "VIA ARDEATINA N.1274",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P10",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1205",
+      "municipio": "09",
+      "indirizzo": "VIA ARDEATINA N.1274",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P10",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1206",
+      "municipio": "09",
+      "indirizzo": "VIA ARDEATINA N.1274",
+      "cap": "00134",
+      "comune": "Roma",
+      "plessoId": "P10",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1207",
+      "municipio": "09",
+      "indirizzo": "VIA LUIGI CHIARINI N.400",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P28",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1208",
+      "municipio": "09",
+      "indirizzo": "VIA ITALO TORSIELLO N.45",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P25",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1209",
+      "municipio": "09",
+      "indirizzo": "VIA ITALO TORSIELLO N.57",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P26",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1210",
+      "municipio": "09",
+      "indirizzo": "VIA ITALO TORSIELLO N.57",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P26",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1211",
+      "municipio": "09",
+      "indirizzo": "VIA ITALO TORSIELLO N.57",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P26",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1212",
+      "municipio": "09",
+      "indirizzo": "VIA ITALO TORSIELLO N.57",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P26",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1213",
+      "municipio": "09",
+      "indirizzo": "VIA ITALO TORSIELLO N.57",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P26",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1214",
+      "municipio": "09",
+      "indirizzo": "VIA ITALO TORSIELLO N.57",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P26",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1215",
+      "municipio": "09",
+      "indirizzo": "VIA ITALO TORSIELLO N.57",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P26",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1216",
+      "municipio": "09",
+      "indirizzo": "VIA ITALO TORSIELLO N.57",
+      "cap": "00128",
+      "comune": "Roma",
+      "plessoId": "P26",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1218",
+      "municipio": "09",
+      "indirizzo": "VIALE DELL'OCEANO INDIANO N.64",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P38",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1537",
+      "municipio": "09",
+      "indirizzo": "VIA DELLA FONTE MERAVIGLIOSA N.79",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P20",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1538",
+      "municipio": "09",
+      "indirizzo": "VIA DELLA FONTE MERAVIGLIOSA N.79",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P20",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1539",
+      "municipio": "09",
+      "indirizzo": "VIA DELLA FONTE MERAVIGLIOSA N.79",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P20",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1540",
+      "municipio": "09",
+      "indirizzo": "VIA DELLA FONTE MERAVIGLIOSA N.79",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P20",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1541",
+      "municipio": "09",
+      "indirizzo": "VIA UGO INCHIOSTRI N.108",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P34",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1542",
+      "municipio": "09",
+      "indirizzo": "VIA UGO INCHIOSTRI N.108",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P34",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1543",
+      "municipio": "09",
+      "indirizzo": "VIA UGO INCHIOSTRI N.108",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P34",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1544",
+      "municipio": "09",
+      "indirizzo": "VIA UGO INCHIOSTRI N.108",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P34",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1545",
+      "municipio": "09",
+      "indirizzo": "VIA DEI CORAZZIERI N.110",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P16",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1546",
+      "municipio": "09",
+      "indirizzo": "VIA DEI CORAZZIERI N.110",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P16",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1547",
+      "municipio": "09",
+      "indirizzo": "VIA DEI CORAZZIERI N.110",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P16",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1548",
+      "municipio": "09",
+      "indirizzo": "VIA DEI CORAZZIERI N.110",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P16",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1549",
+      "municipio": "09",
+      "indirizzo": "VIA DEI CORAZZIERI N.110",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P16",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1550",
+      "municipio": "09",
+      "indirizzo": "VIA DELLA DIVISIONE TORINO N.119",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P19",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1551",
+      "municipio": "09",
+      "indirizzo": "VIA DELLA DIVISIONE TORINO N.119",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P19",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1552",
+      "municipio": "09",
+      "indirizzo": "VIA DELLA DIVISIONE TORINO N.119",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P19",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1553",
+      "municipio": "09",
+      "indirizzo": "VIA DELLA DIVISIONE TORINO N.119",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P19",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1554",
+      "municipio": "09",
+      "indirizzo": "VIA DELLA DIVISIONE TORINO N.119",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P19",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1555",
+      "municipio": "09",
+      "indirizzo": "PIAZZA LODOVICO CERVA N.45",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P04",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1556",
+      "municipio": "09",
+      "indirizzo": "PIAZZA LODOVICO CERVA N.45",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P04",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1557",
+      "municipio": "09",
+      "indirizzo": "PIAZZA LODOVICO CERVA N.45",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P04",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1558",
+      "municipio": "09",
+      "indirizzo": "PIAZZA LODOVICO CERVA N.45",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P04",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1559",
+      "municipio": "09",
+      "indirizzo": "PIAZZA LODOVICO CERVA N.45",
+      "cap": "00143",
+      "comune": "Roma",
+      "plessoId": "P04",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1561",
+      "municipio": "09",
+      "indirizzo": "VIALE DELLA CIVILTA' DEL LAVORO N.4",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P39",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1562",
+      "municipio": "09",
+      "indirizzo": "VIALE DELLA CIVILTA' DEL LAVORO N.4",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P39",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1563",
+      "municipio": "09",
+      "indirizzo": "VIALE DELLA CIVILTA' DEL LAVORO N.4",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P39",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1564",
+      "municipio": "09",
+      "indirizzo": "VIA DELL'ELETTRONICA N.3",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P18",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1565",
+      "municipio": "09",
+      "indirizzo": "VIA DELL'ELETTRONICA N.3",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P18",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1566",
+      "municipio": "09",
+      "indirizzo": "VIA DELL'ELETTRONICA N.3",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P18",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1567",
+      "municipio": "09",
+      "indirizzo": "VIALE AFRICA N.109",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P35",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1568",
+      "municipio": "09",
+      "indirizzo": "VIALE AFRICA N.109",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P35",
+      "numeroVie": 0,
+      "vieAssegnate": []
+    },
+    {
+      "sezione": "1569",
+      "municipio": "09",
+      "indirizzo": "VIALE AFRICA N.109",
+      "cap": "00144",
+      "comune": "Roma",
+      "plessoId": "P35",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -34,17 +643,7 @@
       "indirizzo": "VIA ANDREA MILLEVOI N.800",
       "cap": "00178",
       "comune": "Roma",
-      "plessoId": "P02",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1604",
-      "indirizzo": "VIA ANDREA MILLEVOI N.800",
-      "cap": "00178",
-      "comune": "Roma",
-      "plessoId": "P02",
+      "plessoId": "P09",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -54,7 +653,7 @@
       "indirizzo": "LARGO DINO BUZZATI N.15",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P03",
+      "plessoId": "P01",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -64,7 +663,7 @@
       "indirizzo": "LARGO DINO BUZZATI N.15",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P03",
+      "plessoId": "P01",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -74,7 +673,7 @@
       "indirizzo": "LARGO DINO BUZZATI N.15",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P03",
+      "plessoId": "P01",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -84,7 +683,7 @@
       "indirizzo": "LARGO DINO BUZZATI N.15",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P03",
+      "plessoId": "P01",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -94,7 +693,7 @@
       "indirizzo": "LARGO DINO BUZZATI N.15",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P03",
+      "plessoId": "P01",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -104,7 +703,7 @@
       "indirizzo": "LARGO DINO BUZZATI N.15",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P03",
+      "plessoId": "P01",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -114,7 +713,7 @@
       "indirizzo": "VIA LAURENTINA N.710",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P04",
+      "plessoId": "P27",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -124,7 +723,7 @@
       "indirizzo": "VIA LAURENTINA N.710",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P04",
+      "plessoId": "P27",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -134,7 +733,7 @@
       "indirizzo": "VIA LAURENTINA N.710",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P04",
+      "plessoId": "P27",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -144,7 +743,7 @@
       "indirizzo": "VIA LAURENTINA N.710",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P04",
+      "plessoId": "P27",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -154,7 +753,7 @@
       "indirizzo": "VIA LAURENTINA N.710",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P04",
+      "plessoId": "P27",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -164,7 +763,7 @@
       "indirizzo": "VIA LAURENTINA N.710",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P04",
+      "plessoId": "P27",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -174,7 +773,7 @@
       "indirizzo": "PIAZZALE ELSA MORANTE N.9",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P05",
+      "plessoId": "P06",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -184,7 +783,7 @@
       "indirizzo": "PIAZZALE ELSA MORANTE N.9",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P05",
+      "plessoId": "P06",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -194,7 +793,7 @@
       "indirizzo": "PIAZZALE ELSA MORANTE N.9",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P05",
+      "plessoId": "P06",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -204,7 +803,7 @@
       "indirizzo": "PIAZZALE ELSA MORANTE N.9",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P05",
+      "plessoId": "P06",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -214,7 +813,7 @@
       "indirizzo": "PIAZZALE ELSA MORANTE N.9",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P05",
+      "plessoId": "P06",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -224,7 +823,7 @@
       "indirizzo": "PIAZZALE ELSA MORANTE N.9",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P05",
+      "plessoId": "P06",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -234,17 +833,7 @@
       "indirizzo": "VIA CARLO EMILIO GADDA N.80",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P06",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1624",
-      "indirizzo": "VIA S.S. AUDIFACE ED ABACUC N.41",
-      "cap": "00166",
-      "comune": "Roma",
-      "plessoId": "P07",
+      "plessoId": "P14",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -254,7 +843,7 @@
       "indirizzo": "VIA CARLO EMILIO GADDA N.80",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P06",
+      "plessoId": "P14",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -264,7 +853,7 @@
       "indirizzo": "VIA CARLO EMILIO GADDA N.80",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P06",
+      "plessoId": "P14",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -274,7 +863,7 @@
       "indirizzo": "VIA CARLO EMILIO GADDA N.80",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P06",
+      "plessoId": "P14",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -284,7 +873,7 @@
       "indirizzo": "VIA LAURENTINA N.710",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P04",
+      "plessoId": "P27",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -294,7 +883,7 @@
       "indirizzo": "VIA CARLO EMILIO GADDA N.80",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P06",
+      "plessoId": "P14",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -304,7 +893,7 @@
       "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P08",
+      "plessoId": "P21",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -314,7 +903,7 @@
       "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P08",
+      "plessoId": "P21",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -324,7 +913,7 @@
       "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P08",
+      "plessoId": "P21",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -334,7 +923,7 @@
       "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P08",
+      "plessoId": "P21",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -344,7 +933,7 @@
       "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P08",
+      "plessoId": "P21",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -354,7 +943,7 @@
       "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P08",
+      "plessoId": "P21",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -364,7 +953,7 @@
       "indirizzo": "LARGO GIORGIO LABO' N.1",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P09",
+      "plessoId": "P03",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -374,7 +963,7 @@
       "indirizzo": "LARGO GIORGIO LABO' N.1",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P09",
+      "plessoId": "P03",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -384,7 +973,7 @@
       "indirizzo": "LARGO GIORGIO LABO' N.1",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P09",
+      "plessoId": "P03",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -394,7 +983,7 @@
       "indirizzo": "LARGO GIORGIO LABO' N.1",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P09",
+      "plessoId": "P03",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -404,7 +993,7 @@
       "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P08",
+      "plessoId": "P21",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -414,7 +1003,7 @@
       "indirizzo": "VIALE CAMILLO SABATINI N.111",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P10",
+      "plessoId": "P37",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -424,7 +1013,7 @@
       "indirizzo": "VIALE CAMILLO SABATINI N.111",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P10",
+      "plessoId": "P37",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -434,7 +1023,7 @@
       "indirizzo": "VIALE DELL'OCEANO INDIANO N.64",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P11",
+      "plessoId": "P38",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -444,7 +1033,7 @@
       "indirizzo": "VIALE DELL'OCEANO INDIANO N.64",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P11",
+      "plessoId": "P38",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -454,7 +1043,7 @@
       "indirizzo": "VIALE DELL'OCEANO INDIANO N.64",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P11",
+      "plessoId": "P38",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -464,7 +1053,7 @@
       "indirizzo": "VIALE CAMILLO SABATINI N.111",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P10",
+      "plessoId": "P37",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -474,7 +1063,7 @@
       "indirizzo": "VIALE CAMILLO SABATINI N.111",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P10",
+      "plessoId": "P37",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -484,7 +1073,7 @@
       "indirizzo": "PIAZZALE EZIO TARANTELLI N.10",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P12",
+      "plessoId": "P07",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -494,7 +1083,7 @@
       "indirizzo": "PIAZZALE EZIO TARANTELLI N.10",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P12",
+      "plessoId": "P07",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -504,7 +1093,7 @@
       "indirizzo": "VIA DELLE COSTELLAZIONI N.369",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P08",
+      "plessoId": "P21",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -514,7 +1103,7 @@
       "indirizzo": "VIA CINA N.4",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P13",
+      "plessoId": "P15",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -524,7 +1113,7 @@
       "indirizzo": "VIA CINA N.4",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P13",
+      "plessoId": "P15",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -534,7 +1123,7 @@
       "indirizzo": "VIA CINA N.4",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P13",
+      "plessoId": "P15",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -544,7 +1133,7 @@
       "indirizzo": "VIA CINA N.4",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P13",
+      "plessoId": "P15",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -554,7 +1143,7 @@
       "indirizzo": "VIA CINA N.4",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P13",
+      "plessoId": "P15",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -564,7 +1153,7 @@
       "indirizzo": "VIA FIUME GIALLO N.45",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P14",
+      "plessoId": "P23",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -574,7 +1163,7 @@
       "indirizzo": "VIA FIUME GIALLO N.45",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P14",
+      "plessoId": "P23",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -584,7 +1173,7 @@
       "indirizzo": "VIA FIUME GIALLO N.45",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P14",
+      "plessoId": "P23",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -594,7 +1183,7 @@
       "indirizzo": "VIA FIUME GIALLO N.45",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P14",
+      "plessoId": "P23",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -604,7 +1193,7 @@
       "indirizzo": "VIA FIUME GIALLO N.45",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P14",
+      "plessoId": "P23",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -614,7 +1203,7 @@
       "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P15",
+      "plessoId": "P36",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -624,7 +1213,7 @@
       "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P15",
+      "plessoId": "P36",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -634,7 +1223,7 @@
       "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P15",
+      "plessoId": "P36",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -644,7 +1233,7 @@
       "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P15",
+      "plessoId": "P36",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -654,7 +1243,7 @@
       "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P15",
+      "plessoId": "P36",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -664,7 +1253,7 @@
       "indirizzo": "VIALE BEATA VERGINE DEL CARMELO N.35",
       "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P15",
+      "plessoId": "P36",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -674,7 +1263,7 @@
       "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P16",
+      "plessoId": "P24",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -684,7 +1273,7 @@
       "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P16",
+      "plessoId": "P24",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -694,7 +1283,7 @@
       "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P16",
+      "plessoId": "P24",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -704,7 +1293,7 @@
       "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P16",
+      "plessoId": "P24",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -714,7 +1303,7 @@
       "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P16",
+      "plessoId": "P24",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -724,7 +1313,7 @@
       "indirizzo": "VIA GIOVANNI FRIGNANI N.97",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P16",
+      "plessoId": "P24",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -734,7 +1323,7 @@
       "indirizzo": "VIA CARLO AVOLIO N.91",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P17",
+      "plessoId": "P13",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -744,7 +1333,7 @@
       "indirizzo": "VIA CARLO AVOLIO N.91",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P17",
+      "plessoId": "P13",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -754,7 +1343,7 @@
       "indirizzo": "VIA CARLO AVOLIO N.91",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P17",
+      "plessoId": "P13",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -764,7 +1353,7 @@
       "indirizzo": "VIA CARLO AVOLIO N.91",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P17",
+      "plessoId": "P13",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -774,7 +1363,7 @@
       "indirizzo": "VIA CARLO AVOLIO N.91",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P17",
+      "plessoId": "P13",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -784,7 +1373,7 @@
       "indirizzo": "VIA CARLO AVOLIO N.91",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P17",
+      "plessoId": "P13",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -794,7 +1383,7 @@
       "indirizzo": "VIA PAOLO RENZI N.47",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P18",
+      "plessoId": "P30",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -804,7 +1393,7 @@
       "indirizzo": "VIA PAOLO RENZI N.47",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P18",
+      "plessoId": "P30",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -814,7 +1403,7 @@
       "indirizzo": "VIA PAOLO RENZI N.47",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P18",
+      "plessoId": "P30",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -824,7 +1413,7 @@
       "indirizzo": "VIA PAOLO RENZI N.47",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P18",
+      "plessoId": "P30",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -834,7 +1423,7 @@
       "indirizzo": "VIA PAOLO RENZI N.47",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P18",
+      "plessoId": "P30",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -844,7 +1433,7 @@
       "indirizzo": "VIA PAOLO RENZI N.47",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P18",
+      "plessoId": "P30",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -854,7 +1443,7 @@
       "indirizzo": "VIA SANTI SAVARINO N.16",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P19",
+      "plessoId": "P33",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -864,7 +1453,7 @@
       "indirizzo": "VIA CARLO EMILIO GADDA N.80",
       "cap": "00143",
       "comune": "Roma",
-      "plessoId": "P06",
+      "plessoId": "P14",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -874,7 +1463,7 @@
       "indirizzo": "VIA SANTI SAVARINO N.16",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P19",
+      "plessoId": "P33",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -884,7 +1473,7 @@
       "indirizzo": "VIA SANTI SAVARINO N.16",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P19",
+      "plessoId": "P33",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -894,7 +1483,7 @@
       "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P20",
+      "plessoId": "P31",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -904,7 +1493,7 @@
       "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P20",
+      "plessoId": "P31",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -914,7 +1503,7 @@
       "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P20",
+      "plessoId": "P31",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -924,7 +1513,7 @@
       "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P20",
+      "plessoId": "P31",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -934,7 +1523,7 @@
       "indirizzo": "VIA ROMOLO GIGLIOZZI N.35",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P20",
+      "plessoId": "P31",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -944,7 +1533,7 @@
       "indirizzo": "VIA ORAZIO CONSOLE N.35",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P21",
+      "plessoId": "P29",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -954,7 +1543,7 @@
       "indirizzo": "VIA ORAZIO CONSOLE N.35",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P21",
+      "plessoId": "P29",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -964,7 +1553,7 @@
       "indirizzo": "VIA ORAZIO CONSOLE N.35",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P21",
+      "plessoId": "P29",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -974,7 +1563,7 @@
       "indirizzo": "VIA ORAZIO CONSOLE N.35",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P21",
+      "plessoId": "P29",
       "numeroVie": 0,
       "vieAssegnate": []
     },
@@ -984,707 +1573,177 @@
       "indirizzo": "VIA SANTI SAVARINO N.16",
       "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P19",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1699",
-      "indirizzo": "VIA DELL'ARCO DEL MONTE N.99",
-      "cap": "00186",
-      "comune": "Roma",
-      "plessoId": "P22",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1700",
-      "indirizzo": "VIA GIULIA N.25",
-      "cap": "00186",
-      "comune": "Roma",
-      "plessoId": "P23",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1701",
-      "indirizzo": "VIA GIULIA N.25",
-      "cap": "00186",
-      "comune": "Roma",
-      "plessoId": "P23",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1702",
-      "indirizzo": "VIA DELLA PALOMBELLA N.4",
-      "cap": "00186",
-      "comune": "Roma",
-      "plessoId": "P24",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1703",
-      "indirizzo": "VIA DELLA PALOMBELLA N.4",
-      "cap": "00186",
-      "comune": "Roma",
-      "plessoId": "P24",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1704",
-      "indirizzo": "VIA DELLA PALOMBELLA N.4",
-      "cap": "00186",
-      "comune": "Roma",
-      "plessoId": "P24",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1705",
-      "indirizzo": "PIAZZA DEL COLLEGIO ROMANO N.4",
-      "cap": "00186",
-      "comune": "Roma",
-      "plessoId": "P25",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1706",
-      "indirizzo": "PIAZZA DEL COLLEGIO ROMANO N.4",
-      "cap": "00186",
-      "comune": "Roma",
-      "plessoId": "P25",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1707",
-      "indirizzo": "VIA GIULIA N.25",
-      "cap": "00186",
-      "comune": "Roma",
-      "plessoId": "P23",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1708",
-      "indirizzo": "VIA GIULIA N.25",
-      "cap": "00186",
-      "comune": "Roma",
-      "plessoId": "P23",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1709",
-      "indirizzo": "VIA DELLA PAGLIA N.50",
-      "cap": "00153",
-      "comune": "Roma",
-      "plessoId": "P26",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1710",
-      "indirizzo": "VIA DELLA PAGLIA N.50",
-      "cap": "00153",
-      "comune": "Roma",
-      "plessoId": "P26",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1711",
-      "indirizzo": "VIA NICOLA FABRIZI N.7",
-      "cap": "00153",
-      "comune": "Roma",
-      "plessoId": "P27",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1712",
-      "indirizzo": "VIA NICOLA FABRIZI N.7",
-      "cap": "00153",
-      "comune": "Roma",
-      "plessoId": "P27",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1713",
-      "indirizzo": "VIA DELLA PAGLIA N.50",
-      "cap": "00153",
-      "comune": "Roma",
-      "plessoId": "P26",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1714",
-      "indirizzo": "VIA DELLA MADONNA DELL'ORTO N.2",
-      "cap": "00153",
-      "comune": "Roma",
-      "plessoId": "P28",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1715",
-      "indirizzo": "VIA DELLA MADONNA DELL'ORTO N.2",
-      "cap": "00153",
-      "comune": "Roma",
-      "plessoId": "P28",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1716",
-      "indirizzo": "VIA DEI GENOVESI N.30/C",
-      "cap": "00153",
-      "comune": "Roma",
-      "plessoId": "P29",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1717",
-      "indirizzo": "VIA DELLA MADONNA DELL'ORTO N.2",
-      "cap": "00153",
-      "comune": "Roma",
-      "plessoId": "P28",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1718",
-      "indirizzo": "VIA DEI GENOVESI N.30/C",
-      "cap": "00153",
-      "comune": "Roma",
-      "plessoId": "P29",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1719",
-      "indirizzo": "VIA DEL FALCO N.43",
-      "cap": "00193",
-      "comune": "Roma",
-      "plessoId": "P30",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1720",
-      "indirizzo": "VIA DEL FALCO N.43",
-      "cap": "00193",
-      "comune": "Roma",
-      "plessoId": "P30",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1721",
-      "indirizzo": "VIA DEL FALCO N.43",
-      "cap": "00193",
-      "comune": "Roma",
-      "plessoId": "P30",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1722",
-      "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P31",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1723",
-      "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P31",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1724",
-      "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P31",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1725",
-      "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P31",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1726",
-      "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P31",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1727",
-      "indirizzo": "VIA DI S. MARIA ALLE FORNACI N.3",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P31",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1728",
-      "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P32",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1729",
-      "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P32",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1730",
-      "indirizzo": "VIA PONZONE N.23",
-      "cap": "00166",
-      "comune": "Roma",
       "plessoId": "P33",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "1973",
       "municipio": "09",
-      "sezione": "1731",
-      "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
-      "cap": "00165",
+      "indirizzo": "LARGO FRANCO BIGNOTTI N.3",
+      "cap": "00127",
       "comune": "Roma",
-      "plessoId": "P32",
+      "plessoId": "P02",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "1974",
       "municipio": "09",
-      "sezione": "1732",
-      "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
-      "cap": "00165",
+      "indirizzo": "VIA DEL RISARO N.34",
+      "cap": "00127",
       "comune": "Roma",
-      "plessoId": "P32",
+      "plessoId": "P17",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "1975",
       "municipio": "09",
-      "sezione": "1733",
-      "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
-      "cap": "00165",
+      "indirizzo": "VIA DEL RISARO N.34",
+      "cap": "00127",
       "comune": "Roma",
-      "plessoId": "P32",
+      "plessoId": "P17",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "1976",
       "municipio": "09",
-      "sezione": "1734",
-      "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
-      "cap": "00165",
+      "indirizzo": "VIA DEL RISARO N.34",
+      "cap": "00127",
       "comune": "Roma",
-      "plessoId": "P32",
+      "plessoId": "P17",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "1977",
       "municipio": "09",
-      "sezione": "1735",
-      "indirizzo": "PIAZZA FRANCESCO BORGONGINI DUCA N.5",
-      "cap": "00165",
+      "indirizzo": "VIA DEL RISARO N.34",
+      "cap": "00127",
       "comune": "Roma",
-      "plessoId": "P32",
+      "plessoId": "P17",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "1978",
       "municipio": "09",
-      "sezione": "1736",
-      "indirizzo": "LARGO S. PIO V N.20",
-      "cap": "00165",
+      "indirizzo": "LARGO FRANCO BIGNOTTI N.3",
+      "cap": "00127",
       "comune": "Roma",
-      "plessoId": "P34",
+      "plessoId": "P02",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "2511",
       "municipio": "09",
-      "sezione": "1737",
-      "indirizzo": "LARGO S. PIO V N.20",
-      "cap": "00165",
+      "indirizzo": "VIA ITALO TORSIELLO N.45",
+      "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P34",
+      "plessoId": "P25",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "2513",
       "municipio": "09",
-      "sezione": "1738",
-      "indirizzo": "LARGO S. PIO V N.20",
-      "cap": "00165",
+      "indirizzo": "VIA ARDEATINA N.1274",
+      "cap": "00134",
       "comune": "Roma",
-      "plessoId": "P34",
+      "plessoId": "P10",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "2514",
       "municipio": "09",
-      "sezione": "1739",
-      "indirizzo": "LARGO S. PIO V N.20",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P34",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1740",
-      "indirizzo": "LARGO S. PIO V N.20",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P34",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1741",
-      "indirizzo": "LARGO S. PIO V N.20",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P34",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1742",
-      "indirizzo": "LARGO S. PIO V N.21",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P35",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1743",
-      "indirizzo": "LARGO S. PIO V N.21",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P35",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1744",
-      "indirizzo": "LARGO S. PIO V N.21",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P35",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1745",
-      "indirizzo": "LARGO S. PIO V N.21",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P35",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1746",
-      "indirizzo": "LARGO S. PIO V N.21",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P35",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1747",
-      "indirizzo": "LARGO S. PIO V N.21",
-      "cap": "00165",
-      "comune": "Roma",
-      "plessoId": "P35",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1748",
-      "indirizzo": "VIA GIANNOZZO MANETTI N.6",
-      "cap": "00167",
-      "comune": "Roma",
-      "plessoId": "P36",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1749",
-      "indirizzo": "VIA GIANNOZZO MANETTI N.6",
-      "cap": "00167",
-      "comune": "Roma",
-      "plessoId": "P36",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1750",
-      "indirizzo": "VIA GIANNOZZO MANETTI N.6",
-      "cap": "00167",
-      "comune": "Roma",
-      "plessoId": "P36",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1751",
-      "indirizzo": "VIA GIANNOZZO MANETTI N.6",
-      "cap": "00167",
-      "comune": "Roma",
-      "plessoId": "P36",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1752",
-      "indirizzo": "VIA GIANNOZZO MANETTI N.6",
-      "cap": "00167",
-      "comune": "Roma",
-      "plessoId": "P36",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1753",
-      "indirizzo": "VIA ETTORE STAMPINI N.38",
-      "cap": "00167",
-      "comune": "Roma",
-      "plessoId": "P37",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1754",
-      "indirizzo": "VIA ETTORE STAMPINI N.38",
-      "cap": "00167",
-      "comune": "Roma",
-      "plessoId": "P37",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1755",
-      "indirizzo": "VIA FRANCESCO CILEA N.269",
-      "cap": "00124",
+      "indirizzo": "VIALE DELL'OCEANO INDIANO N.64",
+      "cap": "00144",
       "comune": "Roma",
       "plessoId": "P38",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "2528",
       "municipio": "09",
-      "sezione": "1756",
-      "indirizzo": "VIA ETTORE STAMPINI N.38",
-      "cap": "00167",
+      "indirizzo": "VIA BRUNO DE FINETTI N.170/B",
+      "cap": "00134",
       "comune": "Roma",
-      "plessoId": "P37",
+      "plessoId": "P12",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "2529",
       "municipio": "09",
-      "sezione": "1757",
-      "indirizzo": "VIA DON PRIMO MAZZOLARI N.323",
-      "cap": "00132",
+      "indirizzo": "VIA BRUNO DE FINETTI N.170/B",
+      "cap": "00134",
       "comune": "Roma",
-      "plessoId": "P39",
+      "plessoId": "P12",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "2546",
       "municipio": "09",
-      "sezione": "1758",
-      "indirizzo": "VIA FRANCESCO ALBERGOTTI N.37",
-      "cap": "00167",
+      "indirizzo": "VIA LUIGI CHIARINI N.400",
+      "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P40",
+      "plessoId": "P28",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "2561",
       "municipio": "09",
-      "sezione": "1759",
-      "indirizzo": "VIA FRANCESCO ALBERGOTTI N.37",
-      "cap": "00167",
+      "indirizzo": "VIA DEL RISARO N.34",
+      "cap": "00127",
       "comune": "Roma",
-      "plessoId": "P40",
+      "plessoId": "P17",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "2566",
       "municipio": "09",
-      "sezione": "1760",
-      "indirizzo": "VIA FRANCESCO ALBERGOTTI N.37",
-      "cap": "00167",
+      "indirizzo": "LARGO FRANCO BIGNOTTI N.3",
+      "cap": "00127",
       "comune": "Roma",
-      "plessoId": "P40",
+      "plessoId": "P02",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "2579",
       "municipio": "09",
-      "sezione": "1761",
-      "indirizzo": "VIA FRANCESCO ALBERGOTTI N.37",
-      "cap": "00167",
+      "indirizzo": "VIA ALVARO DEL PORTILLO N.200",
+      "cap": "00128",
       "comune": "Roma",
-      "plessoId": "P40",
+      "plessoId": "P08",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "2584",
       "municipio": "09",
-      "sezione": "1762",
-      "indirizzo": "VIA ITALO SVEVO N.31",
-      "cap": "00137",
+      "indirizzo": "PIAZZALE DELL'UMANESIMO N.10",
+      "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P41",
+      "plessoId": "P05",
       "numeroVie": 0,
       "vieAssegnate": []
     },
     {
+      "sezione": "2585",
       "municipio": "09",
-      "sezione": "1763",
-      "indirizzo": "VIA GIANNOZZO MANETTI N.6",
-      "cap": "00167",
+      "indirizzo": "VIA ELIO CHIANESI N.53",
+      "cap": "00144",
       "comune": "Roma",
-      "plessoId": "P36",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1764",
-      "indirizzo": "VIA LUIGI RIZZO N.1",
-      "cap": "00136",
-      "comune": "Roma",
-      "plessoId": "P42",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1765",
-      "indirizzo": "VIA GIORDANO BRUNO N.2",
-      "cap": "00195",
-      "comune": "Roma",
-      "plessoId": "P43",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1766",
-      "indirizzo": "VIA GIORDANO BRUNO N.2",
-      "cap": "00195",
-      "comune": "Roma",
-      "plessoId": "P43",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1767",
-      "indirizzo": "VIA GIORDANO BRUNO N.2",
-      "cap": "00195",
-      "comune": "Roma",
-      "plessoId": "P43",
-      "numeroVie": 0,
-      "vieAssegnate": []
-    },
-    {
-      "municipio": "09",
-      "sezione": "1768",
-      "indirizzo": "VIA ANDREA DORIA N.18",
-      "cap": "00192",
-      "comune": "Roma",
-      "plessoId": "P44",
+      "plessoId": "P22",
       "numeroVie": 0,
       "vieAssegnate": []
     }
