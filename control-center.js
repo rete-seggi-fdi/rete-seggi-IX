@@ -11,6 +11,15 @@ const fmt=n=>Number(n||0).toLocaleString('it-IT');
 const pct=n=>(n===''||n==null||!Number.isFinite(Number(n)))?'—':Number(n).toLocaleString('it-IT',{maximumFractionDigits:1})+'%';
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const normSection=v=>String(Number(String(v??'').replace(/\D/g,''))||'');
+const calcPct=(part,whole)=>{
+  const p=Number(part||0),w=Number(whole||0);
+  return w>0&&Number.isFinite(p)&&Number.isFinite(w)?p/w*100:null;
+};
+const isOfficialSection=section=>{
+  const sec=normSection(section);
+  return Boolean(sec&&registry.sezioni.some(x=>normSection(x.sezione)===sec));
+};
+const resultPct=result=>calcPct(result?.fdiVoti,result?.votiValidi);
 async function post(payload){
   if(!BACKEND){
     throw new Error('URL backend assente: config.js non caricato.');
@@ -123,8 +132,25 @@ function monitoredExpected(){return Number(live.sezioniAttese||0)}
 function renderAll(){const t=live.totali||{},expected=monitoredExpected(),received=Number(live.sezioniRicevute||0),progress=expected?received/expected*100:0;$('#kpiExpected').textContent=fmt(expected);$('#kpiTerritory').textContent=fmt(registry.sezioniTotali)+' sezioni territoriali';$('#kpiReceived').textContent=fmt(received);$('#kpiProgress').textContent=pct(progress)+' completato';$('#kpiTurnout').textContent=pct(t.percentuale);$('#kpiVoters').textContent=fmt(t.totale)+' votanti';const scrSections=new Set((live.scrutiniDettaglio||[]).map(x=>x.municipio+'|'+x.sezione));if(!scrSections.size)(live.risultatiListe||[]).forEach(x=>scrSections.add(x.municipio+'|'+x.sezione));$('#kpiScrutini').textContent=fmt(scrSections.size);const c=summary('Comune'),m=summary('Municipio');$('#kpiFdiComune').textContent=fmt(c.fdiVoti);$('#kpiFdiComunePct').textContent=pct(c.fdiSuValidi)+' sui validi';$('#kpiFdiMunicipio').textContent=fmt(m.fdiVoti);$('#kpiFdiMunicipioPct').textContent=pct(m.fdiSuValidi)+' sui validi';$('#progressBar').style.width=Math.min(100,progress)+'%';$('#progressLabel').textContent=pct(progress);$('#legendReceived').textContent=fmt(received);$('#legendMissing').textContent=fmt(live.sezioniMancanti);$('#missingBadge').textContent=fmt(live.sezioniMancanti);renderRecent();renderMissing();renderRankings($('#rankLevel').value,'#topList',5,false);renderRegistry();renderMapList()}
 function renderRecent(){const rows=(live.ultimiInvii||[]).slice(0,7);$('#recentList').innerHTML=rows.map(r=>`<div class="recent-row"><i class="status-dot"></i><div><strong>Sezione ${esc(normSection(r.sezione)||r.sezione)}</strong><small>${esc(r.giorno)} ${esc(r.orario)}</small></div><span>${r.percentuale===''?'—':pct(r.percentuale)}</span></div>`).join('')||'<p class="empty-state">Nessun invio disponibile.</p>'}
 function renderMissing(){const rows=live.mancanti||[];$('#missingList').innerHTML=rows.slice(0,40).map(r=>`<button class="chip" data-section="${esc(r.sezione)}">${esc(normSection(r.sezione)||r.sezione)}</button>`).join('')||'<span class="state done">Tutte le sezioni presidiate hanno inviato</span>';$$('#missingList [data-section]').forEach(b=>b.onclick=()=>openSection(b.dataset.section))}
-function rankingRows(level){return (live.risultatiListe||[]).filter(x=>x.livello===level&&x.municipio==='09'&&Number(x.fdiVoti||0)>0).sort((a,b)=>Number(b.fdiSuValidi||0)-Number(a.fdiSuValidi||0))}
-function renderRankings(level,target,count=10,reverse=false){let rows=rankingRows(level);if(reverse)rows=rows.slice().reverse();rows=rows.slice(0,count);$(target).innerHTML=rows.map((r,i)=>`<div class="ranking-row" data-section="${esc(r.sezione)}"><span class="ranking-index">${i+1}</span><div><strong>Sezione ${esc(normSection(r.sezione)||r.sezione)}</strong><small>${fmt(r.fdiVoti)} voti FdI</small></div><span class="ranking-value">${pct(r.fdiSuValidi)}</span></div>`).join('')||'<p class="empty-state">Nessun risultato FdI valorizzato per questo livello.</p>';$$(`${target} [data-section]`).forEach(x=>x.onclick=()=>openSection(x.dataset.section))}
+function rankingRows(level){
+  return (live.risultatiListe||[])
+    .filter(x=>
+      x.livello===level&&
+      x.municipio==='09'&&
+      Number(x.fdiVoti||0)>0&&
+      Number(x.votiValidi||0)>0&&
+      isOfficialSection(x.sezione)
+    )
+    .map(x=>({...x,fdiSuValidiCalcolata:resultPct(x)}))
+    .sort((a,b)=>Number(b.fdiSuValidiCalcolata||0)-Number(a.fdiSuValidiCalcolata||0));
+}
+function renderRankings(level,target,count=10,reverse=false){
+  let rows=rankingRows(level);
+  if(reverse)rows=rows.slice().reverse();
+  rows=rows.slice(0,count);
+  $(target).innerHTML=rows.map((r,i)=>`<div class="ranking-row" data-section="${esc(r.sezione)}"><span class="ranking-index">${i+1}</span><div><strong>Sezione ${esc(normSection(r.sezione)||r.sezione)}</strong><small>${fmt(r.fdiVoti)} voti FdI su ${fmt(r.votiValidi)} validi</small></div><span class="ranking-value">${pct(r.fdiSuValidiCalcolata)}</span></div>`).join('')||'<p class="empty-state">Nessun risultato FdI valorizzato per questo livello.</p>';
+  $$(`${target} [data-section]`).forEach(x=>x.onclick=()=>openSection(x.dataset.section));
+}
 function statusFor(section){const sec=normSection(section);const scr=(live.scrutiniDettaglio||[]).some(x=>normSection(x.sezione)===sec)||(live.risultatiListe||[]).some(x=>normSection(x.sezione)===sec);if(scr)return{label:'Scrutinio ricevuto',cls:'done'};const aff=(live.sezioni||[]).some(x=>normSection(x.sezione)===sec);return aff?{label:'Affluenza ricevuta',cls:'partial'}:{label:'Nessun dato',cls:'missing'}}
 function filteredRegistry(q,status='all'){q=String(q||'').trim().toLowerCase();return registry.sezioni.filter(x=>{const matchesText=!q||String(x.sezione).includes(q)||String(x.indirizzo).toLowerCase().includes(q)||String(x.cap||'').includes(q);const st=statusFor(x.sezione);return matchesText&&(status==='all'||st.cls===status)})}
 function renderRegistry(){const rows=filteredRegistry($('#sectionSearch')?.value,$('#sectionStatus')?.value||'all');$('#registrySummary').textContent=`${fmt(registry.sezioniTotali)} sezioni in ${fmt(registry.plessiTotali)} plessi elettorali`;$('#sectionsBody').innerHTML=rows.map(r=>{const st=statusFor(r.sezione);return`<tr data-section="${esc(r.sezione)}"><td><strong>${esc(r.sezione)}</strong></td><td>${esc(r.indirizzo)}</td><td>${esc(r.cap)}</td><td>${fmt(r.numeroVie)}</td><td><span class="state ${st.cls}">${st.label}</span></td></tr>`}).join('')||'<tr><td colspan="5" class="empty-cell">Nessuna sezione corrisponde al filtro.</td></tr>';$$('#sectionsBody tr[data-section]').forEach(x=>x.onclick=()=>openSection(x.dataset.section))}
@@ -171,9 +197,14 @@ function openSection(section){
   const hasMunicipio=Boolean(municipio&&Number(municipio.fdiVoti)>0);
 
   const fdiComuneVoti=hasComune?fmt(comune.fdiVoti):'—';
-  const fdiComunePct=hasComune?pct(comune.fdiSuValidi):'Dato non disponibile';
+  const fdiComunePctVal=hasComune?resultPct(comune):null;
+  const fdiComunePct=fdiComunePctVal==null?'Dato non disponibile':pct(fdiComunePctVal);
+  const fdiComuneValidi=hasComune&&Number(comune.votiValidi)>0?fmt(comune.votiValidi):'';
+
   const fdiMunicipioVoti=hasMunicipio?fmt(municipio.fdiVoti):'—';
-  const fdiMunicipioPct=hasMunicipio?pct(municipio.fdiSuValidi):'Dato non disponibile';
+  const fdiMunicipioPctVal=hasMunicipio?resultPct(municipio):null;
+  const fdiMunicipioPct=fdiMunicipioPctVal==null?'Dato non disponibile':pct(fdiMunicipioPctVal);
+  const fdiMunicipioValidi=hasMunicipio&&Number(municipio.votiValidi)>0?fmt(municipio.votiValidi):'';
 
   $('#sectionDialogContent').innerHTML=`
     <p class="eyebrow">DETTAGLIO SEZIONE</p>
@@ -195,13 +226,13 @@ function openSection(section){
       <div class="report-stat">
         <span>FdI Comune</span>
         <strong>${fdiComuneVoti}</strong>
-        <small>${fdiComunePct}</small>
+        <small>${fdiComunePct}${fdiComuneValidi?` su ${fdiComuneValidi} validi`:''}</small>
       </div>
 
       <div class="report-stat">
         <span>FdI Municipio</span>
         <strong>${fdiMunicipioVoti}</strong>
-        <small>${fdiMunicipioPct}</small>
+        <small>${fdiMunicipioPct}${fdiMunicipioValidi?` su ${fdiMunicipioValidi} validi`:''}</small>
       </div>
     </div>
 
@@ -211,7 +242,7 @@ function openSection(section){
 
   $('#sectionDialog').showModal();
 }
-function generateReport(){const c=summary('Comune'),m=summary('Municipio'),top=rankingRows('Comune').slice(0,10);$('#reportPreview').innerHTML=`<div class="report-sheet"><div class="report-title"><p class="eyebrow">RETE SEGGI FDI - IX MUNICIPIO ROMA</p><h2>Dossier elettorale - Elezioni amministrative</h2><p>Generato il ${new Date().toLocaleString('it-IT')}</p></div><div class="report-grid"><div class="report-stat"><span>Sezioni presidiate</span><strong>${fmt(live.sezioniAttese)}</strong></div><div class="report-stat"><span>Sezioni ricevute</span><strong>${fmt(live.sezioniRicevute)}</strong></div><div class="report-stat"><span>Affluenza</span><strong>${pct(live.totali?.percentuale)}</strong></div><div class="report-stat"><span>Votanti</span><strong>${fmt(live.totali?.totale)}</strong></div><div class="report-stat"><span>FdI Comune</span><strong>${fmt(c.fdiVoti)}</strong><small>${pct(c.fdiSuValidi)}</small></div><div class="report-stat"><span>FdI Municipio</span><strong>${fmt(m.fdiVoti)}</strong><small>${pct(m.fdiSuValidi)}</small></div><div class="report-stat"><span>Plessi</span><strong>${fmt(registry.plessiTotali)}</strong></div><div class="report-stat"><span>Sezioni territoriali</span><strong>${fmt(registry.sezioniTotali)}</strong></div></div><div class="report-table"><h3>Top 10 sezioni FdI - Comune</h3>${top.length?`<table><thead><tr><th>Pos.</th><th>Sezione</th><th>Voti FdI</th><th>% validi</th><th>Indirizzo</th></tr></thead><tbody>${top.map((r,i)=>{const reg=registry.sezioni.find(x=>normSection(x.sezione)===normSection(r.sezione));return`<tr><td>${i+1}</td><td>${esc(normSection(r.sezione)||r.sezione)}</td><td>${fmt(r.fdiVoti)}</td><td>${pct(r.fdiSuValidi)}</td><td>${esc(reg?.indirizzo||'')}</td></tr>`}).join('')}</tbody></table>`:'<p class="empty-state">Nessun risultato FdI valorizzato.</p>'}</div></div>`}
+function generateReport(){const c=summary('Comune'),m=summary('Municipio'),top=rankingRows('Comune').slice(0,10);$('#reportPreview').innerHTML=`<div class="report-sheet"><div class="report-title"><p class="eyebrow">RETE SEGGI FDI - IX MUNICIPIO ROMA</p><h2>Dossier elettorale - Elezioni amministrative</h2><p>Generato il ${new Date().toLocaleString('it-IT')}</p></div><div class="report-grid"><div class="report-stat"><span>Sezioni presidiate</span><strong>${fmt(live.sezioniAttese)}</strong></div><div class="report-stat"><span>Sezioni ricevute</span><strong>${fmt(live.sezioniRicevute)}</strong></div><div class="report-stat"><span>Affluenza</span><strong>${pct(live.totali?.percentuale)}</strong></div><div class="report-stat"><span>Votanti</span><strong>${fmt(live.totali?.totale)}</strong></div><div class="report-stat"><span>FdI Comune</span><strong>${fmt(c.fdiVoti)}</strong><small>${pct(c.fdiSuValidi)}</small></div><div class="report-stat"><span>FdI Municipio</span><strong>${fmt(m.fdiVoti)}</strong><small>${pct(m.fdiSuValidi)}</small></div><div class="report-stat"><span>Plessi</span><strong>${fmt(registry.plessiTotali)}</strong></div><div class="report-stat"><span>Sezioni territoriali</span><strong>${fmt(registry.sezioniTotali)}</strong></div></div><div class="report-table"><h3>Top 10 sezioni FdI - Comune</h3>${top.length?`<table><thead><tr><th>Pos.</th><th>Sezione</th><th>Voti FdI</th><th>% validi</th><th>Indirizzo</th></tr></thead><tbody>${top.map((r,i)=>{const reg=registry.sezioni.find(x=>normSection(x.sezione)===normSection(r.sezione));return`<tr><td>${i+1}</td><td>${esc(normSection(r.sezione)||r.sezione)}</td><td>${fmt(r.fdiVoti)}</td><td>${pct(r.fdiSuValidiCalcolata)}</td><td>${esc(reg?.indirizzo||'')}</td></tr>`}).join('')}</tbody></table>`:'<p class="empty-state">Nessun risultato FdI valorizzato.</p>'}</div></div>`}
 function switchView(name){$$('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+name));$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===name));if(name==='rankings'){renderRankings($('#rankingLevel').value,'#bestRankings',15,false);renderRankings($('#rankingLevel').value,'#worstRankings',15,true)}if(name==='sections')renderRegistry();if(name==='map'){renderMapList();renderGeoMap().catch(e=>{console.error(e);const info=$('#mapGeoSummary');if(info)info.textContent=e.message})}if(name==='report'&&live)generateReport();window.scrollTo({top:0,behavior:'smooth'})}
 $('#loginForm').addEventListener('submit',async e=>{
   e.preventDefault();
