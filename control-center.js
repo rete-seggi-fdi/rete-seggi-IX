@@ -1,7 +1,7 @@
 'use strict';
 const CFG=window.SEGGI_CONFIG||{};
 const BACKEND=String(CFG.backendUrl||'').trim();
-const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry';
+const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1450';
 let dashboardToken=localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY)||'',live=null;
 let registry={schemaVersion:0,sezioniTotali:0,plessiTotali:0,sezioni:[]};
 let geoPlessi={schemaVersion:0,plessiTotali:0,plessiGeocodificati:0,plessi:[]};
@@ -55,8 +55,8 @@ function showLogin(message=''){clearSession();$('#loginView').hidden=false;$('#a
 function clearSession(){dashboardToken='';localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY)}
 async function login(password){const x=await post({tipo:'dashboard_login',password});if(!x.ok)throw new Error(x.error||'Accesso non riuscito');dashboardToken=x.dashboardToken;localStorage.setItem(TOKEN_KEY,dashboardToken);localStorage.setItem(EXP_KEY,x.expiresAt||'');sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY)}
 function validateRegistry(data){if(!data||typeof data!=='object'||!Array.isArray(data.sezioni))throw new Error('Archivio sezioni non valido.');const rows=data.sezioni.filter(x=>x&&x.sezione&&x.indirizzo).map(x=>({...x,sezione:normSection(x.sezione),numeroVie:Number(x.numeroVie||((x.vieAssegnate||[]).length)),vieAssegnate:Array.isArray(x.vieAssegnate)?x.vieAssegnate:[]}));if(!rows.length)throw new Error('Archivio sezioni vuoto.');const plessi=new Set(rows.map(x=>String(x.indirizzo).trim()+'|'+String(x.cap||'').trim()));return {...data,sezioni:rows,sezioniTotali:rows.length,plessiTotali:Number(data.plessiTotali||plessi.size)}}
-async function loadRegistry(){const url='data/sezioni-ix-control.json?v=14.4.2';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
-async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=14.4.2';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
+async function loadRegistry(){const url='data/sezioni-ix-control.json?v=14.5.0';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
+async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=14.5.0';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
 
 function rebuildRegistryIndex(){
   registryBySection=new Map();
@@ -66,20 +66,26 @@ function rebuildRegistryIndex(){
   });
 }
 function mergeRegistryWithGeo(){
+  // L’anagrafica delle 168 sezioni è l’unica fonte autorizzata.
+  // Il file geografico completa indirizzi/coordinate, ma non può aggiungere
+  // sezioni esterne o ereditate da altri municipi.
   const rows=new Map();
   (registry.sezioni||[]).forEach(row=>{
     const sec=normSection(row.sezione);
     if(sec)rows.set(sec,{...row,sezione:sec});
   });
+  const territoriali=new Set(rows.keys());
+  const plessiFiltrati=[];
   (geoPlessi.plessi||[]).forEach(plesso=>{
-    (plesso.sezioni||[]).forEach(value=>{
-      const sec=normSection(value);
-      if(!sec)return;
+    const sezioni=(plesso.sezioni||[]).map(normSection).filter(sec=>territoriali.has(sec));
+    if(!sezioni.length)return;
+    plessiFiltrati.push({...plesso,sezioni});
+    sezioni.forEach(sec=>{
       const precedente=rows.get(sec)||{};
       rows.set(sec,{
         ...precedente,
         sezione:sec,
-        municipio:String(precedente.municipio||plesso.municipio||'09'),
+        municipio:String(precedente.municipio||'09'),
         indirizzo:String(precedente.indirizzo||plesso.indirizzo||'').trim(),
         cap:String(precedente.cap||plesso.cap||'').trim(),
         comune:String(precedente.comune||plesso.comune||'Roma').trim(),
@@ -93,6 +99,7 @@ function mergeRegistryWithGeo(){
     .sort((a,b)=>Number(a.sezione)-Number(b.sezione));
   const plessi=new Set(complete.map(x=>String(x.indirizzo).trim()+'|'+String(x.cap||'').trim()));
   registry={...registry,sezioni:complete,sezioniTotali:complete.length,plessiTotali:plessi.size};
+  geoPlessi={...geoPlessi,plessi:plessiFiltrati,plessiGeocodificati:plessiFiltrati.length,plessiTotali:plessiFiltrati.length};
   rebuildRegistryIndex();
 }
 function registryForSection(section){
@@ -159,12 +166,71 @@ function addBoundaryToggle(L){if($('#mapBoundaryToggle'))return;const Control=L.
 
 async function renderGeoMap(){const el=ensureMapContainer();if(!el||!geoPlessi.plessi.length)return;const L=await ensureLeaflet();if(!mapInstance){mapInstance=L.map(el,{zoomControl:true,scrollWheelZoom:true}).setView([41.805,12.47],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(mapInstance);addBoundaryToggle(L)}mapMarkers.forEach(m=>m.remove());mapMarkers=[];const bounds=[];geoPlessi.plessi.forEach(p=>{const cls=statusForPlesso(p);const sez=(p.sezioni||[]).map(normSection).filter(Boolean);const marker=L.marker([Number(p.lat),Number(p.lng)],{icon:markerIcon(cls),title:p.indirizzo}).addTo(mapInstance);marker.bindPopup(`<div style="min-width:230px"><strong>${esc(p.id)} · ${esc(p.indirizzo)}</strong><br><small>${esc(p.cap||'')} ${esc(p.comune||'Roma')}</small><p style="margin:.55rem 0 0"><b>Sezioni:</b> ${sez.map(esc).join(', ')||'—'}</p></div>`);marker._seggiSections=new Set(sez);mapMarkers.push(marker);bounds.push([Number(p.lat),Number(p.lng)])});let confineOk=false;try{await loadMunicipioBoundary(L);confineOk=true}catch(e){console.warn(e)}if(bounds.length)mapInstance.fitBounds(bounds,{padding:[42,42],maxZoom:13});const info=$('#mapGeoSummary');if(info)info.textContent=`${fmt(geoPlessi.plessiGeocodificati)} punti visibili · ${fmt(geoPlessi.plessiGeocodificati)}/${fmt(geoPlessi.plessiTotali||geoPlessi.plessi.length)} plessi geocodificati${confineOk?' · confine Municipio IX attivo':' · confine non disponibile'}`;setTimeout(()=>mapInstance.invalidateSize(),80)}
 function focusSectionOnMap(section){const sec=normSection(section);const marker=mapMarkers.find(m=>m._seggiSections?.has(sec));if(marker&&mapInstance){mapInstance.setView(marker.getLatLng(),16,{animate:true});marker.openPopup()}}
-async function load(){if(!dashboardToken)return showLogin();setOnline(false,'Aggiornamento…');try{const x=await post({tipo:'dashboard_affluenza',dashboardToken});if(!x.ok){if(String(x.code).includes('SESSION'))return showLogin(x.error);throw new Error(x.error||'Errore backend')}live=x;renderAll();$('#loginView').hidden=true;$('#appView').hidden=false;['refreshBtn','printBtn','logoutBtn'].forEach(id=>$('#'+id).hidden=false);setOnline(true,'Online');$('#backendVersion').textContent='Backend '+(x.versioneBackend||'-');$('#lastUpdate').textContent='Aggiornato '+new Date(x.serverTime).toLocaleString('it-IT')}catch(e){setOnline(false,'Errore');if(!live)showLogin(e.message);console.error(e)}}
+function restoreLiveCache(){
+  if(live)return false;
+  try{
+    const cached=JSON.parse(localStorage.getItem(LIVE_CACHE_KEY)||'null');
+    if(!cached?.data)return false;
+    live=cached.data;
+    renderAll();
+    $('#loginView').hidden=true;
+    $('#appView').hidden=false;
+    ['refreshBtn','printBtn','logoutBtn'].forEach(id=>$('#'+id).hidden=false);
+    $('#lastUpdate').textContent='Dati memorizzati · aggiornamento in corso…';
+    return true;
+  }catch(e){return false}
+}
+async function load(){
+  if(!dashboardToken)return showLogin();
+  const restored=restoreLiveCache();
+  setOnline(false,restored?'Aggiornamento…':'Caricamento…');
+  const refreshBtn=$('#refreshBtn');
+  if(refreshBtn)refreshBtn.disabled=true;
+  try{
+    const x=await post({tipo:'dashboard_affluenza',dashboardToken});
+    if(!x.ok){if(String(x.code).includes('SESSION'))return showLogin(x.error);throw new Error(x.error||'Errore backend')}
+    live=x;
+    try{localStorage.setItem(LIVE_CACHE_KEY,JSON.stringify({savedAt:Date.now(),data:x}))}catch(e){}
+    renderAll();
+    $('#loginView').hidden=true;$('#appView').hidden=false;
+    ['refreshBtn','printBtn','logoutBtn'].forEach(id=>$('#'+id).hidden=false);
+    setOnline(true,'Online');
+    $('#backendVersion').textContent='Backend '+(x.versioneBackend||'-');
+    $('#lastUpdate').textContent='Aggiornato '+new Date(x.serverTime).toLocaleString('it-IT');
+  }catch(e){
+    setOnline(false,live?'Dati memorizzati':'Errore');
+    if(!live)showLogin(e.message);
+    console.error(e)
+  }finally{if(refreshBtn)refreshBtn.disabled=false}
+}
 function summary(level){return (live.riepilogoFdi||{})[level]||{}}
 function geoSectionsTotal(){const set=new Set();(geoPlessi.plessi||[]).forEach(p=>(p.sezioni||[]).forEach(s=>{const n=normSection(s);if(n)set.add(n)}));return set.size}
-function territorialExpected(){return Math.max(Number(registry.sezioniTotali||0),geoSectionsTotal())}
+function territorialExpected(){return Number(registry.sezioniTotali||0)}
+function territorialReceived(){const valid=new Set((registry.sezioni||[]).map(x=>normSection(x.sezione)));const seen=new Set();(live?.sezioni||[]).forEach(x=>{const sec=normSection(x.sezione);if(valid.has(sec))seen.add(sec)});(live?.scrutiniDettaglio||[]).forEach(x=>{const sec=normSection(x.sezione);if(valid.has(sec))seen.add(sec)});return seen.size}
 function monitoredExpected(){return Number(live.sezioniAttese||0)}
-function renderAll(){const t=live.totali||{},presidi=monitoredExpected(),expected=territorialExpected(),received=Number(live.sezioniRicevute||0),progress=expected?Math.min(100,received/expected*100):0;$('#kpiExpected').textContent=fmt(presidi);$('#kpiTerritory').textContent=fmt(expected)+' sezioni territoriali/cartografiche';$('#kpiReceived').textContent=fmt(received);$('#kpiProgress').textContent=pct(progress)+' completato';$('#kpiTurnout').textContent=pct(t.percentuale);$('#kpiVoters').textContent=fmt(t.totale)+' votanti';const scrSections=new Set((live.scrutiniDettaglio||[]).map(x=>x.municipio+'|'+x.sezione));if(!scrSections.size)(live.risultatiListe||[]).forEach(x=>scrSections.add(x.municipio+'|'+x.sezione));$('#kpiScrutini').textContent=fmt(scrSections.size);const c=summary('Comune'),m=summary('Municipio');$('#kpiFdiComune').textContent=fmt(c.fdiVoti);$('#kpiFdiComunePct').textContent=pct(c.fdiSuValidi)+' sui validi';$('#kpiFdiMunicipio').textContent=fmt(m.fdiVoti);$('#kpiFdiMunicipioPct').textContent=pct(m.fdiSuValidi)+' sui validi';$('#progressBar').style.width=Math.min(100,progress)+'%';$('#progressLabel').textContent=pct(progress);$('#legendReceived').textContent=fmt(received);$('#legendMissing').textContent=fmt(live.sezioniMancanti);$('#missingBadge').textContent=fmt(live.sezioniMancanti);renderRecent();renderMissing();renderRankings($('#rankLevel').value,'#topList',5,false);renderRegistry();renderMapList()}
+function renderAll(){
+  const t=live.totali||{},presidi=monitoredExpected(),expected=territorialExpected(),received=territorialReceived(),missing=Math.max(0,expected-received),progress=expected?Math.min(100,received/expected*100):0;
+  $('#kpiExpected').textContent=fmt(presidi);
+  $('#kpiTerritory').textContent=fmt(expected)+' sezioni territoriali';
+  $('#kpiReceived').textContent=fmt(received);
+  $('#kpiProgress').textContent=pct(progress)+' completato';
+  $('#kpiTurnout').textContent=pct(t.percentuale);$('#kpiVoters').textContent=fmt(t.totale)+' votanti';
+  const scrSections=new Set((live.scrutiniDettaglio||[]).filter(x=>registryBySection.has(normSection(x.sezione))).map(x=>normSection(x.sezione)));
+  if(!scrSections.size)(live.risultatiListe||[]).filter(x=>registryBySection.has(normSection(x.sezione))).forEach(x=>scrSections.add(normSection(x.sezione)));
+  $('#kpiScrutini').textContent=fmt(scrSections.size);
+  const c=summary('Comune'),m=summary('Municipio');
+  $('#kpiFdiComune').textContent=fmt(c.fdiVoti);$('#kpiFdiComunePct').textContent=pct(c.fdiSuValidi)+' sui validi';
+  $('#kpiFdiMunicipio').textContent=fmt(m.fdiVoti);$('#kpiFdiMunicipioPct').textContent=pct(m.fdiSuValidi)+' sui validi';
+  $('#progressBar').style.width=progress+'%';$('#progressLabel').textContent=pct(progress);
+  $('#legendReceived').textContent=fmt(received);$('#legendMissing').textContent=fmt(missing);$('#missingBadge').textContent=fmt(missing);
+  renderRecent();renderMissingTerritorial();renderRankings($('#rankLevel').value,'#topList',5,false);renderRegistry();renderMapList();
+}
+function renderMissingTerritorial(){
+  const received=new Set();(live.sezioni||[]).forEach(x=>received.add(normSection(x.sezione)));(live.scrutiniDettaglio||[]).forEach(x=>received.add(normSection(x.sezione)));
+  const rows=(registry.sezioni||[]).filter(x=>!received.has(normSection(x.sezione)));
+  $('#missingList').innerHTML=rows.slice(0,40).map(r=>`<button class="chip" data-section="${esc(r.sezione)}">${esc(r.sezione)}</button>`).join('')||'<span class="state done">Tutte le sezioni territoriali hanno inviato</span>';
+  $$('#missingList [data-section]').forEach(b=>b.onclick=()=>openSection(b.dataset.section));
+}
 function renderRecent(){const rows=(live.ultimiInvii||[]).slice(0,7);$('#recentList').innerHTML=rows.map(r=>`<div class="recent-row"><i class="status-dot"></i><div><strong>Sezione ${esc(normSection(r.sezione)||r.sezione)}</strong><small>${esc(r.giorno)} ${esc(r.orario)}</small></div><span>${r.percentuale===''?'—':pct(r.percentuale)}</span></div>`).join('')||'<p class="empty-state">Nessun invio disponibile.</p>'}
 function renderMissing(){const rows=live.mancanti||[];$('#missingList').innerHTML=rows.slice(0,40).map(r=>`<button class="chip" data-section="${esc(r.sezione)}">${esc(normSection(r.sezione)||r.sezione)}</button>`).join('')||'<span class="state done">Tutte le sezioni presidiate hanno inviato</span>';$$('#missingList [data-section]').forEach(b=>b.onclick=()=>openSection(b.dataset.section))}
 function rankingRows(level){return (live.risultatiListe||[]).filter(x=>x.livello===level&&x.municipio==='09'&&Number(x.fdiVoti||0)>0).sort((a,b)=>Number(b.fdiSuValidi||0)-Number(a.fdiSuValidi||0))}
@@ -172,7 +238,7 @@ function renderRankings(level,target,count=10,reverse=false){let rows=rankingRow
 function statusFor(section){const sec=normSection(section);const scr=(live.scrutiniDettaglio||[]).some(x=>normSection(x.sezione)===sec)||(live.risultatiListe||[]).some(x=>normSection(x.sezione)===sec);if(scr)return{label:'Scrutinio ricevuto',cls:'done'};const aff=(live.sezioni||[]).some(x=>normSection(x.sezione)===sec);return aff?{label:'Affluenza ricevuta',cls:'partial'}:{label:'Nessun dato',cls:'missing'}}
 function filteredRegistry(q,status='all'){q=String(q||'').trim().toLowerCase();return registry.sezioni.filter(x=>{const matchesText=!q||String(x.sezione).includes(q)||String(x.indirizzo).toLowerCase().includes(q)||String(x.cap||'').includes(q);const st=statusFor(x.sezione);return matchesText&&(status==='all'||st.cls===status)})}
 function renderRegistry(){const rows=filteredRegistry($('#sectionSearch')?.value,$('#sectionStatus')?.value||'all');$('#registrySummary').textContent=`${fmt(registry.sezioniTotali)} sezioni in ${fmt(registry.plessiTotali)} plessi elettorali`;$('#sectionsBody').innerHTML=rows.map(r=>{const st=statusFor(r.sezione);return`<tr data-section="${esc(r.sezione)}"><td><strong>${esc(r.sezione)}</strong></td><td>${esc(r.indirizzo)}</td><td>${esc(r.cap)}</td><td>${fmt(r.numeroVie)}</td><td><span class="state ${st.cls}">${st.label}</span></td></tr>`}).join('')||'<tr><td colspan="5" class="empty-cell">Nessuna sezione corrisponde al filtro.</td></tr>';$$('#sectionsBody tr[data-section]').forEach(x=>x.onclick=()=>openSection(x.dataset.section))}
-function renderMapList(){const rows=filteredRegistry($('#mapSearch')?.value);$('#mapSectionList').innerHTML=rows.map(r=>{const st=statusFor(r.sezione);return`<div class="map-section-card" data-section="${esc(r.sezione)}"><strong>Sezione ${esc(r.sezione)}</strong><small>${esc(r.indirizzo)}</small><span class="state ${st.cls}">${st.label}</span></div>`}).join('')||'<p class="empty-state">Nessuna sezione corrisponde alla ricerca.</p>';$$('.map-section-card').forEach(x=>x.onclick=()=>{focusSectionOnMap(x.dataset.section);openSection(x.dataset.section)})}
+function renderMapList(){const q=$('#mapSearch')?.value||'';const rows=filteredRegistry(q);$('#mapSectionList').innerHTML=rows.map(r=>{const st=statusFor(r.sezione);return`<button type="button" class="map-section-card" data-section="${esc(r.sezione)}"><strong>Sezione ${esc(r.sezione)}</strong><small>${esc(r.indirizzo)}${r.cap?' · '+esc(r.cap):''}</small><span class="state ${st.cls}">${st.label}</span></button>`}).join('')||'<p class="empty-state">Nessuna sezione corrisponde alla ricerca.</p>';$$('.map-section-card').forEach(x=>x.onclick=()=>focusSectionOnMap(x.dataset.section));const exact=rows.length===1&&normSection(q)===normSection(rows[0].sezione);if(exact)setTimeout(()=>focusSectionOnMap(rows[0].sezione),50)}
 function openSection(section){
   const sec=normSection(section);
   const reg=registryForSection(sec);
