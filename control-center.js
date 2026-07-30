@@ -55,8 +55,8 @@ function showLogin(message=''){clearSession();$('#loginView').hidden=false;$('#a
 function clearSession(){dashboardToken='';localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY)}
 async function login(password){const x=await post({tipo:'dashboard_login',password});if(!x.ok)throw new Error(x.error||'Accesso non riuscito');dashboardToken=x.dashboardToken;localStorage.setItem(TOKEN_KEY,dashboardToken);localStorage.setItem(EXP_KEY,x.expiresAt||'');sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY)}
 function validateRegistry(data){if(!data||typeof data!=='object'||!Array.isArray(data.sezioni))throw new Error('Archivio sezioni non valido.');const rows=data.sezioni.filter(x=>x&&x.sezione&&x.indirizzo).map(x=>({...x,sezione:normSection(x.sezione),numeroVie:Number(x.numeroVie||((x.vieAssegnate||[]).length)),vieAssegnate:Array.isArray(x.vieAssegnate)?x.vieAssegnate:[]}));if(!rows.length)throw new Error('Archivio sezioni vuoto.');const plessi=new Set(rows.map(x=>String(x.indirizzo).trim()+'|'+String(x.cap||'').trim()));return {...data,sezioni:rows,sezioniTotali:rows.length,plessiTotali:Number(data.plessiTotali||plessi.size)}}
-async function loadRegistry(){const url='data/sezioni-ix-control.json?v=14.4.0';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
-async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=14.4.0';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
+async function loadRegistry(){const url='data/sezioni-ix-control.json?v=14.4.1';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
+async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=14.4.1';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
 
 function rebuildRegistryIndex(){
   registryBySection=new Map();
@@ -132,7 +132,7 @@ function prepareMapLayout(){
     list.style.padding='2px 4px 8px 2px';
   }
   const version=[...document.querySelectorAll('small,.brand-subtitle')].find(x=>/CONTROL CENTER/i.test(x.textContent||''));
-  if(version)version.textContent='CONTROL CENTER 14.4.0';
+  if(version)version.textContent='CONTROL CENTER 14.4.1';
   return {layout,aside,list};
 }
 function ensureMapContainer(){
@@ -255,7 +255,18 @@ function openSection(section){
 
   $('#sectionDialog').showModal();
 }
-function generateReport(){const c=summary('Comune'),m=summary('Municipio'),top=rankingRows('Comune').slice(0,10);$('#reportPreview').innerHTML=`<div class="report-sheet"><div class="report-title"><p class="eyebrow">RETE SEGGI FDI - IX MUNICIPIO ROMA</p><h2>Dossier elettorale - Elezioni amministrative</h2><p>Generato il ${new Date().toLocaleString('it-IT')}</p></div><div class="report-grid"><div class="report-stat"><span>Sezioni presidiate</span><strong>${fmt(live.sezioniAttese)}</strong></div><div class="report-stat"><span>Sezioni territoriali/cartografiche</span><strong>${fmt(territorialExpected())}</strong></div><div class="report-stat"><span>Sezioni ricevute</span><strong>${fmt(live.sezioniRicevute)}</strong></div><div class="report-stat"><span>Affluenza</span><strong>${pct(live.totali?.percentuale)}</strong></div><div class="report-stat"><span>Votanti</span><strong>${fmt(live.totali?.totale)}</strong></div><div class="report-stat"><span>FdI Comune</span><strong>${fmt(c.fdiVoti)}</strong><small>${pct(c.fdiSuValidi)}</small></div><div class="report-stat"><span>FdI Municipio</span><strong>${fmt(m.fdiVoti)}</strong><small>${pct(m.fdiSuValidi)}</small></div><div class="report-stat"><span>Plessi</span><strong>${fmt(registry.plessiTotali)}</strong></div><div class="report-stat"><span>Sezioni territoriali</span><strong>${fmt(registry.sezioniTotali)}</strong></div></div><div class="report-table"><h3>Top 10 sezioni FdI - Comune</h3>${top.length?`<table><thead><tr><th>Pos.</th><th>Sezione</th><th>Voti FdI</th><th>% validi</th><th>Indirizzo</th></tr></thead><tbody>${top.map((r,i)=>{const reg=registryForSection(r.sezione);return`<tr><td>${i+1}</td><td>${esc(normSection(r.sezione)||r.sezione)}</td><td>${fmt(r.fdiVoti)}</td><td>${pct(r.fdiSuValidi)}</td><td>${esc(reg?.indirizzo||'Indirizzo non disponibile')}</td></tr>`}).join('')}</tbody></table>`:'<p class="empty-state">Nessun risultato FdI valorizzato.</p>'}</div></div>`}
+function generateReport(){
+  const preview=$('#reportPreview');
+  if(!preview){
+    console.error('Contenitore #reportPreview non trovato.');
+    return;
+  }
+  if(!live){
+    preview.innerHTML='<p class="empty-state error">Dati non ancora disponibili. Premi Aggiorna e riprova.</p>';
+    return;
+  }
+  const c=summary('Comune'),m=summary('Municipio'),top=rankingRows('Comune').slice(0,10);
+  preview.innerHTML=`<div class="report-sheet"><div class="report-title"><p class="eyebrow">RETE SEGGI FDI - IX MUNICIPIO ROMA</p><h2>Dossier elettorale - Elezioni amministrative</h2><p>Generato il ${new Date().toLocaleString('it-IT')}</p></div><div class="report-grid"><div class="report-stat"><span>Sezioni presidiate</span><strong>${fmt(live.sezioniAttese)}</strong></div><div class="report-stat"><span>Sezioni territoriali/cartografiche</span><strong>${fmt(territorialExpected())}</strong></div><div class="report-stat"><span>Sezioni ricevute</span><strong>${fmt(live.sezioniRicevute)}</strong></div><div class="report-stat"><span>Affluenza</span><strong>${pct(live.totali?.percentuale)}</strong></div><div class="report-stat"><span>Votanti</span><strong>${fmt(live.totali?.totale)}</strong></div><div class="report-stat"><span>FdI Comune</span><strong>${fmt(c.fdiVoti)}</strong><small>${pct(c.fdiSuValidi)}</small></div><div class="report-stat"><span>FdI Municipio</span><strong>${fmt(m.fdiVoti)}</strong><small>${pct(m.fdiSuValidi)}</small></div><div class="report-stat"><span>Plessi</span><strong>${fmt(registry.plessiTotali)}</strong></div><div class="report-stat"><span>Sezioni territoriali</span><strong>${fmt(registry.sezioniTotali)}</strong></div></div><div class="report-table"><h3>Top 10 sezioni FdI - Comune</h3>${top.length?`<table><thead><tr><th>Pos.</th><th>Sezione</th><th>Voti FdI</th><th>% validi</th><th>Indirizzo</th></tr></thead><tbody>${top.map((r,i)=>{const reg=registryForSection(r.sezione);return`<tr><td>${i+1}</td><td>${esc(normSection(r.sezione)||r.sezione)}</td><td>${fmt(r.fdiVoti)}</td><td>${pct(r.fdiSuValidi)}</td><td>${esc(reg?.indirizzo||'Indirizzo non disponibile')}</td></tr>`}).join('')}</tbody></table>`:'<p class="empty-state">Nessun risultato FdI valorizzato.</p>'}</div></div>`}
 function switchView(name){$$('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+name));$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===name));if(name==='rankings'){renderRankings($('#rankingLevel').value,'#bestRankings',15,false);renderRankings($('#rankingLevel').value,'#worstRankings',15,true)}if(name==='sections')renderRegistry();if(name==='map'){renderMapList();renderGeoMap().catch(e=>{console.error(e);const info=$('#mapGeoSummary');if(info)info.textContent=e.message})}if(name==='report'&&live)generateReport();window.scrollTo({top:0,behavior:'smooth'})}
 $('#loginForm').addEventListener('submit',async e=>{
   e.preventDefault();
@@ -284,5 +295,99 @@ $('#loginForm').addEventListener('submit',async e=>{
     button.textContent=originalLabel;
     passwordInput.disabled=false;
   }
-});$('#refreshBtn').onclick=load;$('#logoutBtn').onclick=()=>showLogin();$('#printBtn').onclick=()=>{switchView('report');generateReport();setTimeout(()=>window.print(),100)};$('#generateReportBtn').onclick=generateReport;$('#closeDialog').onclick=()=>$('#sectionDialog').close();$$('.nav-item').forEach(b=>b.onclick=()=>switchView(b.dataset.view));$$('[data-view-link]').forEach(b=>b.onclick=()=>switchView(b.dataset.viewLink));$('#rankLevel').onchange=e=>renderRankings(e.target.value,'#topList',5,false);$('#rankingLevel').onchange=e=>{renderRankings(e.target.value,'#bestRankings',15,false);renderRankings(e.target.value,'#worstRankings',15,true)};$('#sectionSearch').oninput=renderRegistry;$('#sectionStatus').onchange=renderRegistry;$('#mapSearch').oninput=renderMapList;document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#sectionDialog').open)$('#sectionDialog').close()});
+});function bindControlCenterEvents(){
+  const refreshBtn=$('#refreshBtn');
+  const logoutBtn=$('#logoutBtn');
+  const printBtn=$('#printBtn');
+  const generateReportBtn=$('#generateReportBtn');
+  const closeDialog=$('#closeDialog');
+  const loginForm=$('#loginForm');
+
+  if(loginForm){
+    loginForm.addEventListener('submit',async e=>{
+      e.preventDefault();
+
+      const form=e.currentTarget;
+      const button=form.querySelector('button[type="submit"]');
+      const passwordInput=$('#password');
+      const originalLabel=button.textContent;
+
+      $('#loginError').textContent='';
+      button.disabled=true;
+      button.textContent='Accesso in corso…';
+      passwordInput.disabled=true;
+      setOnline(false,'Accesso…');
+
+      try{
+        await login(passwordInput.value);
+        passwordInput.value='';
+        button.textContent='Caricamento dati…';
+        await load();
+      }catch(err){
+        $('#loginError').textContent=err.message;
+        setOnline(false,'Errore');
+      }finally{
+        button.disabled=false;
+        button.textContent=originalLabel;
+        passwordInput.disabled=false;
+      }
+    });
+  }
+
+  if(refreshBtn)refreshBtn.addEventListener('click',load);
+  if(logoutBtn)logoutBtn.addEventListener('click',()=>showLogin());
+  if(printBtn)printBtn.addEventListener('click',()=>{
+    switchView('report');
+    generateReport();
+    setTimeout(()=>window.print(),150);
+  });
+
+  if(generateReportBtn){
+    generateReportBtn.addEventListener('click',()=>{
+      generateReportBtn.disabled=true;
+      const originalLabel=generateReportBtn.textContent;
+      generateReportBtn.textContent='Generazione…';
+      try{
+        generateReport();
+      }catch(error){
+        console.error('Errore generazione anteprima:',error);
+        const preview=$('#reportPreview');
+        if(preview){
+          preview.innerHTML='<p class="empty-state error">Errore generazione anteprima: '+esc(error?.message||error)+'</p>';
+        }
+      }finally{
+        generateReportBtn.disabled=false;
+        generateReportBtn.textContent=originalLabel;
+      }
+    });
+  }else{
+    console.error('Pulsante #generateReportBtn non trovato.');
+  }
+
+  if(closeDialog)closeDialog.addEventListener('click',()=>$('#sectionDialog').close());
+
+  $$('.nav-item').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
+  $$('[data-view-link]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.viewLink)));
+
+  const rankLevel=$('#rankLevel');
+  const rankingLevel=$('#rankingLevel');
+  const sectionSearch=$('#sectionSearch');
+  const sectionStatus=$('#sectionStatus');
+  const mapSearch=$('#mapSearch');
+
+  if(rankLevel)rankLevel.addEventListener('change',e=>renderRankings(e.target.value,'#topList',5,false));
+  if(rankingLevel)rankingLevel.addEventListener('change',e=>{
+    renderRankings(e.target.value,'#bestRankings',15,false);
+    renderRankings(e.target.value,'#worstRankings',15,true);
+  });
+  if(sectionSearch)sectionSearch.addEventListener('input',renderRegistry);
+  if(sectionStatus)sectionStatus.addEventListener('change',renderRegistry);
+  if(mapSearch)mapSearch.addEventListener('input',renderMapList);
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&$('#sectionDialog')?.open)$('#sectionDialog').close();
+  });
+}
+
+bindControlCenterEvents();
 (async()=>{try{$('#sectionSearch').value='';$('#mapSearch').value='';await Promise.all([loadRegistry(),loadGeoPlessi()]);mergeRegistryWithGeo()}catch(e){console.error(e);$('#registrySummary').textContent=e.message;$('#sectionsBody').innerHTML=`<tr><td colspan="5" class="empty-cell error">${esc(e.message)}</td></tr>`;$('#mapSectionList').innerHTML=`<p class="empty-state error">${esc(e.message)}</p>`}if(dashboardToken)await load();else showLogin()})();
