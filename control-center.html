@@ -11,7 +11,7 @@
 <body>
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 15.0.0</small></div></div>
+      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 15.1.0</small></div></div>
       <nav aria-label="Navigazione Control Center">
         <button type="button" class="nav-item active" data-view="overview"><span class="nav-icon" aria-hidden="true">▦</span><span>Riepilogo</span></button>
         <button type="button" class="nav-item" data-view="map"><span class="nav-icon" aria-hidden="true">⌖</span><span>Mappa Municipio IX</span></button>
@@ -70,14 +70,14 @@
         </section>
 
         <section id="view-report" class="view report-view">
-          <div class="report-hero"><div><p class="eyebrow">DOSSIER ELETTORALE</p><h2>Report finale - Elezioni amministrative</h2><p>Riepilogo del Municipio IX, risultati FdI, sezioni e plessi.</p></div><button type="button" id="generateReportBtn" class="btn primary" >Genera anteprima</button></div>
-          <div id="reportPreview" class="report-preview" aria-live="polite"><p class="empty-state">Premi “Genera anteprima” per creare il report.</p></div>
+          <div class="report-hero"><div><p class="eyebrow">DOSSIER ELETTORALE</p><h2>Report finale - Elezioni amministrative</h2><p>Riepilogo del Municipio IX, risultati FdI, sezioni e plessi.</p></div><div class="report-actions"><button type="button" id="generateReportBtn" class="btn primary">Dossier riepilogo</button><button type="button" id="generateDetailedReportBtn" class="btn secondary">Report sezioni</button><button type="button" id="downloadDetailedCsvBtn" class="btn secondary">Scarica CSV per Excel</button></div></div>
+          <div id="reportPreview" class="report-preview" aria-live="polite"><p class="empty-state">Scegli “Dossier riepilogo” oppure “Report sezioni”.</p></div>
         </section>
       </div>
     </main>
   </div>
   <dialog id="sectionDialog"><div class="dialog-card"><button type="button" id="closeDialog" class="dialog-close">×</button><div id="sectionDialogContent"></div></div></dialog>
-  <script src="config.js?v=15.0.0"></script>
-  <script src="control-center.js?v=15.0.0"></script>
+  <script src="config.js?v=15.1.0"></script>
+  <script src="control-center.js?v=15.1.0"></script>
 </body>
 </html>

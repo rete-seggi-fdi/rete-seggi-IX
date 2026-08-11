@@ -1,7 +1,7 @@
 'use strict';
 const CFG=window.SEGGI_CONFIG||{};
 const BACKEND=String(CFG.backendUrl||'').trim();
-const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1500';
+const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1510';
 let dashboardToken=localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY)||'',live=null;
 let registry={schemaVersion:0,sezioniTotali:0,plessiTotali:0,sezioni:[]};
 let geoPlessi={schemaVersion:0,plessiTotali:0,plessiGeocodificati:0,plessi:[]};
@@ -137,7 +137,7 @@ function prepareMapLayout(){
     list.style.padding='2px 4px 8px 2px';
   }
   const version=[...document.querySelectorAll('small,.brand-subtitle')].find(x=>/CONTROL CENTER/i.test(x.textContent||''));
-  if(version)version.textContent='CONTROL CENTER 15.0.0';
+  if(version)version.textContent='CONTROL CENTER 15.1.0';
   return {layout,aside,list,staticPanel};
 }
 function ensureMapContainer(){
@@ -480,7 +480,81 @@ function generateReport(){
 
   return false;
 }
-function switchView(name){$$('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+name));$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===name));if(name==='rankings'){renderRankings($('#rankingLevel').value,'#bestRankings',15,false);renderRankings($('#rankingLevel').value,'#worstRankings',15,true)}if(name==='sections')renderRegistry();if(name==='map'){renderMapList();renderGeoMap().catch(e=>{console.error(e);const info=$('#mapGeoSummary');if(info)info.textContent=e.message})}if(name==='report'){const p=$('#reportPreview');if(p&&!p.querySelector('.report-sheet'))p.innerHTML='<p class="empty-state">Premi “Genera anteprima” per creare il report.</p>';}window.scrollTo({top:0,behavior:'smooth'})}
+
+function detailedScrutinioRows(){
+  const bySection=new Map();
+  (live?.scrutiniDettaglio||[]).forEach(r=>{
+    const municipio=String(r?.municipio||'').replace(/\D/g,'').padStart(2,'0');
+    const sezione=normSection(r?.sezione);
+    if(municipio!=='09'||!sezione)return;
+    const row={
+      sezione,
+      iscritti:Number(r.elettori||0),
+      votanti:Number(r.votanti||0),
+      valideComune:Number(r.valideComune||0),
+      biancheComune:Number(r.biancheComune||0),
+      nulleComune:Number(r.nulleComune||0),
+      contestateComune:Number(r.contestateComune||0),
+      valideMunicipio:Number(r.valideMunicipio||0),
+      biancheMunicipio:Number(r.biancheMunicipio||0),
+      nulleMunicipio:Number(r.nulleMunicipio||0),
+      contestateMunicipio:Number(r.contestateMunicipio||0)
+    };
+    bySection.set(sezione,row);
+  });
+  return [...bySection.values()].sort((a,b)=>Number(a.sezione)-Number(b.sezione));
+}
+function detailedReportTotals(rows){
+  return rows.reduce((t,r)=>{
+    Object.keys(t).forEach(k=>t[k]+=Number(r[k]||0));
+    return t;
+  },{iscritti:0,votanti:0,valideComune:0,biancheComune:0,nulleComune:0,contestateComune:0,valideMunicipio:0,biancheMunicipio:0,nulleMunicipio:0,contestateMunicipio:0});
+}
+function generateDetailedReport(){
+  const preview=$('#reportPreview');
+  const button=$('#generateDetailedReportBtn');
+  if(!preview)return false;
+  if(button){button.disabled=true;button.textContent='Generazione…';}
+  try{
+    if(!live)throw new Error('Dati elettorali non ancora disponibili. Premi Aggiorna e riprova.');
+    const rows=detailedScrutinioRows();
+    if(!rows.length)throw new Error('Nessuno scrutinio disponibile per il report sezioni.');
+    const t=detailedReportTotals(rows);
+    const aff=t.iscritti?Math.round(t.votanti/t.iscritti*1000)/10:'';
+    preview.innerHTML=`<div class="report-sheet detailed-report-sheet"><div class="report-title"><p class="eyebrow">RETE SEGGI FDI - IX MUNICIPIO ROMA</p><h2>Report amministrative - dettaglio per sezione</h2><p>Generato il ${new Date().toLocaleString('it-IT',{hour12:false})} · ${fmt(rows.length)} sezioni</p></div><div class="report-grid detailed-summary"><div class="report-stat"><span>Sezioni nel report</span><strong>${fmt(rows.length)}</strong></div><div class="report-stat"><span>Iscritti</span><strong>${fmt(t.iscritti)}</strong></div><div class="report-stat"><span>Votanti</span><strong>${fmt(t.votanti)}</strong></div><div class="report-stat"><span>Affluenza</span><strong>${pct(aff)}</strong></div></div><div class="report-table detailed-report-table"><table><thead><tr><th>Sezione</th><th>Iscritti</th><th>Votanti</th><th>Valide Comune</th><th>Bianche Comune</th><th>Nulle Comune</th><th>Contestate Comune</th><th>Valide Municipio</th><th>Bianche Municipio</th><th>Nulle Municipio</th><th>Contestate Municipio</th></tr></thead><tbody>${rows.map(r=>`<tr><td><strong>${esc(r.sezione)}</strong></td><td>${fmt(r.iscritti)}</td><td>${fmt(r.votanti)}</td><td>${fmt(r.valideComune)}</td><td>${fmt(r.biancheComune)}</td><td>${fmt(r.nulleComune)}</td><td>${fmt(r.contestateComune)}</td><td>${fmt(r.valideMunicipio)}</td><td>${fmt(r.biancheMunicipio)}</td><td>${fmt(r.nulleMunicipio)}</td><td>${fmt(r.contestateMunicipio)}</td></tr>`).join('')}</tbody><tfoot><tr><th>TOTALE</th><th>${fmt(t.iscritti)}</th><th>${fmt(t.votanti)}</th><th>${fmt(t.valideComune)}</th><th>${fmt(t.biancheComune)}</th><th>${fmt(t.nulleComune)}</th><th>${fmt(t.contestateComune)}</th><th>${fmt(t.valideMunicipio)}</th><th>${fmt(t.biancheMunicipio)}</th><th>${fmt(t.nulleMunicipio)}</th><th>${fmt(t.contestateMunicipio)}</th></tr></tfoot></table></div></div>`;
+    preview.classList.remove('report-flash');void preview.offsetWidth;preview.classList.add('report-flash');preview.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(error){
+    console.error('Errore report sezioni:',error);
+    preview.innerHTML='<p class="empty-state error">Errore report sezioni: '+esc(error?.message||error)+'</p>';
+  }finally{
+    if(button){button.disabled=false;button.textContent='Report sezioni';}
+  }
+  return false;
+}
+function csvCell(value){return '"'+String(value??'').replace(/"/g,'""')+'"';}
+function downloadDetailedCsv(){
+  try{
+    if(!live)throw new Error('Dati elettorali non ancora disponibili.');
+    const rows=detailedScrutinioRows();
+    if(!rows.length)throw new Error('Nessuno scrutinio disponibile da esportare.');
+    const headers=['Sezione','Iscritti','Votanti','Valide Comune','Bianche Comune','Nulle Comune','Contestate Comune','Valide Municipio','Bianche Municipio','Nulle Municipio','Contestate Municipio'];
+    const body=[headers,...rows.map(r=>[r.sezione,r.iscritti,r.votanti,r.valideComune,r.biancheComune,r.nulleComune,r.contestateComune,r.valideMunicipio,r.biancheMunicipio,r.nulleMunicipio,r.contestateMunicipio])]
+      .map(row=>row.map(csvCell).join(';')).join('\r\n');
+    const blob=new Blob(['\ufeff'+body],{type:'text/csv;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const now=new Date();
+    const stamp=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('')+'_'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
+    a.href=url;a.download='SeggioLink_Report_Amministrative_IX_'+stamp+'.csv';
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(error){
+    console.error('Errore esportazione CSV:',error);
+    alert('Errore esportazione CSV: '+(error?.message||error));
+  }
+  return false;
+}
+
+function switchView(name){$$('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+name));$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===name));if(name==='rankings'){renderRankings($('#rankingLevel').value,'#bestRankings',15,false);renderRankings($('#rankingLevel').value,'#worstRankings',15,true)}if(name==='sections')renderRegistry();if(name==='map'){renderMapList();renderGeoMap().catch(e=>{console.error(e);const info=$('#mapGeoSummary');if(info)info.textContent=e.message})}if(name==='report'){const p=$('#reportPreview');if(p&&!p.querySelector('.report-sheet'))p.innerHTML='<p class="empty-state">Scegli “Dossier riepilogo” oppure “Report sezioni”.</p>';}window.scrollTo({top:0,behavior:'smooth'})}
 window.SeggioLinkGenerateReport=generateReport;
 
 function bindControlCenterEvents(){
@@ -488,6 +562,8 @@ function bindControlCenterEvents(){
   const logoutBtn=$('#logoutBtn');
   const printBtn=$('#printBtn');
   const generateReportBtn=$('#generateReportBtn');
+  const generateDetailedReportBtn=$('#generateDetailedReportBtn');
+  const downloadDetailedCsvBtn=$('#downloadDetailedCsvBtn');
   const closeDialog=$('#closeDialog');
   const loginForm=$('#loginForm');
 
@@ -526,11 +602,14 @@ function bindControlCenterEvents(){
   if(logoutBtn)logoutBtn.addEventListener('click',()=>showLogin());
   if(printBtn)printBtn.addEventListener('click',()=>{
     switchView('report');
-    generateReport();
-    setTimeout(()=>window.print(),150);
+    const preview=$('#reportPreview');
+    if(!preview?.querySelector('.report-sheet'))generateReport();
+    setTimeout(()=>window.print(),220);
   });
 
   if(!generateReportBtn)console.error('Pulsante #generateReportBtn non trovato.');
+  if(generateDetailedReportBtn)generateDetailedReportBtn.addEventListener('click',generateDetailedReport);
+  if(downloadDetailedCsvBtn)downloadDetailedCsvBtn.addEventListener('click',downloadDetailedCsv);
 
   if(closeDialog)closeDialog.addEventListener('click',()=>$('#sectionDialog').close());
 
