@@ -32,3 +32,19 @@
 .dashboard-frame-wrap iframe{display:block;width:100%;height:calc(100vh - 205px);min-height:720px;border:0;background:#f4f6fa}
 .dashboard-open-link{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
 @media(max-width:800px){.dashboard-frame-wrap iframe{height:calc(100vh - 175px);min-height:650px}.dashboard-embedded-view .view-head{align-items:stretch}.dashboard-open-link{width:100%}}
+
+/* Control Center 15.2.1 — rifinitura Dashboard coordinamento integrata */
+.dashboard-embedded-view .view-head{
+  align-items:center;
+}
+.dashboard-embedded-view .dashboard-open-link{
+  background:var(--navy2);
+  color:#fff;
+  border-color:var(--navy2);
+}
+.dashboard-embedded-view .dashboard-open-link:hover{
+  background:var(--navy);
+}
+.dashboard-frame-wrap{
+  border-color:#d8e0eb;
+}
