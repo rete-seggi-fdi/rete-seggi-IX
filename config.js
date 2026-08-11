@@ -1,7 +1,7 @@
 /* Configurazione ambiente: non inserire segreti in questo file. */
 window.SEGGI_CONFIG = Object.freeze({
   appVersion: '13.6.1',
-  buildDate: '2026-07-29',
+  buildDate: '2026-08-11',
   environment: 'production',
   latestVersionUrl: 'build-info.json',
   appName: 'SeggioLink Roma',

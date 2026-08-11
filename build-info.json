@@ -1,10 +1,10 @@
 {
-  "latestVersion": "13.6.0",
-  "minimumVersion": "13.6.0",
-  "buildDate": "2026-07-29",
-  "environment": "production",
-  "mandatory": true,
-  "version": "14.5.1",
-  "notes": "Ripristinate tutte le 174 sezioni uniche presenti nei 38 plessi; nessun filtro distruttivo.",
-  "build": "2026-07-31-sezioni-corrette-174"
+  "app": "SeggioLink Control Center",
+  "version": "15.0.0",
+  "buildDate": "2026-08-11",
+  "backendExpected": "13.7.0-production-dashboard-fast",
+  "registrySchema": 8,
+  "geoSchema": 3,
+  "municipio": "09",
+  "notes": "Release operativa: dashboard cache veloce, report finale, 174 sezioni, 38 plessi geocodificati, mappa Leaflet con confine Municipio IX e geolocalizzazione utente."
 }

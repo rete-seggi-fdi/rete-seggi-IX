@@ -6,12 +6,12 @@
   <meta name="robots" content="noindex,nofollow">
   <meta name="theme-color" content="#0a1833">
   <title>SeggioLink Control Center - Municipio IX</title>
-  <link rel="stylesheet" href="control-center.css?v=14.5.1">
+  <link rel="stylesheet" href="control-center.css?v=15.0.0">
 </head>
 <body>
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 14.5.1</small></div></div>
+      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 15.0.0</small></div></div>
       <nav aria-label="Navigazione Control Center">
         <button type="button" class="nav-item active" data-view="overview"><span class="nav-icon" aria-hidden="true">▦</span><span>Riepilogo</span></button>
         <button type="button" class="nav-item" data-view="map"><span class="nav-icon" aria-hidden="true">⌖</span><span>Mappa Municipio IX</span></button>
@@ -55,8 +55,8 @@
         </section>
 
         <section id="view-map" class="view">
-          <div class="view-head"><div><h2>Mappa ufficiale Municipio IX</h2><p>Base cartografica fornita dal Municipio IX. I seggi sono consultabili nella colonna laterale per indirizzo.</p></div><label>Cerca sezione<input id="mapSearch" name="cc-map-section-filter" inputmode="numeric" autocomplete="off" placeholder="es. 1667"></label></div>
-          <div class="map-layout"><div class="map-panel"><img src="data/mappa-municipio-ix.png" alt="Mappa ufficiale del Municipio IX di Roma"><div class="map-note">I punti geografici saranno collocati solo dopo geocodifica verificata degli indirizzi; nessuna posizione viene inventata.</div></div><aside class="map-sections"><div id="mapSectionList"><p class="empty-state">Caricamento sezioni…</p></div></aside></div>
+          <div class="view-head"><div><h2>Mappa ufficiale Municipio IX</h2><p>Mappa operativa con 38 plessi geocodificati, stato degli invii, ricerca per sezione e posizione del coordinatore. La mappa ufficiale resta disponibile come fallback.</p></div><label>Cerca sezione<input id="mapSearch" name="cc-map-section-filter" inputmode="numeric" autocomplete="off" placeholder="es. 1667"></label></div>
+          <div class="map-layout"><div class="map-panel"><img src="data/mappa-municipio-ix.png" alt="Mappa ufficiale del Municipio IX di Roma"><div class="map-note">Mappa ufficiale di fallback. La vista interattiva usa esclusivamente coordinate verificate dei plessi.</div></div><aside class="map-sections"><div id="mapSectionList"><p class="empty-state">Caricamento sezioni…</p></div></aside></div>
         </section>
 
         <section id="view-sections" class="view">
@@ -77,7 +77,7 @@
     </main>
   </div>
   <dialog id="sectionDialog"><div class="dialog-card"><button type="button" id="closeDialog" class="dialog-close">×</button><div id="sectionDialogContent"></div></div></dialog>
-  <script src="config.js?v=13.6.1"></script>
-  <script src="control-center.js?v=14.5.1"></script>
+  <script src="config.js?v=15.0.0"></script>
+  <script src="control-center.js?v=15.0.0"></script>
 </body>
 </html>

@@ -1,12 +1,12 @@
 'use strict';
 const CFG=window.SEGGI_CONFIG||{};
 const BACKEND=String(CFG.backendUrl||'').trim();
-const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1450';
+const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1500';
 let dashboardToken=localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY)||'',live=null;
 let registry={schemaVersion:0,sezioniTotali:0,plessiTotali:0,sezioni:[]};
 let geoPlessi={schemaVersion:0,plessiTotali:0,plessiGeocodificati:0,plessi:[]};
 let registryBySection=new Map();
-let mapInstance=null,mapMarkers=[],leafletPromise=null,boundaryLayer=null,boundaryVisible=true;
+let mapInstance=null,mapMarkers=[],leafletPromise=null,boundaryLayer=null,boundaryVisible=true,userLocationMarker=null,userAccuracyCircle=null,geoReady=false,geoLoadPromise=null;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const fmt=n=>Number(n||0).toLocaleString('it-IT');
 const pct=n=>(n===''||n==null||!Number.isFinite(Number(n)))?'—':Number(n).toLocaleString('it-IT',{maximumFractionDigits:1})+'%';
@@ -55,8 +55,8 @@ function showLogin(message=''){clearSession();$('#loginView').hidden=false;$('#a
 function clearSession(){dashboardToken='';localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY)}
 async function login(password){const x=await post({tipo:'dashboard_login',password});if(!x.ok)throw new Error(x.error||'Accesso non riuscito');dashboardToken=x.dashboardToken;localStorage.setItem(TOKEN_KEY,dashboardToken);localStorage.setItem(EXP_KEY,x.expiresAt||'');sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY)}
 function validateRegistry(data){if(!data||typeof data!=='object'||!Array.isArray(data.sezioni))throw new Error('Archivio sezioni non valido.');const rows=data.sezioni.filter(x=>x&&x.sezione&&x.indirizzo).map(x=>({...x,sezione:normSection(x.sezione),numeroVie:Number(x.numeroVie||((x.vieAssegnate||[]).length)),vieAssegnate:Array.isArray(x.vieAssegnate)?x.vieAssegnate:[]}));if(!rows.length)throw new Error('Archivio sezioni vuoto.');const plessi=new Set(rows.map(x=>String(x.indirizzo).trim()+'|'+String(x.cap||'').trim()));return {...data,sezioni:rows,sezioniTotali:rows.length,plessiTotali:Number(data.plessiTotali||plessi.size)}}
-async function loadRegistry(){const url='data/sezioni-ix-control.json?v=14.5.1';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
-async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=14.5.1';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
+async function loadRegistry(){const url='data/sezioni-ix-control.json?v=15.0.0';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
+async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=15.0.0';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
 
 function rebuildRegistryIndex(){
   registryBySection=new Map();
@@ -111,7 +111,7 @@ function prepareMapLayout(){
   const staticPanel=view.querySelector('.map-panel');
   const aside=view.querySelector('.map-sections');
   const list=$('#mapSectionList');
-  if(staticPanel)staticPanel.remove();
+  if(staticPanel)staticPanel.hidden=true;
   if(layout){
     layout.style.display='block';
     layout.style.gridTemplateColumns='none';
@@ -137,24 +137,107 @@ function prepareMapLayout(){
     list.style.padding='2px 4px 8px 2px';
   }
   const version=[...document.querySelectorAll('small,.brand-subtitle')].find(x=>/CONTROL CENTER/i.test(x.textContent||''));
-  if(version)version.textContent='CONTROL CENTER 14.5.1';
-  return {layout,aside,list};
+  if(version)version.textContent='CONTROL CENTER 15.0.0';
+  return {layout,aside,list,staticPanel};
 }
 function ensureMapContainer(){
   const parts=prepareMapLayout();
   if(!parts?.layout||!parts.list)return null;
-  let el=$('#mapCanvas');
-  if(el)return el;
-  const info=document.createElement('p');
-  info.id='mapGeoSummary';
-  info.style.cssText='margin:0 0 12px;font-size:.92rem;opacity:.82';
-  el=document.createElement('div');
-  el.id='mapCanvas';
-  el.setAttribute('aria-label','Mappa dinamica dei plessi elettorali con confine del Municipio IX');
-  el.style.cssText='height:min(68vh,720px);min-height:560px;width:100%;border-radius:18px;overflow:hidden;margin:0 0 18px;background:#e9ecef;box-shadow:0 8px 28px rgba(0,0,0,.12)';
-  parts.layout.insertBefore(info,parts.aside);
-  parts.layout.insertBefore(el,parts.aside);
-  return el;
+  let wrap=$('#mapInteractiveWrap');
+  if(wrap)return $('#mapCanvas');
+
+  wrap=document.createElement('section');
+  wrap.id='mapInteractiveWrap';
+  wrap.className='map-interactive-wrap';
+  wrap.innerHTML=`
+    <div class="map-toolbar" aria-label="Strumenti mappa">
+      <div>
+        <strong>Mappa operativa dei plessi</strong>
+        <small id="mapGeoSummary">Caricamento cartografia…</small>
+      </div>
+      <div class="map-toolbar-actions">
+        <button type="button" id="mapLocateBtn" class="btn secondary">⌖ La mia posizione</button>
+        <button type="button" id="mapResetBtn" class="btn secondary">Inquadra plessi</button>
+      </div>
+    </div>
+    <div class="map-legend" aria-label="Legenda stato plessi">
+      <span><i class="legend-dot done"></i> Scrutinio ricevuto</span>
+      <span><i class="legend-dot partial"></i> Solo affluenza</span>
+      <span><i class="legend-dot missing"></i> Nessun dato</span>
+      <span><i class="legend-dot user"></i> La mia posizione</span>
+    </div>
+    <div id="mapCanvas" role="application" aria-label="Mappa dinamica dei plessi elettorali del Municipio IX"></div>
+    <p id="mapLocationStatus" class="map-location-status" aria-live="polite"></p>`;
+
+  parts.layout.insertBefore(wrap,parts.aside);
+  $('#mapLocateBtn')?.addEventListener('click',locateUserOnMap);
+  $('#mapResetBtn')?.addEventListener('click',fitMapToPlessi);
+  return $('#mapCanvas');
+}
+async function ensureGeoReady(){
+  if(geoReady&&geoPlessi.plessi.length)return geoPlessi;
+  if(geoLoadPromise)return geoLoadPromise;
+  geoLoadPromise=(async()=>{
+    await loadGeoPlessi();
+    geoReady=true;
+    return geoPlessi;
+  })().finally(()=>{geoLoadPromise=null});
+  return geoLoadPromise;
+}
+function mapPlessoBounds(){
+  return (geoPlessi.plessi||[])
+    .filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng)))
+    .map(p=>[Number(p.lat),Number(p.lng)]);
+}
+function fitMapToPlessi(){
+  if(!mapInstance||!window.L)return;
+  const bounds=mapPlessoBounds();
+  if(bounds.length)mapInstance.fitBounds(bounds,{padding:[42,42],maxZoom:13});
+}
+function distanceMeters(lat1,lng1,lat2,lng2){
+  const R=6371000,toRad=x=>x*Math.PI/180;
+  const dLat=toRad(lat2-lat1),dLng=toRad(lng2-lng1);
+  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+  return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function nearestPlesso(lat,lng){
+  let best=null;
+  (geoPlessi.plessi||[]).forEach(p=>{
+    const d=distanceMeters(lat,lng,Number(p.lat),Number(p.lng));
+    if(!best||d<best.distance)best={plesso:p,distance:d};
+  });
+  return best;
+}
+function fmtDistance(m){
+  if(!Number.isFinite(m))return'—';
+  return m<1000?Math.round(m)+' m':(m/1000).toLocaleString('it-IT',{maximumFractionDigits:1})+' km';
+}
+function locateUserOnMap(){
+  const status=$('#mapLocationStatus');
+  if(!navigator.geolocation){if(status)status.textContent='Geolocalizzazione non supportata da questo browser.';return;}
+  const btn=$('#mapLocateBtn');
+  if(btn){btn.disabled=true;btn.textContent='Localizzazione…';}
+  if(status)status.textContent='Richiesta posizione in corso…';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat=pos.coords.latitude,lng=pos.coords.longitude,accuracy=Number(pos.coords.accuracy||0);
+    const L=window.L;
+    if(!mapInstance||!L)return;
+    if(userLocationMarker)userLocationMarker.remove();
+    if(userAccuracyCircle)userAccuracyCircle.remove();
+    userLocationMarker=L.circleMarker([lat,lng],{radius:9,color:'#0b5fff',weight:3,fillColor:'#fff',fillOpacity:1}).addTo(mapInstance).bindPopup('<strong>La mia posizione</strong>');
+    if(accuracy>0)userAccuracyCircle=L.circle([lat,lng],{radius:accuracy,color:'#0b5fff',weight:1,fillOpacity:.05}).addTo(mapInstance);
+    mapInstance.setView([lat,lng],15,{animate:true});
+    userLocationMarker.openPopup();
+    const near=nearestPlesso(lat,lng);
+    if(status&&near){
+      const sez=(near.plesso.sezioni||[]).map(normSection).filter(Boolean).join(', ');
+      status.innerHTML=`Plesso più vicino: <strong>${esc(near.plesso.indirizzo)}</strong> · ${fmtDistance(near.distance)} · sezioni ${esc(sez||'—')}`;
+    }else if(status)status.textContent='Posizione rilevata.';
+  },err=>{
+    const msg=err.code===1?'Permesso posizione negato. Abilitalo nelle impostazioni del browser.':err.code===2?'Posizione non disponibile.':'Tempo scaduto durante la localizzazione.';
+    if(status)status.textContent=msg;
+  },{enableHighAccuracy:true,timeout:12000,maximumAge:60000});
+  window.setTimeout(()=>{if(btn){btn.disabled=false;btn.textContent='⌖ La mia posizione';}},13000);
 }
 function statusForPlesso(p){const sez=Array.isArray(p.sezioni)?p.sezioni.map(normSection).filter(Boolean):[];if(!sez.length)return'missing';const stati=sez.map(statusFor);if(stati.every(x=>x.cls==='done'))return'done';if(stati.some(x=>x.cls==='done'||x.cls==='partial'))return'partial';return'missing'}
 function markerIcon(cls){const colors={done:'#16803c',partial:'#d97706',missing:'#b42318'};const c=colors[cls]||'#1d4ed8';return window.L.divIcon({className:'',html:`<span style="display:block;width:18px;height:18px;border-radius:50%;background:${c};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.38)"></span>`,iconSize:[18,18],iconAnchor:[9,9],popupAnchor:[0,-10]})}
@@ -162,8 +245,41 @@ function romanToNumber(value){const v=String(value||'').trim().toUpperCase().rep
 async function loadMunicipioBoundary(L){if(boundaryLayer)return boundaryLayer;const endpoint='https://services-eu1.arcgis.com/CQGl8ODCKnscqiME/ArcGIS/rest/services/Perimetrazioni_Comune_di_Roma/FeatureServer/0/query?where=1%3D1&outFields=MUNICIPIO%2CDENOMINAZI&returnGeometry=true&outSR=4326&f=geojson';const r=await fetch(endpoint,{cache:'force-cache'});if(!r.ok)throw new Error('Confine municipale non raggiungibile ('+r.status+').');const all=await r.json();const features=(all.features||[]).filter(f=>romanToNumber(f?.properties?.MUNICIPIO)===9||/municipio\s*ix/i.test(String(f?.properties?.DENOMINAZI||'')));if(!features.length)throw new Error('Confine del Municipio IX non trovato.');boundaryLayer=L.geoJSON({type:'FeatureCollection',features},{style:{color:'#0b3b75',weight:4,opacity:.95,fillColor:'#2f6fb0',fillOpacity:.08,dashArray:'9 6'},interactive:true}).bindPopup('<strong>Municipio Roma IX</strong><br>Confine amministrativo');boundaryLayer.addTo(mapInstance);boundaryVisible=true;return boundaryLayer}
 function addBoundaryToggle(L){if($('#mapBoundaryToggle'))return;const Control=L.Control.extend({options:{position:'topright'},onAdd(){const box=L.DomUtil.create('div','leaflet-bar');const b=L.DomUtil.create('button','',box);b.id='mapBoundaryToggle';b.type='button';b.title='Mostra o nascondi il confine del Municipio IX';b.setAttribute('aria-label',b.title);b.style.cssText='width:auto;min-width:40px;height:34px;padding:0 10px;border:0;background:white;font-weight:700;cursor:pointer';const sync=()=>b.textContent=boundaryVisible?'Confine ✓':'Confine';sync();L.DomEvent.disableClickPropagation(box);L.DomEvent.on(b,'click',()=>{if(!boundaryLayer)return;if(boundaryVisible){mapInstance.removeLayer(boundaryLayer);boundaryVisible=false}else{boundaryLayer.addTo(mapInstance);boundaryVisible=true}sync()});return box}});mapInstance.addControl(new Control())}
 
-async function renderGeoMap(){const el=ensureMapContainer();if(!el||!geoPlessi.plessi.length)return;const L=await ensureLeaflet();if(!mapInstance){mapInstance=L.map(el,{zoomControl:true,scrollWheelZoom:true}).setView([41.805,12.47],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(mapInstance);addBoundaryToggle(L)}mapMarkers.forEach(m=>m.remove());mapMarkers=[];const bounds=[];geoPlessi.plessi.forEach(p=>{const cls=statusForPlesso(p);const sez=(p.sezioni||[]).map(normSection).filter(Boolean);const marker=L.marker([Number(p.lat),Number(p.lng)],{icon:markerIcon(cls),title:p.indirizzo}).addTo(mapInstance);marker.bindPopup(`<div style="min-width:230px"><strong>${esc(p.id)} · ${esc(p.indirizzo)}</strong><br><small>${esc(p.cap||'')} ${esc(p.comune||'Roma')}</small><p style="margin:.55rem 0 0"><b>Sezioni:</b> ${sez.map(esc).join(', ')||'—'}</p></div>`);marker._seggiSections=new Set(sez);mapMarkers.push(marker);bounds.push([Number(p.lat),Number(p.lng)])});let confineOk=false;try{await loadMunicipioBoundary(L);confineOk=true}catch(e){console.warn(e)}if(bounds.length)mapInstance.fitBounds(bounds,{padding:[42,42],maxZoom:13});const info=$('#mapGeoSummary');if(info)info.textContent=`${fmt(geoPlessi.plessiGeocodificati)} punti visibili · ${fmt(geoPlessi.plessiGeocodificati)}/${fmt(geoPlessi.plessiTotali||geoPlessi.plessi.length)} plessi geocodificati${confineOk?' · confine Municipio IX attivo':' · confine non disponibile'}`;setTimeout(()=>mapInstance.invalidateSize(),80)}
-function focusSectionOnMap(section){const sec=normSection(section);const marker=mapMarkers.find(m=>m._seggiSections?.has(sec));if(marker&&mapInstance){mapInstance.setView(marker.getLatLng(),16,{animate:true});marker.openPopup();return true}openSection(sec);return false}
+async function renderGeoMap(){
+  const el=ensureMapContainer();
+  if(!el)return;
+  await ensureGeoReady();
+  const L=await ensureLeaflet();
+  if(!mapInstance){
+    mapInstance=L.map(el,{zoomControl:true,scrollWheelZoom:true,preferCanvas:true}).setView([41.805,12.47],12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:19,
+      attribution:'&copy; OpenStreetMap contributors'
+    }).addTo(mapInstance);
+    addBoundaryToggle(L);
+  }
+  mapMarkers.forEach(m=>m.remove());
+  mapMarkers=[];
+  const bounds=[];
+  geoPlessi.plessi.forEach(p=>{
+    const cls=statusForPlesso(p);
+    const sez=(p.sezioni||[]).map(normSection).filter(Boolean);
+    const marker=L.marker([Number(p.lat),Number(p.lng)],{icon:markerIcon(cls),title:p.indirizzo}).addTo(mapInstance);
+    const navUrl='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(Number(p.lat)+','+Number(p.lng));
+    marker.bindPopup(`<div class="map-popup"><strong>${esc(p.id)} · ${esc(p.indirizzo)}</strong><br><small>${esc(p.cap||'')} ${esc(p.comune||'Roma')}</small><p><b>Sezioni:</b> ${sez.map(esc).join(', ')||'—'}</p><a href="${navUrl}" target="_blank" rel="noopener">Apri indicazioni</a></div>`);
+    marker._seggiSections=new Set(sez);
+    marker._seggiPlesso=p;
+    mapMarkers.push(marker);
+    bounds.push([Number(p.lat),Number(p.lng)]);
+  });
+  let confineOk=false;
+  try{await loadMunicipioBoundary(L);confineOk=true}catch(e){console.warn(e)}
+  if(bounds.length)mapInstance.fitBounds(bounds,{padding:[42,42],maxZoom:13});
+  const info=$('#mapGeoSummary');
+  if(info)info.textContent=`${fmt(geoPlessi.plessiGeocodificati)} plessi geocodificati · ${fmt(geoSectionsTotal())} sezioni associate${confineOk?' · confine Municipio IX attivo':' · confine non disponibile'}`;
+  setTimeout(()=>mapInstance.invalidateSize(),80);
+}
+async function focusSectionOnMap(section){const sec=normSection(section);if(!mapInstance||!mapMarkers.length){try{await renderGeoMap()}catch(e){console.error(e)}}const marker=mapMarkers.find(m=>m._seggiSections?.has(sec));if(marker&&mapInstance){mapInstance.setView(marker.getLatLng(),16,{animate:true});marker.openPopup();return true}openSection(sec);return false}
 function restoreLiveCache(){
   if(live)return false;
   try{
@@ -345,7 +461,7 @@ function generateReport(){
       const m=summary('Municipio');
       const top=rankingRows('Comune').slice(0,10);
 
-      preview.innerHTML=`<div class="report-sheet"><div class="report-title"><p class="eyebrow">RETE SEGGI FDI - IX MUNICIPIO ROMA</p><h2>Dossier elettorale - Elezioni amministrative</h2><p>Generato il ${new Date().toLocaleString('it-IT',{hour12:false})}</p></div><div class="report-grid"><div class="report-stat"><span>Sezioni presidiate</span><strong>${fmt(live.sezioniAttese)}</strong></div><div class="report-stat"><span>Sezioni territoriali/cartografiche</span><strong>${fmt(territorialExpected())}</strong></div><div class="report-stat"><span>Sezioni ricevute</span><strong>${fmt(live.sezioniRicevute)}</strong></div><div class="report-stat"><span>Affluenza</span><strong>${pct(live.totali?.percentuale)}</strong></div><div class="report-stat"><span>Votanti</span><strong>${fmt(live.totali?.totale)}</strong></div><div class="report-stat"><span>FdI Comune</span><strong>${fmt(c.fdiVoti)}</strong><small>${pct(c.fdiSuValidi)}</small></div><div class="report-stat"><span>FdI Municipio</span><strong>${fmt(m.fdiVoti)}</strong><small>${pct(m.fdiSuValidi)}</small></div><div class="report-stat"><span>Plessi</span><strong>${fmt(registry.plessiTotali)}</strong></div><div class="report-stat"><span>Sezioni territoriali</span><strong>${fmt(registry.sezioniTotali)}</strong></div></div><div class="report-table"><h3>Top 10 sezioni FdI - Comune</h3>${top.length?`<table><thead><tr><th>Pos.</th><th>Sezione</th><th>Voti FdI</th><th>% validi</th><th>Indirizzo</th></tr></thead><tbody>${top.map((r,i)=>{const reg=registryForSection(r.sezione);return`<tr><td>${i+1}</td><td>${esc(normSection(r.sezione)||r.sezione)}</td><td>${fmt(r.fdiVoti)}</td><td>${pct(r.fdiSuValidi)}</td><td>${esc(reg?.indirizzo||'Indirizzo non disponibile')}</td></tr>`}).join('')}</tbody></table>`:'<p class="empty-state">Nessun risultato FdI valorizzato.</p>'}</div></div>`;
+      preview.innerHTML=`<div class="report-sheet"><div class="report-title"><p class="eyebrow">RETE SEGGI FDI - IX MUNICIPIO ROMA</p><h2>Dossier elettorale - Elezioni amministrative</h2><p>Generato il ${new Date().toLocaleString('it-IT',{hour12:false})}</p></div><div class="report-grid"><div class="report-stat"><span>Sezioni presidiate</span><strong>${fmt(live.sezioniAttese)}</strong></div><div class="report-stat"><span>Sezioni territoriali/cartografiche</span><strong>${fmt(territorialExpected())}</strong></div><div class="report-stat"><span>Sezioni ricevute</span><strong>${fmt(territorialReceived())}</strong></div><div class="report-stat"><span>Affluenza</span><strong>${pct(live.totali?.percentuale)}</strong></div><div class="report-stat"><span>Votanti</span><strong>${fmt(live.totali?.totale)}</strong></div><div class="report-stat"><span>FdI Comune</span><strong>${fmt(c.fdiVoti)}</strong><small>${pct(c.fdiSuValidi)}</small></div><div class="report-stat"><span>FdI Municipio</span><strong>${fmt(m.fdiVoti)}</strong><small>${pct(m.fdiSuValidi)}</small></div><div class="report-stat"><span>Plessi</span><strong>${fmt(registry.plessiTotali)}</strong></div><div class="report-stat"><span>Sezioni territoriali</span><strong>${fmt(registry.sezioniTotali)}</strong></div></div><div class="report-table"><h3>Top 10 sezioni FdI - Comune</h3>${top.length?`<table><thead><tr><th>Pos.</th><th>Sezione</th><th>Voti FdI</th><th>% validi</th><th>Indirizzo</th></tr></thead><tbody>${top.map((r,i)=>{const reg=registryForSection(r.sezione);return`<tr><td>${i+1}</td><td>${esc(normSection(r.sezione)||r.sezione)}</td><td>${fmt(r.fdiVoti)}</td><td>${pct(r.fdiSuValidi)}</td><td>${esc(reg?.indirizzo||'Indirizzo non disponibile')}</td></tr>`}).join('')}</tbody></table>`:'<p class="empty-state">Nessun risultato FdI valorizzato.</p>'}</div></div>`;
 
       preview.classList.remove('report-flash');
       void preview.offsetWidth;
@@ -443,4 +559,4 @@ function bindControlCenterEvents(){
 
 bindControlCenterEvents();
 document.addEventListener('click',e=>{const b=e.target.closest?.('#generateReportBtn');if(b){e.preventDefault();generateReport();}},{capture:true});
-(async()=>{try{$('#sectionSearch').value='';$('#mapSearch').value='';await Promise.all([loadRegistry(),loadGeoPlessi()]);mergeRegistryWithGeo()}catch(e){console.error(e);$('#registrySummary').textContent=e.message;$('#sectionsBody').innerHTML=`<tr><td colspan="5" class="empty-cell error">${esc(e.message)}</td></tr>`;$('#mapSectionList').innerHTML=`<p class="empty-state error">${esc(e.message)}</p>`}if(dashboardToken)await load();else showLogin()})();
+(async()=>{try{$('#sectionSearch').value='';$('#mapSearch').value='';await loadRegistry();rebuildRegistryIndex()}catch(e){console.error(e);$('#registrySummary').textContent=e.message;$('#sectionsBody').innerHTML=`<tr><td colspan="5" class="empty-cell error">${esc(e.message)}</td></tr>`;$('#mapSectionList').innerHTML=`<p class="empty-state error">${esc(e.message)}</p>`}if(dashboardToken)await load();else showLogin()})();
