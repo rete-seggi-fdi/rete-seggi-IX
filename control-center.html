@@ -6,14 +6,15 @@
   <meta name="robots" content="noindex,nofollow">
   <meta name="theme-color" content="#0a1833">
   <title>SeggioLink Control Center - Municipio IX</title>
-  <link rel="stylesheet" href="control-center.css?v=15.0.0">
+  <link rel="stylesheet" href="control-center.css?v=15.2.0">
 </head>
 <body>
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 15.1.0</small></div></div>
+      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 15.2.0</small></div></div>
       <nav aria-label="Navigazione Control Center">
         <button type="button" class="nav-item active" data-view="overview"><span class="nav-icon" aria-hidden="true">▦</span><span>Riepilogo</span></button>
+        <button type="button" class="nav-item" data-view="dashboard"><span class="nav-icon" aria-hidden="true">◫</span><span>Dashboard coordinamento</span></button>
         <button type="button" class="nav-item" data-view="map"><span class="nav-icon" aria-hidden="true">⌖</span><span>Mappa Municipio IX</span></button>
         <button type="button" class="nav-item" data-view="sections"><span class="nav-icon" aria-hidden="true">▤</span><span>Sezioni e plessi</span></button>
         <button type="button" class="nav-item" data-view="rankings"><span class="nav-icon" aria-hidden="true">★</span><span>Classifiche FdI</span></button>
@@ -54,6 +55,11 @@
           </div>
         </section>
 
+        <section id="view-dashboard" class="view dashboard-embedded-view">
+          <div class="view-head"><div><h2>Dashboard coordinamento</h2><p>Vista operativa completa integrata nel Control Center. Usa la stessa sessione di accesso e resta disponibile anche come pagina autonoma.</p></div><a class="btn secondary dashboard-open-link" href="dashboard.html" target="_blank" rel="noopener">Apri in nuova scheda</a></div>
+          <div class="dashboard-frame-wrap"><iframe id="dashboardFrame" title="Dashboard coordinamento SeggioLink" loading="lazy" data-src="dashboard.html?v=1520"></iframe></div>
+        </section>
+
         <section id="view-map" class="view">
           <div class="view-head"><div><h2>Mappa ufficiale Municipio IX</h2><p>Mappa operativa con 38 plessi geocodificati, stato degli invii, ricerca per sezione e posizione del coordinatore. La mappa ufficiale resta disponibile come fallback.</p></div><label>Cerca sezione<input id="mapSearch" name="cc-map-section-filter" inputmode="numeric" autocomplete="off" placeholder="es. 1667"></label></div>
           <div class="map-layout"><div class="map-panel"><img src="data/mappa-municipio-ix.png" alt="Mappa ufficiale del Municipio IX di Roma"><div class="map-note">Mappa ufficiale di fallback. La vista interattiva usa esclusivamente coordinate verificate dei plessi.</div></div><aside class="map-sections"><div id="mapSectionList"><p class="empty-state">Caricamento sezioni…</p></div></aside></div>
@@ -77,7 +83,7 @@
     </main>
   </div>
   <dialog id="sectionDialog"><div class="dialog-card"><button type="button" id="closeDialog" class="dialog-close">×</button><div id="sectionDialogContent"></div></div></dialog>
-  <script src="config.js?v=15.1.0"></script>
-  <script src="control-center.js?v=15.1.0"></script>
+  <script src="config.js?v=15.2.0"></script>
+  <script src="control-center.js?v=15.2.0"></script>
 </body>
 </html>

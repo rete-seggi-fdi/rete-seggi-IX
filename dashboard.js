@@ -12,8 +12,8 @@ const TOKEN_EXPIRY_KEY = 'seggi_dashboard_token_expiry';
 const $ = (selector) => document.querySelector(selector);
 let data = null;
 let timer = null;
-let dashboardToken = sessionStorage.getItem(TOKEN_KEY) || '';
-let tokenExpiry = sessionStorage.getItem(TOKEN_EXPIRY_KEY) || '';
+let dashboardToken = localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || '';
+let tokenExpiry = localStorage.getItem(TOKEN_EXPIRY_KEY) || sessionStorage.getItem(TOKEN_EXPIRY_KEY) || '';
 
 const fmt = (n) => Number(n || 0).toLocaleString('it-IT');
 const pct = (n) => n === '' || n == null
@@ -88,6 +88,8 @@ function setStatus(text) {
 function clearSession() {
   dashboardToken = '';
   tokenExpiry = '';
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_EXPIRY_KEY);
   sessionStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
 }
@@ -139,6 +141,8 @@ async function login(password) {
   tokenExpiry = String(result.expiresAt || '');
   if (!dashboardToken) throw new Error('Il backend non ha restituito il token.');
 
+  localStorage.setItem(TOKEN_KEY, dashboardToken);
+  localStorage.setItem(TOKEN_EXPIRY_KEY, tokenExpiry);
   sessionStorage.setItem(TOKEN_KEY, dashboardToken);
   sessionStorage.setItem(TOKEN_EXPIRY_KEY, tokenExpiry);
 }
