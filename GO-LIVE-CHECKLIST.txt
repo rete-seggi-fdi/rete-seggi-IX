@@ -1,0 +1,59 @@
+SEGGIOLINK — GO-LIVE CHECKLIST 15.3.2
+
+1. BACKUP
+[ ] Conservare copia del repository precedente.
+[ ] Conservare copia del Code.gs attualmente distribuito.
+
+2. BACKEND APPS SCRIPT
+[ ] Sostituire Code.gs con apps-script/Code.gs (13.7.1-production-final).
+[ ] Salvare.
+[ ] Eseguire verificaVersioneCodice -> 13.7.1-production-final.
+[ ] Eseguire preparaCacheDashboardWeb -> ok:true.
+[ ] Verificare/attivare i trigger con attivaAggiornamentoAutomatico.
+[ ] Creare NUOVA VERSIONE del deployment Web App (URL /exec invariato).
+[ ] Aprire /exec?action=ping e verificare ok:true e versione 13.7.1-production-final.
+
+3. ELECTION SIMULATOR
+[ ] Eliminare tutti i dati SIM-.
+[ ] Eseguire verificaElectionSimulator.
+[ ] Disabilitare Election Simulator prima dell'uso reale.
+
+4. REPOSITORY / GITHUB PAGES
+[ ] Pubblicare i file della release 15.3.2.
+[ ] Attendere completamento GitHub Pages.
+[ ] Ctrl+F5 su Control Center e app rappresentanti.
+[ ] Verificare CONTROL CENTER 15.3.2.
+
+5. CONTROL CENTER
+[ ] Login: prima dell'accesso si vede SOLO il login.
+[ ] Accesso con sessione valida: dati memorizzati visibili subito.
+[ ] Riepilogo: KPI coerenti.
+[ ] Dati elettorali: Comune/Municipio, ricerca sezione, dettaglio al click.
+[ ] Mappa: 38/38 plessi, 174 sezioni, 38 marker distinti, 0 coordinate mancanti.
+[ ] Mappa: Fuori confine = 0 (se il servizio confini è disponibile).
+[ ] Ricerca mappa sezione 1667 -> Via Giovanni Frignani 97.
+[ ] Sezioni e plessi: 174 sezioni / 38 plessi.
+[ ] Classifiche: indirizzi valorizzati.
+[ ] Report finale: Dossier riepilogo.
+[ ] Report finale: Report sezioni.
+[ ] CSV Excel: download e apertura corretti.
+[ ] Stampa/PDF corretta.
+[ ] Logout corretto.
+
+6. APP RAPPRESENTANTI
+[ ] Login rappresentante reale di collaudo.
+[ ] Sezioni assegnate corrette.
+[ ] Invio affluenza di collaudo (poi rimuovere/correggere se necessario).
+[ ] Scrutinio: NON testare su produzione con dati fittizi se il simulatore è disabilitato.
+[ ] Messaggi e storico accessibili.
+[ ] Versione app 13.6.1.
+
+7. ANAGRAFICA
+[ ] 174 sezioni uniche nel Control Center.
+[ ] 38 plessi geocodificati.
+[ ] Sezione 1294 esclusa dal Municipio IX.
+[ ] Nessuna 9001/9002 nei dati ufficiali.
+
+ESITO GO-LIVE
+[ ] GO — tutti i controlli superati.
+[ ] NO-GO — almeno un controllo critico non superato.

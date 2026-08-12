@@ -2,7 +2,7 @@
   "name": "SeggioLink Roma · Coordinamento elettorale",
   "short_name": "SeggioLink",
   "description": "App operativa per affluenza, scrutinio, assistenza e comunicazioni nei municipi di Roma Capitale",
-  "start_url": "./index.html?v=1347",
+  "start_url": "./index.html?v=13.6.1",
   "scope": "./",
   "id": "./index.html",
   "display": "standalone",
@@ -44,7 +44,7 @@
     {
       "name": "Apri SeggioLink",
       "short_name": "SeggioLink",
-      "url": "./index.html",
+      "url": "./index.html?v=13.6.1",
       "icons": [
         {
           "src": "icons/icon-192.png",

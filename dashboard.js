@@ -1,10 +1,7 @@
 'use strict';
 
 const CFG = window.SEGGI_CONFIG || {};
-const BACKEND = String(
-  CFG.backendUrl ||
-  'https://script.google.com/macros/s/AKfycby6OzgGBRZ4IXIHm5wGhIsz0pWV7O4Y_XDat0sSgwV6rqeAdoqj14AsId712iU9wFj6tA/exec'
-);
+const BACKEND = String(CFG.backendUrl || '').trim();
 const REQUEST_TIMEOUT_MS = Number(CFG.requestTimeoutMs || 20000);
 const TOKEN_KEY = 'seggi_dashboard_token';
 const TOKEN_EXPIRY_KEY = 'seggi_dashboard_token_expiry';
@@ -113,6 +110,7 @@ function showApp() {
 }
 
 async function postBackend(payload) {
+  if (!BACKEND) throw new Error('URL backend assente: config.js non caricato.');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {

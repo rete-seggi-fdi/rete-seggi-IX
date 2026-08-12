@@ -1,12 +1,12 @@
 'use strict';
 const CFG=window.SEGGI_CONFIG||{};
 const BACKEND=String(CFG.backendUrl||'').trim();
-const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1531';
+const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1532';
 let dashboardToken=localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY)||'',live=null;
 let registry={schemaVersion:0,sezioniTotali:0,plessiTotali:0,sezioni:[]};
 let geoPlessi={schemaVersion:0,plessiTotali:0,plessiGeocodificati:0,plessi:[]};
 let registryBySection=new Map();
-let mapInstance=null,mapMarkers=[],leafletPromise=null,boundaryLayer=null,boundaryVisible=true,userLocationMarker=null,userAccuracyCircle=null,geoReady=false,geoLoadPromise=null;
+let mapInstance=null,mapMarkers=[],leafletPromise=null,boundaryLayer=null,boundaryVisible=true,boundaryGeoJson=null,userLocationMarker=null,userAccuracyCircle=null,geoReady=false,geoLoadPromise=null;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const fmt=n=>Number(n||0).toLocaleString('it-IT');
 const pct=n=>(n===''||n==null||!Number.isFinite(Number(n)))?'—':Number(n).toLocaleString('it-IT',{maximumFractionDigits:1})+'%';
@@ -179,7 +179,7 @@ function prepareMapLayout(){
     list.style.padding='2px 4px 8px 2px';
   }
   const version=[...document.querySelectorAll('small,.brand-subtitle')].find(x=>/CONTROL CENTER/i.test(x.textContent||''));
-  if(version)version.textContent='CONTROL CENTER 15.3.1';
+  if(version)version.textContent='CONTROL CENTER 15.3.2';
   return {layout,aside,list,staticPanel};
 }
 function ensureMapContainer(){
@@ -200,7 +200,16 @@ function ensureMapContainer(){
       <div class="map-toolbar-actions">
         <button type="button" id="mapLocateBtn" class="btn secondary">⌖ La mia posizione</button>
         <button type="button" id="mapResetBtn" class="btn secondary">Inquadra plessi</button>
+        <button type="button" id="mapBoundaryFitBtn" class="btn secondary">Inquadra confine IX</button>
       </div>
+    </div>
+    <div id="mapDiagnostics" class="map-diagnostics" aria-live="polite">
+      <div><span>Plessi</span><strong id="diagPlessi">—</strong></div>
+      <div><span>Sezioni associate</span><strong id="diagSezioni">—</strong></div>
+      <div><span>Marker distinti</span><strong id="diagMarkers">—</strong></div>
+      <div><span>Fuori confine</span><strong id="diagOutside">—</strong></div>
+      <div><span>Coordinate mancanti</span><strong id="diagMissingCoords">—</strong></div>
+      <div><span>Fascia sud</span><strong id="diagSouth">—</strong></div>
     </div>
     <div class="map-legend" aria-label="Legenda stato plessi">
       <span><i class="legend-dot done"></i> Scrutinio ricevuto</span>
@@ -214,6 +223,7 @@ function ensureMapContainer(){
   parts.layout.insertBefore(wrap,parts.aside);
   $('#mapLocateBtn')?.addEventListener('click',locateUserOnMap);
   $('#mapResetBtn')?.addEventListener('click',fitMapToPlessi);
+  $('#mapBoundaryFitBtn')?.addEventListener('click',fitMapToBoundary);
   return $('#mapCanvas');
 }
 async function ensureGeoReady(){
@@ -236,6 +246,53 @@ function fitMapToPlessi(){
   const bounds=mapPlessoBounds();
   if(bounds.length)mapInstance.fitBounds(bounds,{padding:[42,42],maxZoom:13});
 }
+
+function fitMapToBoundary(){
+  if(!mapInstance||!boundaryLayer)return;
+  const b=boundaryLayer.getBounds();
+  if(b&&b.isValid())mapInstance.fitBounds(b,{padding:[28,28],maxZoom:12});
+}
+function pointInRing_(lng,lat,ring){
+  let inside=false;
+  for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+    const xi=Number(ring[i][0]),yi=Number(ring[i][1]),xj=Number(ring[j][0]),yj=Number(ring[j][1]);
+    const hit=((yi>lat)!==(yj>lat))&&(lng<(xj-xi)*(lat-yi)/((yj-yi)||1e-12)+xi);
+    if(hit)inside=!inside;
+  }
+  return inside;
+}
+function pointInPolygonCoords_(lng,lat,coords){
+  if(!Array.isArray(coords)||!coords.length||!pointInRing_(lng,lat,coords[0]))return false;
+  for(let i=1;i<coords.length;i++)if(pointInRing_(lng,lat,coords[i]))return false;
+  return true;
+}
+function pointInsideBoundary_(lat,lng){
+  if(!boundaryGeoJson?.features?.length)return null;
+  for(const f of boundaryGeoJson.features){
+    const g=f?.geometry;if(!g)continue;
+    if(g.type==='Polygon'&&pointInPolygonCoords_(lng,lat,g.coordinates))return true;
+    if(g.type==='MultiPolygon')for(const poly of g.coordinates||[])if(pointInPolygonCoords_(lng,lat,poly))return true;
+  }
+  return false;
+}
+function updateMapDiagnostics(){
+  const plessi=geoPlessi.plessi||[];
+  const configured=Number(geoPlessi.plessiTotali||plessi.length);
+  const valid=plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);
+  const coords=new Set(valid.map(p=>Number(p.lat).toFixed(6)+','+Number(p.lng).toFixed(6)));
+  const missing=Math.max(0,configured-valid.length);
+  let outside='—',south='—';
+  if(boundaryLayer&&boundaryGeoJson?.features?.length){
+    const b=boundaryLayer.getBounds(),mid=b&&b.isValid()?b.getCenter().lat:null;
+    if(Number.isFinite(mid))south=valid.filter(p=>Number(p.lat)<mid).length;
+    outside=valid.filter(p=>pointInsideBoundary_(Number(p.lat),Number(p.lng))===false).length;
+  }
+  const put=(id,v)=>{const el=$(id);if(el)el.textContent=String(v)};
+  put('#diagPlessi',valid.length+'/'+configured);put('#diagSezioni',geoSectionsTotal());put('#diagMarkers',coords.size);
+  put('#diagOutside',outside);put('#diagMissingCoords',missing);put('#diagSouth',south);
+  $('#mapDiagnostics')?.classList.toggle('has-warning',missing>0||(typeof outside==='number'&&outside>0)||coords.size!==valid.length);
+}
+
 function distanceMeters(lat1,lng1,lat2,lng2){
   const R=6371000,toRad=x=>x*Math.PI/180;
   const dLat=toRad(lat2-lat1),dLng=toRad(lng2-lng1);
@@ -284,7 +341,7 @@ function locateUserOnMap(){
 function statusForPlesso(p){const sez=Array.isArray(p.sezioni)?p.sezioni.map(normSection).filter(Boolean):[];if(!sez.length)return'missing';const stati=sez.map(statusFor);if(stati.every(x=>x.cls==='done'))return'done';if(stati.some(x=>x.cls==='done'||x.cls==='partial'))return'partial';return'missing'}
 function markerIcon(cls){const colors={done:'#16803c',partial:'#d97706',missing:'#b42318'};const c=colors[cls]||'#1d4ed8';return window.L.divIcon({className:'',html:`<span style="display:block;width:18px;height:18px;border-radius:50%;background:${c};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.38)"></span>`,iconSize:[18,18],iconAnchor:[9,9],popupAnchor:[0,-10]})}
 function romanToNumber(value){const v=String(value||'').trim().toUpperCase().replace(/[^IVX0-9]/g,'');if(/^0?9$/.test(v))return 9;const m={I:1,V:5,X:10};let n=0,prev=0;for(const ch of [...v].reverse()){const x=m[ch]||0;n+=x<prev?-x:x;prev=Math.max(prev,x)}return n}
-async function loadMunicipioBoundary(L){if(boundaryLayer)return boundaryLayer;const endpoint='https://services-eu1.arcgis.com/CQGl8ODCKnscqiME/ArcGIS/rest/services/Perimetrazioni_Comune_di_Roma/FeatureServer/0/query?where=1%3D1&outFields=MUNICIPIO%2CDENOMINAZI&returnGeometry=true&outSR=4326&f=geojson';const r=await fetch(endpoint,{cache:'force-cache'});if(!r.ok)throw new Error('Confine municipale non raggiungibile ('+r.status+').');const all=await r.json();const features=(all.features||[]).filter(f=>romanToNumber(f?.properties?.MUNICIPIO)===9||/municipio\s*ix/i.test(String(f?.properties?.DENOMINAZI||'')));if(!features.length)throw new Error('Confine del Municipio IX non trovato.');boundaryLayer=L.geoJSON({type:'FeatureCollection',features},{style:{color:'#0b3b75',weight:4,opacity:.95,fillColor:'#2f6fb0',fillOpacity:.08,dashArray:'9 6'},interactive:true}).bindPopup('<strong>Municipio Roma IX</strong><br>Confine amministrativo');boundaryLayer.addTo(mapInstance);boundaryVisible=true;return boundaryLayer}
+async function loadMunicipioBoundary(L){if(boundaryLayer)return boundaryLayer;const endpoint='https://services-eu1.arcgis.com/CQGl8ODCKnscqiME/ArcGIS/rest/services/Perimetrazioni_Comune_di_Roma/FeatureServer/0/query?where=1%3D1&outFields=MUNICIPIO%2CDENOMINAZI&returnGeometry=true&outSR=4326&f=geojson';const r=await fetch(endpoint,{cache:'force-cache'});if(!r.ok)throw new Error('Confine municipale non raggiungibile ('+r.status+').');const all=await r.json();const features=(all.features||[]).filter(f=>romanToNumber(f?.properties?.MUNICIPIO)===9||/municipio\s*ix/i.test(String(f?.properties?.DENOMINAZI||'')));if(!features.length)throw new Error('Confine del Municipio IX non trovato.');boundaryGeoJson={type:'FeatureCollection',features};boundaryLayer=L.geoJSON(boundaryGeoJson,{style:{color:'#0b3b75',weight:4,opacity:.95,fillColor:'#2f6fb0',fillOpacity:.08,dashArray:'9 6'},interactive:true}).bindPopup('<strong>Municipio Roma IX</strong><br>Confine amministrativo');boundaryLayer.addTo(mapInstance);boundaryVisible=true;return boundaryLayer}
 function addBoundaryToggle(L){if($('#mapBoundaryToggle'))return;const Control=L.Control.extend({options:{position:'topright'},onAdd(){const box=L.DomUtil.create('div','leaflet-bar');const b=L.DomUtil.create('button','',box);b.id='mapBoundaryToggle';b.type='button';b.title='Mostra o nascondi il confine del Municipio IX';b.setAttribute('aria-label',b.title);b.style.cssText='width:auto;min-width:40px;height:34px;padding:0 10px;border:0;background:white;font-weight:700;cursor:pointer';const sync=()=>b.textContent=boundaryVisible?'Confine ✓':'Confine';sync();L.DomEvent.disableClickPropagation(box);L.DomEvent.on(b,'click',()=>{if(!boundaryLayer)return;if(boundaryVisible){mapInstance.removeLayer(boundaryLayer);boundaryVisible=false}else{boundaryLayer.addTo(mapInstance);boundaryVisible=true}sync()});return box}});mapInstance.addControl(new Control())}
 
 async function renderGeoMap(){
@@ -316,10 +373,10 @@ async function renderGeoMap(){
   });
   let confineOk=false;
   try{await loadMunicipioBoundary(L);confineOk=true}catch(e){console.warn(e)}
-  if(bounds.length)mapInstance.fitBounds(bounds,{padding:[42,42],maxZoom:13});
+  updateMapDiagnostics();
   const info=$('#mapGeoSummary');
   if(info)info.textContent=`${fmt(geoPlessi.plessiGeocodificati)} plessi geocodificati · ${fmt(geoSectionsTotal())} sezioni associate${confineOk?' · confine Municipio IX attivo':' · confine non disponibile'}`;
-  setTimeout(()=>mapInstance.invalidateSize(),80);
+  setTimeout(()=>{mapInstance.invalidateSize();fitMapToPlessi();},100);
 }
 async function focusSectionOnMap(section){const sec=normSection(section);if(!mapInstance||!mapMarkers.length){try{await renderGeoMap()}catch(e){console.error(e)}}const marker=mapMarkers.find(m=>m._seggiSections?.has(sec));if(marker&&mapInstance){mapInstance.setView(marker.getLatLng(),16,{animate:true});marker.openPopup();return true}openSection(sec);return false}
 function restoreLiveCache(){
@@ -633,7 +690,7 @@ function downloadDetailedCsv(){
   return false;
 }
 
-function switchView(name){$$('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+name));$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===name));if(name==='dashboard'){const f=$('#dashboardFrame');if(f&&!f.src){f.src=f.dataset.src||'dashboard.html?v=1530';}}if(name==='rankings'){renderRankings($('#rankingLevel').value,'#bestRankings',15,false);renderRankings($('#rankingLevel').value,'#worstRankings',15,true)}if(name==='sections')renderRegistry();if(name==='map'){renderMapList();renderGeoMap().catch(e=>{console.error(e);const info=$('#mapGeoSummary');if(info)info.textContent=e.message})}if(name==='report'){const p=$('#reportPreview');if(p&&!p.querySelector('.report-sheet'))p.innerHTML='<p class="empty-state">Scegli “Dossier riepilogo” oppure “Report sezioni”.</p>';}window.scrollTo({top:0,behavior:'smooth'})}
+function switchView(name){$$('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+name));$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===name));if(name==='data')renderDataView();if(name==='rankings'){renderRankings($('#rankingLevel').value,'#bestRankings',15,false);renderRankings($('#rankingLevel').value,'#worstRankings',15,true)}if(name==='sections')renderRegistry();if(name==='map'){renderMapList();renderGeoMap().catch(e=>{console.error(e);const info=$('#mapGeoSummary');if(info)info.textContent=e.message})}if(name==='report'){const p=$('#reportPreview');if(p&&!p.querySelector('.report-sheet'))p.innerHTML='<p class="empty-state">Scegli “Dossier riepilogo” oppure “Report sezioni”.</p>';}window.scrollTo({top:0,behavior:'smooth'})}
 window.SeggioLinkGenerateReport=generateReport;
 
 function bindControlCenterEvents(){
