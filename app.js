@@ -2328,12 +2328,19 @@ async function provaSvuotaCode(opzioni) {
         // può essere stato causato da uno scrutinio del simulatore ora ignorato
         // dal backend, oppure essere stato rimosso dal coordinamento.
         const erroriLogiciNonAutomatici = ['CORRECTION_TARGET_NOT_FOUND', 'CORRECTION_NOT_ALLOWED', 'ALREADY_SUPERSEDED', 'ACTIVE_TURNOUT_EXISTS', 'ACTIVE_SCRUTINY_EXISTS', 'MULTIPLE_ACTIVE_SCRUTINIES', 'INVALID_DATA'];
-        const puoForzareScrutinioAttivo = forzaRiprovaManuale && item.codiceErrore === 'ACTIVE_SCRUTINY_EXISTS';
-        if (item.status === 'error' && erroriLogiciNonAutomatici.includes(item.codiceErrore) && !puoForzareScrutinioAttivo) continue;
-        if (puoForzareScrutinioAttivo && item.payload) {
-          // Usa sempre la sessione corrente: una coda Android può essere rimasta
-          // sul dispositivo da un accesso precedente.
+        const retryScrutinioManuale = forzaRiprovaManuale && queueKey === LS.QUEUE_SCR &&
+          (item.codiceErrore === 'ACTIVE_SCRUTINY_EXISTS' || item.codiceErrore === 'CORRECTION_NOT_ALLOWED');
+        if (item.status === 'error' && erroriLogiciNonAutomatici.includes(item.codiceErrore) && !retryScrutinioManuale) continue;
+        if (retryScrutinioManuale && item.payload) {
+          // Le versioni precedenti potevano trasformare un tentativo reale in
+          // "correzione" dello scrutinio SIM già presente sulla sezione. Quel
+          // target appartiene al simulatore e il backend risponde correttamente
+          // CORRECTION_NOT_ALLOWED. Il retry manuale deve riproporre il dato come
+          // NUOVO scrutinio reale; il backend controllerà comunque l'eventuale
+          // presenza di un altro scrutinio reale ATTIVO.
           item.payload = Object.assign({}, item.payload, {
+            correzioneDi: '',
+            motivoCorrezione: '',
             sessionToken: sessionToken(),
             versioneApp: APP_VERSION,
           });
