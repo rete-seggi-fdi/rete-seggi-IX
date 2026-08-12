@@ -1,7 +1,7 @@
 'use strict';
 const CFG=window.SEGGI_CONFIG||{};
 const BACKEND=String(CFG.backendUrl||'').trim();
-const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1530';
+const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1531';
 let dashboardToken=localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY)||'',live=null;
 let registry={schemaVersion:0,sezioniTotali:0,plessiTotali:0,sezioni:[]};
 let geoPlessi={schemaVersion:0,plessiTotali:0,plessiGeocodificati:0,plessi:[]};
@@ -12,50 +12,92 @@ const fmt=n=>Number(n||0).toLocaleString('it-IT');
 const pct=n=>(n===''||n==null||!Number.isFinite(Number(n)))?'—':Number(n).toLocaleString('it-IT',{maximumFractionDigits:1})+'%';
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const normSection=v=>String(Number(String(v??'').replace(/\D/g,''))||'');
-async function post(payload){
-  if(!BACKEND){
-    throw new Error('URL backend assente: config.js non caricato.');
-  }
+async function post(payload,tentativo=1){
+  if(!BACKEND)throw new Error('URL backend assente: config.js non caricato.');
 
-  const url=BACKEND+'?_='+Date.now();
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),Number(CFG.requestTimeoutMs||20000));
   let response;
 
   try{
-    response=await fetch(url,{
+    response=await fetch(BACKEND,{
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=UTF-8'},
       body:JSON.stringify(payload),
       cache:'no-store',
-      redirect:'follow'
+      redirect:'follow',
+      signal:controller.signal
     });
   }catch(error){
+    clearTimeout(timeout);
+    if(tentativo===1){
+      await new Promise(resolve=>setTimeout(resolve,650));
+      return post(payload,2);
+    }
+    if(error?.name==='AbortError')throw new Error('Il backend sta impiegando troppo tempo. Riprova.');
     throw new Error('Connessione al backend non riuscita: '+error.message);
   }
 
+  clearTimeout(timeout);
   const testo=await response.text();
 
   if(!response.ok){
-    console.error('Errore backend',{
-      status:response.status,
-      urlFinale:response.url,
-      risposta:testo
-    });
-    throw new Error('Backend HTTP '+response.status+'. URL finale: '+response.url);
+    if(response.status===404&&tentativo===1){
+      await new Promise(resolve=>setTimeout(resolve,650));
+      return post(payload,2);
+    }
+    console.error('Errore backend',{status:response.status,urlFinale:response.url,risposta:testo});
+    throw new Error('Backend HTTP '+response.status+'. Riprova tra qualche secondo.');
   }
 
-  try{
-    return JSON.parse(testo);
-  }catch(error){
+  try{return JSON.parse(testo)}
+  catch(error){
     console.error('Risposta backend non JSON:',testo);
     throw new Error('Il backend ha restituito una risposta non valida.');
   }
 }
-function setOnline(ok,text){$('#connectionDot').classList.toggle('online',ok);$('#connectionText').textContent=text}
-function showLogin(message=''){clearSession();$('#loginView').hidden=false;$('#appView').hidden=true;$('#loginError').textContent=message;['refreshBtn','printBtn','logoutBtn'].forEach(id=>$('#'+id).hidden=true);setOnline(false,'Non collegato')}
-function clearSession(){dashboardToken='';localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY)}
-async function login(password){const x=await post({tipo:'dashboard_login',password});if(!x.ok)throw new Error(x.error||'Accesso non riuscito');dashboardToken=x.dashboardToken;localStorage.setItem(TOKEN_KEY,dashboardToken);localStorage.setItem(EXP_KEY,x.expiresAt||'');sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY)}
+function setOnline(ok,text){$('#connectionDot')?.classList.toggle('online',ok);if($('#connectionText'))$('#connectionText').textContent=text}
+function setLoginOnly(active){
+  document.body.classList.toggle('login-only',Boolean(active));
+}
+function showLogin(message='',clearToken=false){
+  if(clearToken)clearSession();
+  setLoginOnly(true);
+  $('#loginView').hidden=false;
+  $('#appView').hidden=true;
+  $('#loginError').textContent=message;
+  ['refreshBtn','printBtn','logoutBtn'].forEach(id=>$('#'+id).hidden=true);
+  setOnline(false,'Non collegato');
+}
+function showAppShell(){
+  setLoginOnly(false);
+  $('#loginView').hidden=true;
+  $('#appView').hidden=false;
+  ['refreshBtn','printBtn','logoutBtn'].forEach(id=>$('#'+id).hidden=false);
+}
+function clearSession(){
+  dashboardToken='';
+  localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY);
+}
+function tokenScaduto(){
+  const exp=localStorage.getItem(EXP_KEY)||sessionStorage.getItem(EXP_KEY)||'';
+  if(!exp)return false;
+  const t=Date.parse(exp);
+  return Number.isFinite(t)&&Date.now()>=t;
+}
+async function login(password){
+  const x=await post({tipo:'dashboard_login',password});
+  if(!x.ok)throw new Error(x.error||'Accesso non riuscito');
+  dashboardToken=String(x.dashboardToken||'');
+  if(!dashboardToken)throw new Error('Il backend non ha restituito il token.');
+  localStorage.setItem(TOKEN_KEY,dashboardToken);
+  localStorage.setItem(EXP_KEY,x.expiresAt||'');
+  sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY);
+  return x;
+}
 function validateRegistry(data){if(!data||typeof data!=='object'||!Array.isArray(data.sezioni))throw new Error('Archivio sezioni non valido.');const rows=data.sezioni.filter(x=>x&&x.sezione&&x.indirizzo).map(x=>({...x,sezione:normSection(x.sezione),numeroVie:Number(x.numeroVie||((x.vieAssegnate||[]).length)),vieAssegnate:Array.isArray(x.vieAssegnate)?x.vieAssegnate:[]}));if(!rows.length)throw new Error('Archivio sezioni vuoto.');const plessi=new Set(rows.map(x=>String(x.indirizzo).trim()+'|'+String(x.cap||'').trim()));return {...data,sezioni:rows,sezioniTotali:rows.length,plessiTotali:Number(data.plessiTotali||plessi.size)}}
-async function loadRegistry(){const url='data/sezioni-ix-control.json?v=15.0.0';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
+async function loadRegistry(){const url='data/sezioni-ix-control.json?v=15.0.0';const r=await fetch(url,{cache:'force-cache'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
 async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=15.0.0';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
 
 function rebuildRegistryIndex(){
@@ -137,7 +179,7 @@ function prepareMapLayout(){
     list.style.padding='2px 4px 8px 2px';
   }
   const version=[...document.querySelectorAll('small,.brand-subtitle')].find(x=>/CONTROL CENTER/i.test(x.textContent||''));
-  if(version)version.textContent='CONTROL CENTER 15.3.0';
+  if(version)version.textContent='CONTROL CENTER 15.3.1';
   return {layout,aside,list,staticPanel};
 }
 function ensureMapContainer(){
@@ -287,33 +329,30 @@ function restoreLiveCache(){
     if(!cached?.data)return false;
     live=cached.data;
     renderAll();
-    $('#loginView').hidden=true;
-    $('#appView').hidden=false;
-    ['refreshBtn','printBtn','logoutBtn'].forEach(id=>$('#'+id).hidden=false);
+    showAppShell();
     $('#lastUpdate').textContent='Dati memorizzati · aggiornamento in corso…';
     return true;
   }catch(e){return false}
 }
 async function load(){
-  if(!dashboardToken)return showLogin();
+  if(!dashboardToken)return showLogin('',false);
   const restored=restoreLiveCache();
   setOnline(false,restored?'Aggiornamento…':'Caricamento…');
   const refreshBtn=$('#refreshBtn');
   if(refreshBtn)refreshBtn.disabled=true;
   try{
     const x=await post({tipo:'dashboard_affluenza',dashboardToken});
-    if(!x.ok){if(String(x.code).includes('SESSION'))return showLogin(x.error);throw new Error(x.error||'Errore backend')}
+    if(!x.ok){if(String(x.code).includes('SESSION'))return showLogin(x.error,true);throw new Error(x.error||'Errore backend')}
     live=x;
     try{localStorage.setItem(LIVE_CACHE_KEY,JSON.stringify({savedAt:Date.now(),data:x}))}catch(e){}
     renderAll();
-    $('#loginView').hidden=true;$('#appView').hidden=false;
-    ['refreshBtn','printBtn','logoutBtn'].forEach(id=>$('#'+id).hidden=false);
+    showAppShell();
     setOnline(true,'Online');
     $('#backendVersion').textContent='Backend '+(x.versioneBackend||'-');
     $('#lastUpdate').textContent='Aggiornato '+new Date(x.serverTime).toLocaleString('it-IT');
   }catch(e){
     setOnline(false,live?'Dati memorizzati':'Errore');
-    if(!live)showLogin(e.message);
+    if(!live)showLogin(e.message,false);
     console.error(e)
   }finally{if(refreshBtn)refreshBtn.disabled=false}
 }
@@ -625,10 +664,16 @@ function bindControlCenterEvents(){
       try{
         await login(passwordInput.value);
         passwordInput.value='';
-        button.textContent='Caricamento dati…';
+        button.textContent='Accesso riuscito';
+        showAppShell();
+        const cached=restoreLiveCache();
+        if(!cached){
+          setOnline(false,'Caricamento…');
+          $('#lastUpdate').textContent='Accesso effettuato · caricamento dati…';
+        }
         await load();
       }catch(err){
-        $('#loginError').textContent=err.message;
+        showLogin(err.message,false);
         setOnline(false,'Errore');
       }finally{
         button.disabled=false;
@@ -639,7 +684,7 @@ function bindControlCenterEvents(){
   }
 
   if(refreshBtn)refreshBtn.addEventListener('click',load);
-  if(logoutBtn)logoutBtn.addEventListener('click',()=>showLogin());
+  if(logoutBtn)logoutBtn.addEventListener('click',()=>showLogin('',true));
   if(printBtn)printBtn.addEventListener('click',()=>{
     switchView('report');
     const preview=$('#reportPreview');
@@ -682,5 +727,31 @@ function bindControlCenterEvents(){
 
 bindControlCenterEvents();
 document.addEventListener('click',e=>{const b=e.target.closest?.('#generateReportBtn');if(b){e.preventDefault();generateReport();}},{capture:true});
-(async()=>{try{$('#sectionSearch').value='';$('#mapSearch').value='';await loadRegistry();rebuildRegistryIndex()}catch(e){console.error(e);$('#registrySummary').textContent=e.message;$('#sectionsBody').innerHTML=`<tr><td colspan="5" class="empty-cell error">${esc(e.message)}</td></tr>`;$('#mapSectionList').innerHTML=`<p class="empty-state error">${esc(e.message)}</p>`}if(dashboardToken)await load();else showLogin()})();
+(async()=>{
+  if(tokenScaduto()){clearSession();dashboardToken='';}
+  if(!dashboardToken)showLogin('',false);
+  else setLoginOnly(false);
+
+  try{
+    $('#sectionSearch').value='';
+    $('#mapSearch').value='';
+    await loadRegistry();
+    rebuildRegistryIndex();
+  }catch(e){
+    console.error(e);
+    $('#registrySummary').textContent=e.message;
+    $('#sectionsBody').innerHTML=`<tr><td colspan="5" class="empty-cell error">${esc(e.message)}</td></tr>`;
+    $('#mapSectionList').innerHTML=`<p class="empty-state error">${esc(e.message)}</p>`;
+  }
+
+  if(dashboardToken){
+    const cached=restoreLiveCache();
+    if(!cached){
+      showAppShell();
+      setOnline(false,'Aggiornamento…');
+      $('#lastUpdate').textContent='Sessione valida · caricamento dati…';
+    }
+    load();
+  }
+})();
 window.addEventListener('hashchange',()=>{const v=location.hash.replace('#','');if(['overview','data','map','sections','rankings','report'].includes(v))switchView(v)});
