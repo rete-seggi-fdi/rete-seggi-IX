@@ -997,7 +997,16 @@ function inviiCorrenti(queueKey) {
 
 function ultimoInvioAttivo(queueKey) {
   const sostituiti = idsSostituiti(queueKey);
-  return inviiCorrenti(queueKey).filter((it) => !sostituiti.has(it.idInvio)).sort((a, b) => (a.creato < b.creato ? 1 : -1))[0] || null;
+  const tipoServer = queueKey === LS.QUEUE_AFF ? 'affluenza' : (queueKey === LS.QUEUE_SCR ? 'scrutinio' : '');
+  const tutti = tipoServer ? unisciStoricoLocaleEServer(queueKey, tipoServer) : inviiCorrenti(queueKey);
+  return tutti
+    .filter((it) =>
+      it && it.payload &&
+      !sostituiti.has(it.idInvio) &&
+      !it.superatoServer &&
+      it.statoServer !== 'SOSTITUITO'
+    )
+    .sort((a, b) => String(b.sincronizzatoIl || b.creato || '').localeCompare(String(a.sincronizzatoIl || a.creato || '')))[0] || null;
 }
 
 function statoTimelineDaInvio(item) {
@@ -1310,6 +1319,11 @@ function initTabs() {
       renderTabellaInvii();
       aggiornaBadgeInCoda();
     }
+    // La Home deve essere ricostruita ogni volta che viene riaperta: su iOS
+    // può essere rimasta in memoria mentre lo storico/coda sono cambiati.
+    if (tab.dataset.tab === 'home' && STATE.profile) {
+      renderHomeDashboard();
+    }
     if (spostaFocus) tab.focus();
   }
   tabs.forEach((tab, index) => {
@@ -1439,7 +1453,8 @@ function percentuale(parte, totale) {
 function invitiAffluenzaSezione() {
   const tutti = unisciStoricoLocaleEServer(LS.QUEUE_AFF, 'affluenza');
   const mappa = {};
-  tutti.filter((it) => it.payload && it.payload.sezione === STATE.profile.sezione && it.payload.municipio === STATE.profile.municipio)
+  tutti
+    .filter((it) => it && it.payload && stessaSezioneClient(it.payload, STATE.profile))
     .forEach((it) => { mappa[chiaveAffluenza(it.payload.giorno, it.payload.orario)] = it.status; });
   return mappa;
 }
@@ -1502,6 +1517,7 @@ async function onInviaAffluenza() {
   // provaSvuotaCode() termina prima del blocco finally e, senza questo render,
   // il badge della coda si aggiornava ma la tabella “Stato invii” restava vuota.
   renderTabellaInvii();
+  renderHomeDashboard();
   aggiornaBadgeInCoda();
   showToast(navigator.onLine ? 'Salvato sul telefono. Verifico la ricezione…' : 'Salvato sul telefono. Sarà inviato quando torna la rete.');
   await provaSvuotaCode();
