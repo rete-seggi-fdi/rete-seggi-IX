@@ -2312,8 +2312,9 @@ async function inviaAlBackend(payload) {
   }
 }
 
-async function provaSvuotaCode() {
+async function provaSvuotaCode(opzioni) {
   if (sincronizzazioneInCorso || !navigator.onLine || !backendConfigurato()) return false;
+  const forzaRiprovaManuale = !!(opzioni && opzioni.forzaRiprovaManuale === true);
   sincronizzazioneInCorso = true;
   let almenoUnSuccesso = false;
   try {
@@ -2322,9 +2323,21 @@ async function provaSvuotaCode() {
       let cambiato = false;
       for (const item of coda) {
         if (item.status === 'synced') continue;
-        // Errori logici non cambiano da soli: evita nuovi tentativi ogni 45 secondi.
-        // L'utente può correggere il tentativo oppure usare “Invia come nuovo”.
-        if (item.status === 'error' && ['CORRECTION_TARGET_NOT_FOUND', 'CORRECTION_NOT_ALLOWED', 'ALREADY_SUPERSEDED', 'ACTIVE_TURNOUT_EXISTS', 'ACTIVE_SCRUTINY_EXISTS', 'MULTIPLE_ACTIVE_SCRUTINIES', 'INVALID_DATA'].includes(item.codiceErrore)) continue;
+        // Gli errori logici restano esclusi dai retry periodici per evitare loop.
+        // Il retry MANUALE può però riprovare ACTIVE_SCRUTINY_EXISTS: il blocco
+        // può essere stato causato da uno scrutinio del simulatore ora ignorato
+        // dal backend, oppure essere stato rimosso dal coordinamento.
+        const erroriLogiciNonAutomatici = ['CORRECTION_TARGET_NOT_FOUND', 'CORRECTION_NOT_ALLOWED', 'ALREADY_SUPERSEDED', 'ACTIVE_TURNOUT_EXISTS', 'ACTIVE_SCRUTINY_EXISTS', 'MULTIPLE_ACTIVE_SCRUTINIES', 'INVALID_DATA'];
+        const puoForzareScrutinioAttivo = forzaRiprovaManuale && item.codiceErrore === 'ACTIVE_SCRUTINY_EXISTS';
+        if (item.status === 'error' && erroriLogiciNonAutomatici.includes(item.codiceErrore) && !puoForzareScrutinioAttivo) continue;
+        if (puoForzareScrutinioAttivo && item.payload) {
+          // Usa sempre la sessione corrente: una coda Android può essere rimasta
+          // sul dispositivo da un accesso precedente.
+          item.payload = Object.assign({}, item.payload, {
+            sessionToken: sessionToken(),
+            versioneApp: APP_VERSION,
+          });
+        }
         item.status = 'syncing'; item.ultimoTentativo = new Date().toISOString(); cambiato = true;
         saveJSON(queueKey, coda);
         aggiornaBadgeInCoda();
@@ -2333,6 +2346,7 @@ async function provaSvuotaCode() {
           item.status = 'synced';
           item.sincronizzatoIl = new Date().toISOString();
           item.ultimoErrore = '';
+          item.codiceErrore = '';
           item.rispostaServer = { duplicato: !!risposta.duplicato, correzione: !!risposta.correzione };
           if (queueKey === LS.QUEUE_SCR) {
             aggiornaDocumentoBozzaDaInvio(item, 'sincronizzato');
@@ -3178,7 +3192,7 @@ async function avvia() {
   });
   $('#btnRiprovaInvii').addEventListener('click', async () => {
     showToast('Provo a sincronizzare…');
-    const ok = await provaSvuotaCode();
+    const ok = await provaSvuotaCode({ forzaRiprovaManuale: true });
     showToast(messaggioEsitoSincronizzazione(ok), ok ? 3500 : 7000);
   });
   $('#btnCondividi').addEventListener('click', onCondividi);
