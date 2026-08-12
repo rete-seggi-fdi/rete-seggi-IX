@@ -1,12 +1,12 @@
 'use strict';
 const CFG=window.SEGGI_CONFIG||{};
 const BACKEND=String(CFG.backendUrl||'').trim();
-const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1522';
+const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1530';
 let dashboardToken=localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY)||'',live=null;
 let registry={schemaVersion:0,sezioniTotali:0,plessiTotali:0,sezioni:[]};
 let geoPlessi={schemaVersion:0,plessiTotali:0,plessiGeocodificati:0,plessi:[]};
 let registryBySection=new Map();
-let mapInstance=null,mapMarkers=[],leafletPromise=null,boundaryLayer=null,boundaryVisible=true,boundaryGeoJson=null,userLocationMarker=null,userAccuracyCircle=null,geoReady=false,geoLoadPromise=null;
+let mapInstance=null,mapMarkers=[],leafletPromise=null,boundaryLayer=null,boundaryVisible=true,userLocationMarker=null,userAccuracyCircle=null,geoReady=false,geoLoadPromise=null;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const fmt=n=>Number(n||0).toLocaleString('it-IT');
 const pct=n=>(n===''||n==null||!Number.isFinite(Number(n)))?'—':Number(n).toLocaleString('it-IT',{maximumFractionDigits:1})+'%';
@@ -137,7 +137,7 @@ function prepareMapLayout(){
     list.style.padding='2px 4px 8px 2px';
   }
   const version=[...document.querySelectorAll('small,.brand-subtitle')].find(x=>/CONTROL CENTER/i.test(x.textContent||''));
-  if(version)version.textContent='CONTROL CENTER 15.2.2';
+  if(version)version.textContent='CONTROL CENTER 15.3.0';
   return {layout,aside,list,staticPanel};
 }
 function ensureMapContainer(){
@@ -158,16 +158,7 @@ function ensureMapContainer(){
       <div class="map-toolbar-actions">
         <button type="button" id="mapLocateBtn" class="btn secondary">⌖ La mia posizione</button>
         <button type="button" id="mapResetBtn" class="btn secondary">Inquadra plessi</button>
-        <button type="button" id="mapBoundaryFitBtn" class="btn secondary">Inquadra confine IX</button>
       </div>
-    </div>
-    <div id="mapDiagnostics" class="map-diagnostics" aria-live="polite">
-      <div><span>Plessi</span><strong id="diagPlessi">—</strong></div>
-      <div><span>Sezioni associate</span><strong id="diagSezioni">—</strong></div>
-      <div><span>Marker distinti</span><strong id="diagMarkers">—</strong></div>
-      <div><span>Fuori confine</span><strong id="diagOutside">—</strong></div>
-      <div><span>Coordinate mancanti</span><strong id="diagMissingCoords">—</strong></div>
-      <div><span>Fascia sud</span><strong id="diagSouth">—</strong></div>
     </div>
     <div class="map-legend" aria-label="Legenda stato plessi">
       <span><i class="legend-dot done"></i> Scrutinio ricevuto</span>
@@ -181,7 +172,6 @@ function ensureMapContainer(){
   parts.layout.insertBefore(wrap,parts.aside);
   $('#mapLocateBtn')?.addEventListener('click',locateUserOnMap);
   $('#mapResetBtn')?.addEventListener('click',fitMapToPlessi);
-  $('#mapBoundaryFitBtn')?.addEventListener('click',fitMapToBoundary);
   return $('#mapCanvas');
 }
 async function ensureGeoReady(){
@@ -204,83 +194,6 @@ function fitMapToPlessi(){
   const bounds=mapPlessoBounds();
   if(bounds.length)mapInstance.fitBounds(bounds,{padding:[42,42],maxZoom:13});
 }
-
-function fitMapToBoundary(){
-  if(!mapInstance)return;
-  if(boundaryLayer&&typeof boundaryLayer.getBounds==='function'){
-    const b=boundaryLayer.getBounds();
-    if(b&&b.isValid())mapInstance.fitBounds(b,{padding:[28,28],maxZoom:12});
-  }
-}
-function pointInRing_(lng,lat,ring){
-  let inside=false;
-  for(let i=0,j=ring.length-1;i<ring.length;j=i++){
-    const xi=Number(ring[i][0]), yi=Number(ring[i][1]);
-    const xj=Number(ring[j][0]), yj=Number(ring[j][1]);
-    const intersects=((yi>lat)!==(yj>lat)) &&
-      (lng < (xj-xi)*(lat-yi)/((yj-yi)||1e-12)+xi);
-    if(intersects)inside=!inside;
-  }
-  return inside;
-}
-function pointInPolygonCoords_(lng,lat,coords){
-  if(!Array.isArray(coords)||!coords.length)return false;
-  if(!pointInRing_(lng,lat,coords[0]))return false;
-  for(let i=1;i<coords.length;i++){
-    if(pointInRing_(lng,lat,coords[i]))return false;
-  }
-  return true;
-}
-function pointInsideBoundary_(lat,lng){
-  if(!boundaryGeoJson?.features?.length)return null;
-  for(const f of boundaryGeoJson.features){
-    const g=f?.geometry;
-    if(!g)continue;
-    if(g.type==='Polygon'&&pointInPolygonCoords_(lng,lat,g.coordinates))return true;
-    if(g.type==='MultiPolygon'){
-      for(const poly of g.coordinates||[]){
-        if(pointInPolygonCoords_(lng,lat,poly))return true;
-      }
-    }
-  }
-  return false;
-}
-function updateMapDiagnostics(){
-  const plessi=(geoPlessi.plessi||[]);
-  const allConfigured=Number(geoPlessi.plessiTotali||plessi.length);
-  const valid=plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);
-  const coords=new Set(valid.map(p=>Number(p.lat).toFixed(6)+','+Number(p.lng).toFixed(6)));
-  const missing=Math.max(0,allConfigured-valid.length);
-  const sections=geoSectionsTotal();
-
-  let outside='—';
-  let south='—';
-  if(boundaryGeoJson?.features?.length&&boundaryLayer){
-    const bb=boundaryLayer.getBounds();
-    const midLat=bb?.isValid()?bb.getCenter().lat:null;
-    if(Number.isFinite(midLat)){
-      south=valid.filter(p=>Number(p.lat)<midLat).length;
-    }
-    const out=valid.filter(p=>pointInsideBoundary_(Number(p.lat),Number(p.lng))===false);
-    outside=out.length;
-  }
-
-  const set=(id,val)=>{const el=$(id);if(el)el.textContent=String(val);};
-  set('#diagPlessi',valid.length+'/'+allConfigured);
-  set('#diagSezioni',sections);
-  set('#diagMarkers',coords.size);
-  set('#diagOutside',outside);
-  set('#diagMissingCoords',missing);
-  set('#diagSouth',south);
-
-  const diagnostics=$('#mapDiagnostics');
-  if(diagnostics){
-    diagnostics.classList.toggle('has-warning',
-      missing>0 || (typeof outside==='number'&&outside>0) || coords.size!==valid.length
-    );
-  }
-}
-
 function distanceMeters(lat1,lng1,lat2,lng2){
   const R=6371000,toRad=x=>x*Math.PI/180;
   const dLat=toRad(lat2-lat1),dLng=toRad(lng2-lng1);
@@ -329,7 +242,7 @@ function locateUserOnMap(){
 function statusForPlesso(p){const sez=Array.isArray(p.sezioni)?p.sezioni.map(normSection).filter(Boolean):[];if(!sez.length)return'missing';const stati=sez.map(statusFor);if(stati.every(x=>x.cls==='done'))return'done';if(stati.some(x=>x.cls==='done'||x.cls==='partial'))return'partial';return'missing'}
 function markerIcon(cls){const colors={done:'#16803c',partial:'#d97706',missing:'#b42318'};const c=colors[cls]||'#1d4ed8';return window.L.divIcon({className:'',html:`<span style="display:block;width:18px;height:18px;border-radius:50%;background:${c};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.38)"></span>`,iconSize:[18,18],iconAnchor:[9,9],popupAnchor:[0,-10]})}
 function romanToNumber(value){const v=String(value||'').trim().toUpperCase().replace(/[^IVX0-9]/g,'');if(/^0?9$/.test(v))return 9;const m={I:1,V:5,X:10};let n=0,prev=0;for(const ch of [...v].reverse()){const x=m[ch]||0;n+=x<prev?-x:x;prev=Math.max(prev,x)}return n}
-async function loadMunicipioBoundary(L){if(boundaryLayer)return boundaryLayer;const endpoint='https://services-eu1.arcgis.com/CQGl8ODCKnscqiME/ArcGIS/rest/services/Perimetrazioni_Comune_di_Roma/FeatureServer/0/query?where=1%3D1&outFields=MUNICIPIO%2CDENOMINAZI&returnGeometry=true&outSR=4326&f=geojson';const r=await fetch(endpoint,{cache:'force-cache'});if(!r.ok)throw new Error('Confine municipale non raggiungibile ('+r.status+').');const all=await r.json();const features=(all.features||[]).filter(f=>romanToNumber(f?.properties?.MUNICIPIO)===9||/municipio\s*ix/i.test(String(f?.properties?.DENOMINAZI||'')));if(!features.length)throw new Error('Confine del Municipio IX non trovato.');boundaryGeoJson={type:'FeatureCollection',features};boundaryLayer=L.geoJSON(boundaryGeoJson,{style:{color:'#0b3b75',weight:4,opacity:.95,fillColor:'#2f6fb0',fillOpacity:.08,dashArray:'9 6'},interactive:true}).bindPopup('<strong>Municipio Roma IX</strong><br>Confine amministrativo');boundaryLayer.addTo(mapInstance);boundaryVisible=true;return boundaryLayer}
+async function loadMunicipioBoundary(L){if(boundaryLayer)return boundaryLayer;const endpoint='https://services-eu1.arcgis.com/CQGl8ODCKnscqiME/ArcGIS/rest/services/Perimetrazioni_Comune_di_Roma/FeatureServer/0/query?where=1%3D1&outFields=MUNICIPIO%2CDENOMINAZI&returnGeometry=true&outSR=4326&f=geojson';const r=await fetch(endpoint,{cache:'force-cache'});if(!r.ok)throw new Error('Confine municipale non raggiungibile ('+r.status+').');const all=await r.json();const features=(all.features||[]).filter(f=>romanToNumber(f?.properties?.MUNICIPIO)===9||/municipio\s*ix/i.test(String(f?.properties?.DENOMINAZI||'')));if(!features.length)throw new Error('Confine del Municipio IX non trovato.');boundaryLayer=L.geoJSON({type:'FeatureCollection',features},{style:{color:'#0b3b75',weight:4,opacity:.95,fillColor:'#2f6fb0',fillOpacity:.08,dashArray:'9 6'},interactive:true}).bindPopup('<strong>Municipio Roma IX</strong><br>Confine amministrativo');boundaryLayer.addTo(mapInstance);boundaryVisible=true;return boundaryLayer}
 function addBoundaryToggle(L){if($('#mapBoundaryToggle'))return;const Control=L.Control.extend({options:{position:'topright'},onAdd(){const box=L.DomUtil.create('div','leaflet-bar');const b=L.DomUtil.create('button','',box);b.id='mapBoundaryToggle';b.type='button';b.title='Mostra o nascondi il confine del Municipio IX';b.setAttribute('aria-label',b.title);b.style.cssText='width:auto;min-width:40px;height:34px;padding:0 10px;border:0;background:white;font-weight:700;cursor:pointer';const sync=()=>b.textContent=boundaryVisible?'Confine ✓':'Confine';sync();L.DomEvent.disableClickPropagation(box);L.DomEvent.on(b,'click',()=>{if(!boundaryLayer)return;if(boundaryVisible){mapInstance.removeLayer(boundaryLayer);boundaryVisible=false}else{boundaryLayer.addTo(mapInstance);boundaryVisible=true}sync()});return box}});mapInstance.addControl(new Control())}
 
 async function renderGeoMap(){
@@ -361,13 +274,10 @@ async function renderGeoMap(){
   });
   let confineOk=false;
   try{await loadMunicipioBoundary(L);confineOk=true}catch(e){console.warn(e)}
-  updateMapDiagnostics();
+  if(bounds.length)mapInstance.fitBounds(bounds,{padding:[42,42],maxZoom:13});
   const info=$('#mapGeoSummary');
   if(info)info.textContent=`${fmt(geoPlessi.plessiGeocodificati)} plessi geocodificati · ${fmt(geoSectionsTotal())} sezioni associate${confineOk?' · confine Municipio IX attivo':' · confine non disponibile'}`;
-  setTimeout(()=>{
-    mapInstance.invalidateSize();
-    fitMapToPlessi();
-  },100);
+  setTimeout(()=>mapInstance.invalidateSize(),80);
 }
 async function focusSectionOnMap(section){const sec=normSection(section);if(!mapInstance||!mapMarkers.length){try{await renderGeoMap()}catch(e){console.error(e)}}const marker=mapMarkers.find(m=>m._seggiSections?.has(sec));if(marker&&mapInstance){mapInstance.setView(marker.getLatLng(),16,{animate:true});marker.openPopup();return true}openSection(sec);return false}
 function restoreLiveCache(){
@@ -427,7 +337,7 @@ function renderAll(){
   $('#kpiFdiMunicipio').textContent=fmt(m.fdiVoti);$('#kpiFdiMunicipioPct').textContent=pct(m.fdiSuValidi)+' sui validi';
   $('#progressBar').style.width=progress+'%';$('#progressLabel').textContent=pct(progress);
   $('#legendReceived').textContent=fmt(received);$('#legendMissing').textContent=fmt(missing);$('#missingBadge').textContent=fmt(missing);
-  renderRecent();renderMissingTerritorial();renderRankings($('#rankLevel').value,'#topList',5,false);renderRegistry();renderMapList();if(geoReady)updateMapDiagnostics();
+  renderRecent();renderMissingTerritorial();renderRankings($('#rankLevel').value,'#topList',5,false);renderRegistry();renderMapList();if($('#view-data')?.classList.contains('active'))renderDataView();
 }
 function renderMissingTerritorial(){
   const received=new Set();(live.sezioni||[]).forEach(x=>received.add(normSection(x.sezione)));(live.scrutiniDettaglio||[]).forEach(x=>received.add(normSection(x.sezione)));
@@ -443,6 +353,46 @@ function statusFor(section){const sec=normSection(section);const scr=(live.scrut
 function filteredRegistry(q,status='all'){q=String(q||'').trim().toLowerCase();return registry.sezioni.filter(x=>{const matchesText=!q||String(x.sezione).includes(q)||String(x.indirizzo).toLowerCase().includes(q)||String(x.cap||'').includes(q);const st=statusFor(x.sezione);return matchesText&&(status==='all'||st.cls===status)})}
 function renderRegistry(){const rows=filteredRegistry($('#sectionSearch')?.value,$('#sectionStatus')?.value||'all');$('#registrySummary').textContent=`${fmt(registry.sezioniTotali)} sezioni in ${fmt(registry.plessiTotali)} plessi elettorali`;$('#sectionsBody').innerHTML=rows.map(r=>{const st=statusFor(r.sezione);return`<tr data-section="${esc(r.sezione)}"><td><strong>${esc(r.sezione)}</strong></td><td>${esc(r.indirizzo)}</td><td>${esc(r.cap)}</td><td>${fmt(r.numeroVie)}</td><td><span class="state ${st.cls}">${st.label}</span></td></tr>`}).join('')||'<tr><td colspan="5" class="empty-cell">Nessuna sezione corrisponde al filtro.</td></tr>';$$('#sectionsBody tr[data-section]').forEach(x=>x.onclick=()=>openSection(x.dataset.section))}
 function renderMapList(){const q=$('#mapSearch')?.value||'';const rows=filteredRegistry(q);$('#mapSectionList').innerHTML=rows.map(r=>{const st=statusFor(r.sezione);return`<button type="button" class="map-section-card" data-section="${esc(r.sezione)}"><strong>Sezione ${esc(r.sezione)}</strong><small>${esc(r.indirizzo)}${r.cap?' · '+esc(r.cap):''}</small><span class="state ${st.cls}">${st.label}</span></button>`}).join('')||'<p class="empty-state">Nessuna sezione corrisponde alla ricerca.</p>';$$('.map-section-card').forEach(x=>x.onclick=()=>focusSectionOnMap(x.dataset.section));const exact=rows.length===1&&normSection(q)===normSection(rows[0].sezione);if(exact)setTimeout(()=>focusSectionOnMap(rows[0].sezione),50)}
+
+function dataResultRows(){
+  if(!live)return[];
+  const level=$('#dataLevel')?.value||'Comune';
+  const q=normSection($('#dataSectionSearch')?.value||'');
+  return (live.risultatiListe||[])
+    .filter(r=>String(r.municipio||'').replace(/\D/g,'').padStart(2,'0')==='09')
+    .filter(r=>r.livello===level)
+    .filter(r=>registryBySection.has(normSection(r.sezione)))
+    .filter(r=>!q||normSection(r.sezione).includes(q))
+    .map(r=>{
+      const iscritti=Number(r.elettori||0),votanti=Number(r.votanti||0),validi=Number(r.votiValidi||0),fdi=Number(r.fdiVoti||0);
+      return {...r,iscritti,votanti,validi,fdi,altri:Math.max(0,validi-fdi),
+        pctValidi:validi?fdi/validi*100:'',pctVotanti:votanti?fdi/votanti*100:'',pctIscritti:iscritti?fdi/iscritti*100:''};
+    }).sort((a,b)=>Number(a.sezione)-Number(b.sezione));
+}
+function renderDataSummary(rows){
+  const box=$('#dataFdiSummary');if(!box)return;
+  const a=rows.reduce((t,r)=>{t.sezioni++;t.iscritti+=r.iscritti;t.votanti+=r.votanti;t.validi+=r.validi;t.fdi+=r.fdi;if(Number(r.posizioneFdi||0)===1)t.prime++;return t;},{sezioni:0,iscritti:0,votanti:0,validi:0,fdi:0,prime:0});
+  box.innerHTML=`<article><span>Voti FdI</span><strong>${fmt(a.fdi)}</strong></article><article><span>FdI sui validi</span><strong>${a.validi?pct(a.fdi/a.validi*100):'—'}</strong></article><article><span>FdI sui votanti</span><strong>${a.votanti?pct(a.fdi/a.votanti*100):'—'}</strong></article><article><span>FdI sugli iscritti</span><strong>${a.iscritti?pct(a.fdi/a.iscritti*100):'—'}</strong></article><article><span>FdI primo</span><strong>${fmt(a.prime)}/${fmt(a.sezioni)}</strong></article>`;
+}
+function renderDataView(){
+  if(!live)return;
+  const t=live.totali||{},received=territorialReceived(),expected=territorialExpected();
+  $('#dataKpiTurnout').textContent=pct(t.percentuale);$('#dataKpiVoters').textContent=fmt(t.totale);$('#dataKpiMF').textContent=fmt(t.maschi)+' / '+fmt(t.femmine);$('#dataKpiSections').textContent=fmt(received)+' / '+fmt(expected);
+  const rows=dataResultRows();$('#dataResultCount').textContent=fmt(rows.length)+' sezioni';renderDataSummary(rows);
+  $('#dataResultsBody').innerHTML=rows.map(r=>{const reg=registryForSection(r.sezione),positive=Number(r.distaccoPrimoAltro||0)>=0,confronto=r.primoAltroPartito?`${positive?'+':''}${fmt(r.distaccoPrimoAltro)} su ${esc(r.primoAltroPartito)}`:'—';return `<tr data-section="${esc(r.sezione)}"><td><strong>${esc(normSection(r.sezione)||r.sezione)}</strong></td><td>${esc(reg?.indirizzo||'—')}</td><td>${fmt(r.iscritti)}</td><td>${fmt(r.votanti)}</td><td>${fmt(r.validi)}</td><td><strong>${fmt(r.fdi)}</strong></td><td>${fmt(r.altri)}</td><td><strong>${pct(r.pctValidi)}</strong></td><td>${pct(r.pctVotanti)}</td><td>${pct(r.pctIscritti)}</td><td>${r.posizioneFdi?esc(r.posizioneFdi)+'°':'—'}</td><td class="${positive?'positive':'negative'}">${confronto}</td></tr>`}).join('')||'<tr><td colspan="12" class="empty-cell">Nessun risultato disponibile con questo filtro.</td></tr>';
+  $$('#dataResultsBody tr[data-section]').forEach(tr=>tr.onclick=()=>openSection(tr.dataset.section));
+  const q=normSection($('#dataSectionSearch')?.value||'');
+  const aff=(live.sezioni||[]).filter(r=>registryBySection.has(normSection(r.sezione))).filter(r=>!q||normSection(r.sezione).includes(q)).sort((a,b)=>Number(a.sezione)-Number(b.sezione));
+  $('#dataAffluenzaCount').textContent=fmt(aff.length)+' sezioni';
+  $('#dataAffluenzaBody').innerHTML=aff.map(r=>`<tr data-section="${esc(r.sezione)}"><td><strong>${esc(normSection(r.sezione)||r.sezione)}</strong></td><td>${esc((r.giorno||'')+' '+(r.orario||''))}</td><td>${fmt(r.maschi)}</td><td>${fmt(r.femmine)}</td><td>${fmt(r.totale)}</td><td>${pct(r.percentuale)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty-cell">Nessun dato di affluenza.</td></tr>';
+  $$('#dataAffluenzaBody tr[data-section]').forEach(tr=>tr.onclick=()=>openSection(tr.dataset.section));
+  const seen=new Set();(live.sezioni||[]).forEach(r=>seen.add(normSection(r.sezione)));(live.scrutiniDettaglio||[]).forEach(r=>seen.add(normSection(r.sezione)));
+  const missing=(registry.sezioni||[]).filter(r=>!seen.has(normSection(r.sezione))).filter(r=>!q||normSection(r.sezione).includes(q));
+  $('#dataMissingCount').textContent=fmt(missing.length)+' mancanti';
+  $('#dataMissingList').innerHTML=missing.length?missing.slice(0,80).map(r=>`<button class="chip" data-section="${esc(r.sezione)}">${esc(r.sezione)}</button>`).join(''):'<span class="state done">Nessuna sezione mancante</span>';
+  $$('#dataMissingList [data-section]').forEach(b=>b.onclick=()=>openSection(b.dataset.section));
+}
+
 function openSection(section){
   const sec=normSection(section);
   const reg=registryForSection(sec);
@@ -644,7 +594,7 @@ function downloadDetailedCsv(){
   return false;
 }
 
-function switchView(name){$$('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+name));$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===name));if(name==='dashboard'){const f=$('#dashboardFrame');if(f&&!f.src){f.src=f.dataset.src||'dashboard.html?v=1522';}}if(name==='rankings'){renderRankings($('#rankingLevel').value,'#bestRankings',15,false);renderRankings($('#rankingLevel').value,'#worstRankings',15,true)}if(name==='sections')renderRegistry();if(name==='map'){renderMapList();renderGeoMap().catch(e=>{console.error(e);const info=$('#mapGeoSummary');if(info)info.textContent=e.message})}if(name==='report'){const p=$('#reportPreview');if(p&&!p.querySelector('.report-sheet'))p.innerHTML='<p class="empty-state">Scegli “Dossier riepilogo” oppure “Report sezioni”.</p>';}window.scrollTo({top:0,behavior:'smooth'})}
+function switchView(name){$$('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+name));$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===name));if(name==='dashboard'){const f=$('#dashboardFrame');if(f&&!f.src){f.src=f.dataset.src||'dashboard.html?v=1530';}}if(name==='rankings'){renderRankings($('#rankingLevel').value,'#bestRankings',15,false);renderRankings($('#rankingLevel').value,'#worstRankings',15,true)}if(name==='sections')renderRegistry();if(name==='map'){renderMapList();renderGeoMap().catch(e=>{console.error(e);const info=$('#mapGeoSummary');if(info)info.textContent=e.message})}if(name==='report'){const p=$('#reportPreview');if(p&&!p.querySelector('.report-sheet'))p.innerHTML='<p class="empty-state">Scegli “Dossier riepilogo” oppure “Report sezioni”.</p>';}window.scrollTo({top:0,behavior:'smooth'})}
 window.SeggioLinkGenerateReport=generateReport;
 
 function bindControlCenterEvents(){
@@ -711,6 +661,8 @@ function bindControlCenterEvents(){
   const sectionSearch=$('#sectionSearch');
   const sectionStatus=$('#sectionStatus');
   const mapSearch=$('#mapSearch');
+  const dataLevel=$('#dataLevel');
+  const dataSectionSearch=$('#dataSectionSearch');
 
   if(rankLevel)rankLevel.addEventListener('change',e=>renderRankings(e.target.value,'#topList',5,false));
   if(rankingLevel)rankingLevel.addEventListener('change',e=>{
@@ -720,6 +672,8 @@ function bindControlCenterEvents(){
   if(sectionSearch)sectionSearch.addEventListener('input',renderRegistry);
   if(sectionStatus)sectionStatus.addEventListener('change',renderRegistry);
   if(mapSearch)mapSearch.addEventListener('input',renderMapList);
+  if(dataLevel)dataLevel.addEventListener('change',renderDataView);
+  if(dataSectionSearch)dataSectionSearch.addEventListener('input',renderDataView);
 
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'&&$('#sectionDialog')?.open)$('#sectionDialog').close();
@@ -729,4 +683,4 @@ function bindControlCenterEvents(){
 bindControlCenterEvents();
 document.addEventListener('click',e=>{const b=e.target.closest?.('#generateReportBtn');if(b){e.preventDefault();generateReport();}},{capture:true});
 (async()=>{try{$('#sectionSearch').value='';$('#mapSearch').value='';await loadRegistry();rebuildRegistryIndex()}catch(e){console.error(e);$('#registrySummary').textContent=e.message;$('#sectionsBody').innerHTML=`<tr><td colspan="5" class="empty-cell error">${esc(e.message)}</td></tr>`;$('#mapSectionList').innerHTML=`<p class="empty-state error">${esc(e.message)}</p>`}if(dashboardToken)await load();else showLogin()})();
-window.addEventListener('hashchange',()=>{const v=location.hash.replace('#','');if(['overview','dashboard','map','sections','rankings','report'].includes(v))switchView(v)});
+window.addEventListener('hashchange',()=>{const v=location.hash.replace('#','');if(['overview','data','map','sections','rankings','report'].includes(v))switchView(v)});

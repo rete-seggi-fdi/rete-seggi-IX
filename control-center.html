@@ -6,15 +6,15 @@
   <meta name="robots" content="noindex,nofollow">
   <meta name="theme-color" content="#0a1833">
   <title>SeggioLink Control Center - Municipio IX</title>
-  <link rel="stylesheet" href="control-center.css?v=15.2.2">
+  <link rel="stylesheet" href="control-center.css?v=15.3.0">
 </head>
 <body>
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 15.2.0</small></div></div>
+      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 15.3.0</small></div></div>
       <nav aria-label="Navigazione Control Center">
         <button type="button" class="nav-item active" data-view="overview"><span class="nav-icon" aria-hidden="true">▦</span><span>Riepilogo</span></button>
-        <button type="button" class="nav-item" data-view="dashboard"><span class="nav-icon" aria-hidden="true">◫</span><span>Dashboard coordinamento</span></button>
+        <button type="button" class="nav-item" data-view="data"><span class="nav-icon" aria-hidden="true">◫</span><span>Dati elettorali</span></button>
         <button type="button" class="nav-item" data-view="map"><span class="nav-icon" aria-hidden="true">⌖</span><span>Mappa Municipio IX</span></button>
         <button type="button" class="nav-item" data-view="sections"><span class="nav-icon" aria-hidden="true">▤</span><span>Sezioni e plessi</span></button>
         <button type="button" class="nav-item" data-view="rankings"><span class="nav-icon" aria-hidden="true">★</span><span>Classifiche FdI</span></button>
@@ -22,20 +22,17 @@
       </nav>
       <div class="side-footer"><span id="connectionDot"></span><span id="connectionText">Non collegato</span><small id="backendVersion">Backend -</small></div>
     </aside>
-
     <main class="main">
       <header class="topbar">
         <div><p class="eyebrow">RETE SEGGI FDI</p><h1>IX Municipio Roma</h1><p id="lastUpdate">Dashboard elettorale</p></div>
         <div class="actions"><button type="button" id="refreshBtn" class="btn secondary" hidden>Aggiorna</button><button type="button" id="printBtn" class="btn primary" hidden>Stampa / PDF</button><button type="button" id="logoutBtn" class="btn secondary" hidden>Esci</button></div>
       </header>
-
       <section id="loginView" class="login-card">
         <h2>Accesso coordinamento</h2>
-        <p>Usa la stessa password della Dashboard coordinamento.</p>
+        <p>Accedi una sola volta al Control Center. Tutte le sezioni interne usano la stessa sessione.</p>
         <form id="loginForm"><label>Password<input id="password" type="password" minlength="16" autocomplete="current-password" required></label><button class="btn primary" type="submit">Accedi al Control Center</button></form>
         <p id="loginError" class="error" role="alert"></p>
       </section>
-
       <div id="appView" hidden>
         <section id="view-overview" class="view active">
           <div class="metrics six">
@@ -46,7 +43,6 @@
             <article><span>Voti FdI Comune</span><strong id="kpiFdiComune">-</strong><small id="kpiFdiComunePct">-</small></article>
             <article><span>Voti FdI Municipio</span><strong id="kpiFdiMunicipio">-</strong><small id="kpiFdiMunicipioPct">-</small></article>
           </div>
-
           <div class="dashboard-grid">
             <section class="panel progress-panel"><div class="panel-head"><h2>Avanzamento scrutinio</h2><span id="progressLabel">0%</span></div><div class="progress-track"><div id="progressBar"></div></div><div class="progress-legend"><span><i class="ok"></i> Ricevute <b id="legendReceived">0</b></span><span><i class="missing"></i> Mancanti <b id="legendMissing">0</b></span></div></section>
             <section class="panel"><div class="panel-head"><h2>Ultimi invii</h2><button type="button" class="text-button" data-view-link="sections">Vedi tutte</button></div><div id="recentList" class="recent-list"></div></section>
@@ -55,26 +51,40 @@
           </div>
         </section>
 
-        <section id="view-dashboard" class="view dashboard-embedded-view">
-          <div class="view-head"><div><h2>Dashboard coordinamento</h2><p>Vista operativa completa integrata nel Control Center. Usa la stessa sessione di accesso e resta disponibile anche come pagina autonoma.</p></div><a class="btn secondary dashboard-open-link" href="dashboard.html" target="_blank" rel="noopener">Apri in nuova scheda</a></div>
-          <div class="dashboard-frame-wrap"><iframe id="dashboardFrame" title="Dashboard coordinamento SeggioLink" loading="lazy" data-src="dashboard.html?v=1520"></iframe></div>
+        <section id="view-data" class="view">
+          <div class="view-head">
+            <div><h2>Dati elettorali</h2><p>Affluenza e risultati per sezione, direttamente nel Control Center e senza secondo accesso.</p></div>
+            <div class="filters data-filters">
+              <label>Tipo di scheda<select id="dataLevel"><option value="Comune">Comune</option><option value="Municipio">Municipio</option></select></label>
+              <label>Cerca sezione<input id="dataSectionSearch" inputmode="numeric" autocomplete="off" placeholder="es. 1667"></label>
+            </div>
+          </div>
+          <div class="metrics data-metrics">
+            <article><span>Affluenza</span><strong id="dataKpiTurnout">—</strong></article>
+            <article><span>Votanti</span><strong id="dataKpiVoters">—</strong></article>
+            <article><span>Maschi / Femmine</span><strong id="dataKpiMF">—</strong></article>
+            <article><span>Sezioni ricevute</span><strong id="dataKpiSections">—</strong></article>
+          </div>
+          <section class="panel data-summary-panel"><div class="panel-head"><h2>Riepilogo FdI</h2><span id="dataResultCount"></span></div><div id="dataFdiSummary" class="data-fdi-summary"></div></section>
+          <section class="table-panel data-results-panel"><table class="data-results-table"><thead><tr><th>Sez.</th><th>Indirizzo</th><th>Iscritti</th><th>Votanti</th><th>Validi</th><th>FdI</th><th>Altri</th><th>FdI/validi</th><th>FdI/votanti</th><th>FdI/iscritti</th><th>Pos.</th><th>Confronto</th></tr></thead><tbody id="dataResultsBody"><tr><td colspan="12" class="empty-cell">Caricamento dati elettorali…</td></tr></tbody></table></section>
+          <div class="two-columns data-bottom-grid">
+            <section class="panel"><div class="panel-head"><h2>Ultimo dato per sezione</h2><span id="dataAffluenzaCount"></span></div><div class="table-scroll-mini"><table><thead><tr><th>Sez.</th><th>Orario</th><th>M</th><th>F</th><th>Tot.</th><th>%</th></tr></thead><tbody id="dataAffluenzaBody"></tbody></table></div></section>
+            <section class="panel"><div class="panel-head"><h2>Sezioni mancanti</h2><span id="dataMissingCount"></span></div><div id="dataMissingList" class="chips"></div></section>
+          </div>
         </section>
 
         <section id="view-map" class="view">
           <div class="view-head"><div><h2>Mappa ufficiale Municipio IX</h2><p>Mappa operativa con 38 plessi geocodificati, stato degli invii, ricerca per sezione e posizione del coordinatore. La mappa ufficiale resta disponibile come fallback.</p></div><label>Cerca sezione<input id="mapSearch" name="cc-map-section-filter" inputmode="numeric" autocomplete="off" placeholder="es. 1667"></label></div>
           <div class="map-layout"><div class="map-panel"><img src="data/mappa-municipio-ix.png" alt="Mappa ufficiale del Municipio IX di Roma"><div class="map-note">Mappa ufficiale di fallback. La vista interattiva usa esclusivamente coordinate verificate dei plessi.</div></div><aside class="map-sections"><div id="mapSectionList"><p class="empty-state">Caricamento sezioni…</p></div></aside></div>
         </section>
-
         <section id="view-sections" class="view">
           <div class="view-head"><div><h2>Sezioni e plessi elettorali</h2><p id="registrySummary">Archivio territoriale</p></div><div class="filters"><label>Stato<select id="sectionStatus"><option value="all">Tutti</option><option value="done">Scrutinio ricevuto</option><option value="partial">Solo affluenza</option><option value="missing">Nessun dato</option></select></label><label>Filtra<input id="sectionSearch" name="cc-registry-filter" autocomplete="off" placeholder="sezione, indirizzo o CAP"></label></div></div>
           <div class="table-panel"><table><thead><tr><th>Sezione</th><th>Indirizzo del seggio</th><th>CAP</th><th>Vie assegnate</th><th>Stato</th></tr></thead><tbody id="sectionsBody"><tr><td colspan="5" class="empty-cell">Caricamento archivio territoriale…</td></tr></tbody></table></div>
         </section>
-
         <section id="view-rankings" class="view">
           <div class="view-head"><div><h2>Classifiche FdI</h2><p>Confronto per sezione sui voti validi.</p></div><label>Livello<select id="rankingLevel"><option value="Comune">Comune</option><option value="Municipio">Municipio</option></select></label></div>
           <div class="two-columns"><section class="panel"><h3>Migliori sezioni</h3><div id="bestRankings" class="ranking-list large"></div></section><section class="panel"><h3>Sezioni da analizzare</h3><div id="worstRankings" class="ranking-list large"></div></section></div>
         </section>
-
         <section id="view-report" class="view report-view">
           <div class="report-hero"><div><p class="eyebrow">DOSSIER ELETTORALE</p><h2>Report finale - Elezioni amministrative</h2><p>Riepilogo del Municipio IX, risultati FdI, sezioni e plessi.</p></div><div class="report-actions"><button type="button" id="generateReportBtn" class="btn primary">Dossier riepilogo</button><button type="button" id="generateDetailedReportBtn" class="btn secondary">Report sezioni</button><button type="button" id="downloadDetailedCsvBtn" class="btn secondary">Scarica CSV per Excel</button></div></div>
           <div id="reportPreview" class="report-preview" aria-live="polite"><p class="empty-state">Scegli “Dossier riepilogo” oppure “Report sezioni”.</p></div>
@@ -83,7 +93,7 @@
     </main>
   </div>
   <dialog id="sectionDialog"><div class="dialog-card"><button type="button" id="closeDialog" class="dialog-close">×</button><div id="sectionDialogContent"></div></div></dialog>
-  <script src="config.js?v=15.2.2"></script>
-  <script src="control-center.js?v=15.2.2"></script>
+  <script src="config.js?v=15.3.0"></script>
+  <script src="control-center.js?v=15.3.0"></script>
 </body>
 </html>
