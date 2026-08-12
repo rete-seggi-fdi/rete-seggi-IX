@@ -1,7 +1,7 @@
 /* Configurazione ambiente: non inserire segreti in questo file. */
 
 window.SEGGI_CONFIG = Object.freeze({
-  appVersion: '13.6.1',
+  appVersion: '13.6.3',
   buildDate: '2026-08-12',
   environment: 'production',
   latestVersionUrl: 'build-info.json',

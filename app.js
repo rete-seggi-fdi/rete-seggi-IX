@@ -1666,10 +1666,17 @@ function validaScrutinio(s) {
     const campiCandidati = $all('[id^="' + prefixCandidati + '_"]');
     const sommaCandidati = sommaVoci(leggiDynList(prefixCandidati));
 
-    if (sommaSchede > s.votanti) {
-      errori.push('Scheda ' + nomeScheda + ': valide + bianche + nulle + contestate (' + sommaSchede + ') supera i votanti (' + s.votanti + ').');
-    } else if (sommaSchede < s.votanti) {
-      avvisi.push('Scheda ' + nomeScheda + ': il totale delle schede (' + sommaSchede + ') è inferiore ai votanti (' + s.votanti + ') di ' + (s.votanti - sommaSchede) + '.');
+    // Il backend accetta lo scrutinio solo quando, per ciascuna scheda,
+    // valide + bianche + nulle + contestate coincide esattamente con i votanti.
+    // Manteniamo la stessa regola anche nel client per evitare invii destinati
+    // a restare in coda con errore INVALID_DATA.
+    if (sommaSchede !== s.votanti) {
+      const differenza = sommaSchede - s.votanti;
+      errori.push(
+        'Scheda ' + nomeScheda + ': il totale delle schede (' + sommaSchede +
+        ') deve coincidere con i votanti (' + s.votanti + '). ' +
+        (differenza < 0 ? 'Mancano ' + Math.abs(differenza) + ' schede.' : 'Ci sono ' + differenza + ' schede in più.')
+      );
     }
     if (sommaListe > blocco.valide) {
       errori.push('Scheda ' + nomeScheda + ': la somma dei voti di lista (' + sommaListe + ') supera le schede valide (' + blocco.valide + ').');
@@ -2027,7 +2034,10 @@ async function onConfermaInvioScrutinio() {
   await provaSvuotaCode();
   const item = trovaItem(LS.QUEUE_SCR, id);
   if (item && item.status === 'synced') showToast('Scrutinio ricevuto dal coordinamento.');
-  else if (item && item.status === 'error') showToast('Scrutinio salvato, ma non ancora ricevuto. Controlla “I miei invii”.', 4500);
+  else if (item && item.status === 'error') {
+    const dettaglio = item.ultimoErrore ? ' Motivo: ' + item.ultimoErrore : ' Controlla “I miei invii”.';
+    showToast('Scrutinio salvato sul telefono, ma non ricevuto.' + dettaglio, 7000);
+  }
 }
 
 function ultimoScrutinioAttivo() {
@@ -2336,6 +2346,20 @@ async function provaSvuotaCode() {
     aggiornaBadgeInCoda();
   }
   return almenoUnSuccesso;
+}
+
+function ultimoErroreCoda() {
+  const errori = [].concat(loadJSON(LS.QUEUE_AFF, []), loadJSON(LS.QUEUE_SCR, []))
+    .filter((item) => item && item.status === 'error' && item.ultimoErrore)
+    .sort((a, b) => String(b.ultimoTentativo || b.creato || '').localeCompare(String(a.ultimoTentativo || a.creato || '')));
+  return errori.length ? String(errori[0].ultimoErrore || '') : '';
+}
+
+function messaggioEsitoSincronizzazione(ok) {
+  if (ok) return 'Sincronizzazione completata.';
+  if (!navigator.onLine) return 'Sei offline: riproverò automaticamente.';
+  const errore = ultimoErroreCoda();
+  return errore ? 'Invio non ricevuto: ' + errore : 'Nessun invio ricevuto: controlla i dettagli.';
 }
 
 function contaInCoda() {
@@ -2983,7 +3007,7 @@ function verificaVersioneConfigurata() {
 async function initServiceWorkerUpdates() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    const reg = await navigator.serviceWorker.register('service-worker.js');
+    const reg = await navigator.serviceWorker.register('service-worker.js?v=' + encodeURIComponent(APP_VERSION));
     STATE.swRegistration = reg;
     if (reg.waiting) { STATE.swWaiting = reg.waiting; mostraAggiornamento('È disponibile una nuova versione dell’app.', false); }
     reg.addEventListener('updatefound', () => {
@@ -3136,7 +3160,11 @@ async function avvia() {
     $('#btnConfermaInvio').disabled = true;
     payloadScrutinioPronto = null;
   });
-  $('#btnRiprovaInvii').addEventListener('click', async () => { showToast('Provo a sincronizzare…'); const ok = await provaSvuotaCode(); showToast(ok ? 'Sincronizzazione completata.' : (navigator.onLine ? 'Nessun invio ricevuto: controlla i dettagli.' : 'Sei offline: riproverò automaticamente.')); });
+  $('#btnRiprovaInvii').addEventListener('click', async () => {
+    showToast('Provo a sincronizzare…');
+    const ok = await provaSvuotaCode();
+    showToast(messaggioEsitoSincronizzazione(ok), ok ? 3500 : 7000);
+  });
   $('#btnCondividi').addEventListener('click', onCondividi);
   $('#btnShareWhatsApp').addEventListener('click', condividiConWhatsApp);
   $('#btnShareSms').addEventListener('click', condividiConSms);
