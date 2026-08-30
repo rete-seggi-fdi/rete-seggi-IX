@@ -13,7 +13,7 @@
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzSs2UcpiGNZDglnq9XM-Oz5ZAy2Lbh1uT70Wh7Ho_b80c7HOY07ETy_wYfgXFgAVnzlw/exec';
-const APP_VERSION = '13.7.4-security';
+const APP_VERSION = '13.7.6-security';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -935,6 +935,13 @@ function onCambiaSeggioAttivo() {
 // SCHERMATA 2 — DASHBOARD
 // =======================================================================
 function mostraDashboard() {
+  if (STATE.profile && !Number(STATE.profile.elettori)) {
+    const recuperati = elettoriSezioneLocali_(STATE.profile.municipio, STATE.profile.sezione);
+    if (recuperati > 0) {
+      memorizzaElettoriSezioneLocali_(STATE.profile.municipio, STATE.profile.sezione, recuperati);
+    }
+  }
+
   $('#btnLogout').hidden = false;
   $('#screen-login').classList.remove('active');
   $('#screen-setup').classList.remove('active');
@@ -1227,6 +1234,73 @@ function percentuale(parte, totale) {
   return Math.round((parte / totale) * 1000) / 10;
 }
 
+function elettoriSezioneLocali_(municipio, sezione) {
+  const mu = String(municipio || '');
+  const sez = String(sezione || '');
+
+  if (STATE.profile &&
+      STATE.profile.municipio === mu &&
+      STATE.profile.sezione === sez &&
+      Number(STATE.profile.elettori) > 0) {
+    return Number(STATE.profile.elettori);
+  }
+
+  const seg = STATE.seggi.find((s) =>
+    String(s.municipio || '') === mu &&
+    String(s.sezione || '') === sez &&
+    Number(s.elettori) > 0
+  );
+  if (seg) return Number(seg.elettori);
+
+  const candidati = [
+    ...loadJSON(LS.QUEUE_AFF, []),
+    ...loadJSON(LS.QUEUE_SCR, [])
+  ].filter((it) =>
+    it && it.payload &&
+    String(it.payload.municipio || '') === mu &&
+    String(it.payload.sezione || '') === sez
+  ).sort((a, b) => (a.creato < b.creato ? 1 : -1));
+
+  for (const it of candidati) {
+    const daPayload = Number(it.payload && it.payload.elettori);
+    if (Number.isFinite(daPayload) && daPayload > 0) return daPayload;
+
+    const daServer = Number(it.rispostaServer && it.rispostaServer.elettori);
+    if (Number.isFinite(daServer) && daServer > 0) return daServer;
+  }
+
+  return 0;
+}
+
+function memorizzaElettoriSezioneLocali_(municipio, sezione, elettori) {
+  const n = Number(elettori);
+  if (!Number.isFinite(n) || n <= 0) return false;
+
+  const mu = String(municipio || '');
+  const sez = String(sezione || '');
+  let cambiato = false;
+
+  const seg = STATE.seggi.find((s) =>
+    String(s.municipio || '') === mu &&
+    String(s.sezione || '') === sez
+  );
+  if (seg && Number(seg.elettori) !== n) {
+    seg.elettori = n;
+    cambiato = true;
+  }
+
+  if (STATE.profile &&
+      String(STATE.profile.municipio || '') === mu &&
+      String(STATE.profile.sezione || '') === sez &&
+      Number(STATE.profile.elettori) !== n) {
+    STATE.profile.elettori = n;
+    cambiato = true;
+  }
+
+  if (cambiato) saveJSON(LS.SEGGI, STATE.seggi);
+  return cambiato;
+}
+
 function invitiAffluenzaSezione() {
   const tutti = loadJSON(LS.QUEUE_AFF, []);
   const mappa = {};
@@ -1270,7 +1344,8 @@ async function onInviaAffluenza() {
     tipo: 'affluenza', idInvio: tentativoAffluenzaDaSostituireId || uuid(),     municipio: STATE.profile.municipio, sezione: STATE.profile.sezione,
     telefono: STATE.profile.telefono,
     giorno: affluenzaCorrente.giorno, orario: affluenzaCorrente.orario,
-    elettori: STATE.profile.elettori || null, maschi, femmine, totale,
+    elettori: elettoriSezioneLocali_(STATE.profile.municipio, STATE.profile.sezione) || null,
+    maschi, femmine, totale,
     note: $('#affNote').value.trim(),
     correzioneDi: correzioneAffluenzaId || '',
     motivoCorrezione: correzioneAffluenzaId ? $('#affMotivoCorrezione').value.trim() : '',
@@ -1313,8 +1388,19 @@ function renderTabellaAffluenza() {
   }
   tutti.forEach((it) => {
     const p = it.payload;
-    const el = p.elettori || STATE.profile.elettori;
-    const perc = el ? percentuale(p.totale, el) + '%' : '—';
+    const el = Number(p.elettori) > 0
+      ? Number(p.elettori)
+      : elettoriSezioneLocali_(p.municipio, p.sezione);
+
+    const percentualeServer = Number(
+      (it.rispostaServer && it.rispostaServer.percentuale !== undefined)
+        ? it.rispostaServer.percentuale
+        : p.percentuale
+    );
+    const perc = Number.isFinite(percentualeServer)
+      ? percentualeServer + '%'
+      : (el ? percentuale(p.totale, el) + '%' : '—');
+
     const superato = sostituiti.has(it.idInvio);
     const tr = document.createElement('tr');
     tr.innerHTML = '<td>' + escapeHtml((p.giorno ? p.giorno + ' ' : '') + p.orario) + '</td><td>' + (p.maschi ?? '—') +
@@ -1917,7 +2003,40 @@ async function provaSvuotaCode() {
           item.status = 'synced';
           item.sincronizzatoIl = new Date().toISOString();
           item.ultimoErrore = '';
-          item.rispostaServer = { duplicato: !!risposta.duplicato, correzione: !!risposta.correzione };
+
+          const salvatoServer = risposta && risposta.salvato && typeof risposta.salvato === 'object'
+            ? risposta.salvato
+            : {};
+
+          item.rispostaServer = {
+            duplicato: !!risposta.duplicato,
+            correzione: !!risposta.correzione,
+            elettori: salvatoServer.elettori !== undefined ? salvatoServer.elettori : null,
+            percentuale: salvatoServer.percentuale !== undefined ? salvatoServer.percentuale : null,
+          };
+
+          if (queueKey === LS.QUEUE_AFF) {
+            // Il backend può recuperare gli elettori da rilevazioni precedenti.
+            // Riporta i valori canonici anche sul telefono, così percentuale,
+            // banner e invii successivi restano coerenti.
+            if (Number(salvatoServer.elettori) > 0) {
+              item.payload.elettori = Number(salvatoServer.elettori);
+              memorizzaElettoriSezioneLocali_(
+                item.payload.municipio,
+                item.payload.sezione,
+                salvatoServer.elettori
+              );
+            }
+            if (salvatoServer.percentuale !== undefined &&
+                salvatoServer.percentuale !== null &&
+                salvatoServer.percentuale !== '') {
+              item.payload.percentuale = Number(salvatoServer.percentuale);
+            }
+            if (salvatoServer.maschi !== undefined && salvatoServer.maschi !== '') item.payload.maschi = salvatoServer.maschi;
+            if (salvatoServer.femmine !== undefined && salvatoServer.femmine !== '') item.payload.femmine = salvatoServer.femmine;
+            if (salvatoServer.totale !== undefined && salvatoServer.totale !== '') item.payload.totale = salvatoServer.totale;
+          }
+
           if (queueKey === LS.QUEUE_SCR) {
             aggiornaDocumentoBozzaDaInvio(item, 'sincronizzato');
             if (STATE.profile && item.payload.municipio === STATE.profile.municipio && item.payload.sezione === STATE.profile.sezione) aggiornaStatoBozzaScrutinio('sent', item.sincronizzatoIl);
