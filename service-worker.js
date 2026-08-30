@@ -7,31 +7,17 @@
    Le richieste verso il backend (Apps Script, altro dominio) non vengono
    mai intercettate: passano sempre direttamente alla rete. */
 
-const VERSIONE = 'seggiolink-v13.6.3-production-20260812';
+const VERSIONE = 'seggiolink-v13.7.2-security';
 const CACHE_SHELL = 'shell-' + VERSIONE;
 const CACHE_DATI = 'dati-' + VERSIONE;
 
 const FILE_APP = [
   './',
   './index.html',
-  './config.js',
-  './build-info.json',
   './styles.css',
   './app.js',
   './manifest.json',
-  './control-center.html',
-  './control-center.css',
-  './control-center.js',
-  './dashboard.html',
-  './dashboard.css',
-  './dashboard.js',
-  './report-finale.html',
-  './report-finale.css',
-  './report-finale.js',
   './data/indice-sezioni.json',
-  './data/municipio-09.json',
-  './data/sezioni-ix-control.json',
-  './data/plessi-ix-geocodificati.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
@@ -40,12 +26,7 @@ const FILE_APP = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_SHELL).then(async (cache) => {
-      const essenziali = ['./', './index.html', './config.js', './styles.css', './app.js', './manifest.json'];
-      await cache.addAll(essenziali);
-      const opzionali = FILE_APP.filter((url) => essenziali.indexOf(url) === -1);
-      await Promise.allSettled(opzionali.map((url) => cache.add(url)));
-    })
+    caches.open(CACHE_SHELL).then((cache) => cache.addAll(FILE_APP))
   );
 });
 
@@ -74,10 +55,8 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.indexOf('/data/') !== -1) {
     event.respondWith(
       fetch(event.request).then((res) => {
-        if (res && res.ok) {
-          const copia = res.clone();
-          caches.open(CACHE_DATI).then((cache) => cache.put(event.request, copia));
-        }
+        const copia = res.clone();
+        caches.open(CACHE_DATI).then((cache) => cache.put(event.request, copia));
         return res;
       }).catch(() => caches.match(event.request))
     );

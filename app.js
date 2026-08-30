@@ -12,15 +12,8 @@
 // Sostituire con l'URL del tuo Web App di Google Apps Script
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
-const RUNTIME_CONFIG = window.SEGGI_CONFIG || {};
-const BACKEND_URL = String(RUNTIME_CONFIG.backendUrl || '').trim();
-const BACKEND_PROVIDER = String(RUNTIME_CONFIG.backendProvider || 'apps-script');
-const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '13.5.0');
-const BUILD_DATE = String(RUNTIME_CONFIG.buildDate || '');
-const APP_ENVIRONMENT = String(RUNTIME_CONFIG.environment || 'test').toLowerCase();
-const LATEST_VERSION_URL = String(RUNTIME_CONFIG.latestVersionUrl || 'build-info.json');
-const APP_NAME = String(RUNTIME_CONFIG.appName || 'SeggioLink Roma');
-const ENABLED_MUNICIPALITIES = Array.isArray(RUNTIME_CONFIG.enabledMunicipalities) ? RUNTIME_CONFIG.enabledMunicipalities : ['09'];
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbx78tvql-_GwosG23g17bhTkjZZALCTMPgM2sC4HRwbiekMW0eDAdZ-13sjYnkKU01icQ/exec';
+const APP_VERSION = '13.7.2-security';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -30,7 +23,8 @@ const NOMI_MUNICIPI = {
 };
 
 const LS = {
-  CODICE: 'rs_codice',
+  OWNER: 'rs_session_owner',
+  STORAGE_VERSION: 'rs_security_storage_version',
   TOKEN: 'rs_session_token',
   TOKEN_EXPIRES: 'rs_session_expires',
   PERSONA: 'rs_persona',
@@ -47,8 +41,6 @@ const LS = {
   DEVICE_CHECK_VERSION: 'rs_device_check_version',
   ACCESSIBILITY: 'rs_accessibility_mode',
   LAST_MESSAGE_CHECK: 'rs_last_message_check',
-  SERVER_HISTORY: 'rs_server_history',
-  LAST_HISTORY_SYNC: 'rs_last_history_sync',
 };
 
 let STATE = {
@@ -74,15 +66,6 @@ function ricostruisciProfileDaSeggioAttivo() {
   STATE.profile = Object.assign({}, STATE.persona, seg);
 }
 
-function aggiornaBrandTerritoriale() {
-  const mu = STATE.profile && STATE.profile.municipio;
-  const nome = mu ? (NOMI_MUNICIPI[mu] || ('Municipio ' + mu)) : 'Roma Capitale';
-  document.querySelectorAll('[data-municipio-label]').forEach((el) => { el.textContent = nome; });
-  const mark = document.querySelector('[data-municipio-mark]');
-  if (mark) mark.textContent = mu ? String(parseInt(mu, 10)) : 'RM';
-}
-
-
 // ---------------------------------------------------------------------
 // UTILITY DI BASE
 // ---------------------------------------------------------------------
@@ -92,78 +75,97 @@ function $all(sel, root) { return Array.from((root || document).querySelectorAll
 
 function uuid() {
   if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-  throw new Error('Questo dispositivo non supporta la generazione sicura degli identificativi. Aggiorna il browser.');
+  return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
 }
 
-function identitaStorageCorrente() {
-  const token = (() => { try { return JSON.parse(localStorage.getItem(LS.TOKEN) || '""'); } catch (e) { return ''; } })();
-  if (!token || String(token).indexOf('.') === -1) return '';
+function ownerStorageId() {
   try {
-    const raw = String(token).split('.')[0].replace(/-/g, '+').replace(/_/g, '/');
-    const padded = raw + '='.repeat((4 - raw.length % 4) % 4);
-    const payload = decodeURIComponent(Array.from(atob(padded)).map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join(''));
-    return String(payload.split('|')[0] || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 48);
+    const raw = localStorage.getItem(LS.OWNER);
+    const value = raw ? JSON.parse(raw) : '';
+    return String(value || '').replace(/[^A-Za-z0-9_-]/g, '').substring(0, 64);
   } catch (e) { return ''; }
 }
 
-function chiaveStorageRisolta(key) {
-  const operative = [LS.QUEUE_AFF, LS.QUEUE_SCR, LS.MESSAGGI, LS.SERVER_HISTORY, LS.LAST_HISTORY_SYNC, LS.LAST_MESSAGE_CHECK];
-  if (operative.indexOf(key) === -1) return key;
-  const identita = identitaStorageCorrente();
-  return identita ? key + '__' + identita : key;
+async function ownerIdDaCodice(codice) {
+  const normalized = String(codice || '').trim().toUpperCase();
+  if (!normalized) return '';
+
+  if (window.crypto && window.crypto.subtle && window.TextEncoder) {
+    const bytes = new TextEncoder().encode('SeggioLink-owner-v1|' + normalized);
+    const digest = await window.crypto.subtle.digest('SHA-256', bytes);
+    const hex = Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, '0')).join('');
+    return 'u_' + hex.slice(0, 40);
+  }
+
+  // Fallback solo per browser molto vecchi. Il codice non viene mai salvato.
+  let h1 = 0x811c9dc5;
+  let h2 = 0x9e3779b9;
+  const text = 'SeggioLink-owner-v1|' + normalized;
+  for (let i = 0; i < text.length; i++) {
+    h1 = Math.imul(h1 ^ text.charCodeAt(i), 16777619);
+    h2 = Math.imul(h2 ^ text.charCodeAt(i), 2246822507);
+  }
+  return 'u_' + (h1 >>> 0).toString(16).padStart(8, '0') +
+    (h2 >>> 0).toString(16).padStart(8, '0');
 }
 
-function compattaCodaLocale(val) {
-  if (!Array.isArray(val) || val.length <= 140) return val;
-  const nonSincronizzati = val.filter((item) => item && item.status !== 'synced');
-  const sincronizzati = val.filter((item) => item && item.status === 'synced')
-    .sort((a, b) => String(a.sincronizzatoIl || a.creato || '') < String(b.sincronizzatoIl || b.creato || '') ? 1 : -1)
-    .slice(0, 100);
-  return nonSincronizzati.concat(sincronizzati);
+function chiaveStorageEffettiva(key) {
+  const owner = ownerStorageId();
+  const scoped = key === LS.PERSONA || key === LS.SEGGI || key === LS.SEGGIO_ATTIVO || key === LS.DATA_REVISION ||
+    key === LS.QUEUE_AFF || key === LS.QUEUE_SCR || key === LS.MESSAGGI || String(key).indexOf('rs_scrutinio_draft_') === 0;
+  return scoped ? key + '::' + (owner || 'nessun-utente') : key;
 }
 
 function loadJSON(key, fallback) {
-  try { const v = localStorage.getItem(chiaveStorageRisolta(key)); return v ? JSON.parse(v) : fallback; }
+  try { const v = localStorage.getItem(chiaveStorageEffettiva(key)); return v ? JSON.parse(v) : fallback; }
   catch (e) { return fallback; }
 }
 function saveJSON(key, val) {
-  try {
-    const valore = (key === LS.QUEUE_AFF || key === LS.QUEUE_SCR) ? compattaCodaLocale(val) : val;
-    localStorage.setItem(chiaveStorageRisolta(key), JSON.stringify(valore));
-    return true;
-  } catch (e) { return false; }
+  try { localStorage.setItem(chiaveStorageEffettiva(key), JSON.stringify(val)); return true; }
+  catch (e) { return false; }
+}
+function removeJSON(key) {
+  try { localStorage.removeItem(chiaveStorageEffettiva(key)); } catch (e) {}
+}
+function loadSessionJSON(key, fallback) {
+  try { const v = sessionStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch (e) { return fallback; }
+}
+function saveSessionJSON(key, val) {
+  try { sessionStorage.setItem(key, JSON.stringify(val)); return true; }
+  catch (e) { return false; }
+}
+function clearSessionCredentials() {
+  try { sessionStorage.removeItem(LS.TOKEN); sessionStorage.removeItem(LS.TOKEN_EXPIRES); } catch (e) {}
 }
 
-function migraDatiOperativiLegacy() {
-  const identita = identitaStorageCorrente();
-  if (!identita) return;
-  [LS.QUEUE_AFF, LS.QUEUE_SCR, LS.MESSAGGI, LS.SERVER_HISTORY, LS.LAST_HISTORY_SYNC, LS.LAST_MESSAGE_CHECK].forEach((key) => {
-    const scoped = chiaveStorageRisolta(key);
-    if (localStorage.getItem(scoped) !== null) return;
-    const legacy = localStorage.getItem(key);
-    if (legacy !== null) localStorage.setItem(scoped, legacy);
-  });
-  const prefisso = 'rs_scrutinio_draft_';
+function rimuoviBozzeScrutinioLocali(ownerSpecifico) {
+  const suffisso = ownerSpecifico ? '::' + ownerSpecifico : '';
   const chiavi = [];
   for (let i = 0; i < localStorage.length; i++) chiavi.push(localStorage.key(i));
-  chiavi.filter((k) => k && k.indexOf(prefisso) === 0 && k.indexOf('__') === -1).forEach((k) => {
-    const destinazione = k + '__' + identita;
-    if (localStorage.getItem(destinazione) === null) localStorage.setItem(destinazione, localStorage.getItem(k));
-  });
-}
-
-function rimuoviBozzeScrutinioLocali() {
-  const chiavi = [];
-  for (let i = 0; i < localStorage.length; i++) chiavi.push(localStorage.key(i));
-  const identita = identitaStorageCorrente();
-  chiavi.filter((key) => key && key.indexOf('rs_scrutinio_draft_') === 0 && (!identita || key.endsWith('__' + identita)))
+  chiavi.filter((key) => key && key.indexOf('rs_scrutinio_draft_') === 0 && (!suffisso || key.endsWith(suffisso)))
     .forEach((key) => localStorage.removeItem(key));
 }
 
 function pulisciDatiOperativiLocali() {
-  localStorage.removeItem(chiaveStorageRisolta(LS.QUEUE_AFF));
-  localStorage.removeItem(chiaveStorageRisolta(LS.QUEUE_SCR));
+  removeJSON(LS.QUEUE_AFF);
+  removeJSON(LS.QUEUE_SCR);
+  rimuoviBozzeScrutinioLocali(ownerStorageId());
+}
+
+function migraStorageSicurezza() {
+  const attesa = '3';
+  const corrente = localStorage.getItem(LS.STORAGE_VERSION);
+  if (corrente === attesa) return;
+  // Le versioni precedenti memorizzavano credenziali e code non isolate per utente. La migrazione
+  // invalida soltanto quel formato legacy; va eseguita prima della raccolta reale.
+  ['rs_codice','rs_session_token','rs_session_expires','rs_persona','rs_seggi','rs_seggio_attivo',
+   'rs_queue_affluenza','rs_queue_scrutinio','rs_messaggi_cache','rs_profile'].forEach((key) => localStorage.removeItem(key));
   rimuoviBozzeScrutinioLocali();
+  clearSessionCredentials();
+  localStorage.removeItem(LS.OWNER);
+  localStorage.setItem(LS.STORAGE_VERSION, attesa);
 }
 
 // Il coordinamento incrementa questa revisione quando usa “Svuota dati di test”.
@@ -178,16 +180,10 @@ function gestisciRevisioneDati(revisione) {
     return false;
   }
   if (String(precedente) === nuova) return false;
-
-  // In produzione la revisione della configurazione non deve mai cancellare
-  // invii, storico o bozze salvati sul telefono. L'azzeramento automatico è
-  // consentito soltanto nell'ambiente di test/dimostrazione.
-  if (APP_ENVIRONMENT !== 'production') {
-    pulisciDatiOperativiLocali();
-    setTimeout(() => showToast('Il coordinamento ha azzerato i dati di prova. Lo storico del telefono è stato riallineato.', 6000), 0);
-  }
+  pulisciDatiOperativiLocali();
   saveJSON(LS.DATA_REVISION, nuova);
-  return APP_ENVIRONMENT !== 'production';
+  setTimeout(() => showToast('Il coordinamento ha azzerato i dati di prova. Lo storico del telefono è stato riallineato.', 6000), 0);
+  return true;
 }
 
 let toastTimer = null;
@@ -216,15 +212,18 @@ function interoNonNegativo(v) {
   const n = Number(v);
   return Number.isInteger(n) && n >= 0 ? n : null;
 }
-function sessionToken() { return loadJSON(LS.TOKEN, ''); }
-function normalizzaMunicipioClient(v) {
-  const testo = String(v === undefined || v === null ? '' : v).trim();
-  if (!testo) return '';
-  const n = Number(testo.replace(/\D/g, ''));
-  return Number.isFinite(n) && n > 0 ? String(Math.round(n)).padStart(2, '0') : testo.padStart(2, '0');
-}
-function stessaSezioneClient(a, b) {
-  return !!a && !!b && normalizzaMunicipioClient(a.municipio) === normalizzaMunicipioClient(b.municipio) && String(a.sezione || '').trim() === String(b.sezione || '').trim();
+function sessionToken() {
+  const token = loadSessionJSON(LS.TOKEN, '');
+  if (!token) return '';
+  const expiresAt = loadSessionJSON(LS.TOKEN_EXPIRES, '');
+  if (expiresAt) {
+    const exp = Date.parse(String(expiresAt));
+    if (Number.isFinite(exp) && Date.now() >= exp) {
+      clearSessionCredentials();
+      return '';
+    }
+  }
+  return token;
 }
 function impostaNonValido(el, invalido) {
   if (!el) return;
@@ -238,14 +237,9 @@ function idsSostituiti(queueKey) {
   return new Set(loadJSON(queueKey, []).map((it) => it.payload && it.payload.correzioneDi).filter(Boolean));
 }
 function aggiornaTokenInviiInCoda(token) {
-  [LS.QUEUE_AFF, LS.QUEUE_SCR].forEach((queueKey) => {
-    const coda = loadJSON(queueKey, []);
-    let changed = false;
-    coda.forEach((item) => {
-      if (item.status !== 'synced' && item.payload) { item.payload.sessionToken = token; changed = true; }
-    });
-    if (changed) saveJSON(queueKey, coda);
-  });
+  // SECURITY: i bearer token non vengono mai persistiti dentro le code offline.
+  // La funzione resta solo per compatibilità con vecchie chiamate interne.
+  return !!token;
 }
 
 // ---------------------------------------------------------------------
@@ -264,64 +258,18 @@ function aggiornaStatoConnessione() {
     if (home) { home.textContent = 'Offline · i dati restano sul telefono'; home.className = 'home-status offline'; }
   }
 }
-window.addEventListener('online', () => { aggiornaStatoConnessione(); provaSvuotaCode(); caricaMessaggi(true); caricaStoricoInvii(true); });
+window.addEventListener('online', () => { aggiornaStatoConnessione(); provaSvuotaCode(); caricaMessaggi(true); });
 window.addEventListener('offline', () => { aggiornaStatoConnessione(); renderNotificheHome(); });
 
 // ---------------------------------------------------------------------
 // CARICAMENTO DATI SEZIONI/VIE (file statici per municipio)
 // ---------------------------------------------------------------------
-function normalizzaArchivioTerritorialeIX_(data) {
-  if (!data || !Array.isArray(data.sezioni)) return [];
-  return data.sezioni.map((r) => ({
-    s: String(r.sezione || '').trim(),
-    addr: String(r.indirizzo || '').trim(),
-    cap: String(r.cap || '').trim(),
-    v: Array.isArray(r.vieAssegnate)
-      ? r.vieAssegnate.filter(Boolean).map((via) => [String(via), 'T', null, null])
-      : [],
-    plessoId: String(r.plessoId || '').trim(),
-  })).filter((r) => r.s);
-}
-
-function unisciArchivioMunicipioIX_(municipioData, archivioIX) {
-  const base = municipioData && Array.isArray(municipioData.sezioni)
-    ? municipioData.sezioni.slice()
-    : [];
-  const perSezione = new Map();
-  base.forEach((r) => perSezione.set(String(r.s || '').replace(/^0+/, ''), r));
-
-  normalizzaArchivioTerritorialeIX_(archivioIX).forEach((r) => {
-    // L'anagrafica territoriale condivisa con il Control Center è autorevole
-    // per indirizzo, CAP e plesso delle sezioni assegnate nel Municipio IX.
-    perSezione.set(String(r.s).replace(/^0+/, ''), r);
-  });
-
-  return {
-    ...(municipioData || {}),
-    m: '09',
-    sezioni: [...perSezione.values()].sort((a, b) => Number(a.s) - Number(b.s)),
-  };
-}
-
 async function caricaDatiMunicipio(mu) {
   const cacheKey = LS.MUN_DATA(mu);
   try {
-    const richieste = [
-      fetch('data/municipio-' + mu + '.json', { cache: 'no-cache' })
-    ];
-    if (String(mu).padStart(2, '0') === '09') {
-      richieste.push(fetch('data/sezioni-ix-control.json', { cache: 'no-cache' }));
-    }
-
-    const risposte = await Promise.all(richieste);
-    if (!risposte[0].ok) throw new Error('HTTP ' + risposte[0].status);
-    let data = await risposte[0].json();
-
-    if (risposte[1]) {
-      if (!risposte[1].ok) throw new Error('Archivio IX HTTP ' + risposte[1].status);
-      data = unisciArchivioMunicipioIX_(data, await risposte[1].json());
-    }
-
+    const res = await fetch('data/municipio-' + mu + '.json', { cache: 'force-cache' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
     saveJSON(cacheKey, data);
     return data;
   } catch (e) {
@@ -480,12 +428,59 @@ function statoScadenza(giorno, orario, completato) {
 }
 
 
+async function backendPostSicuro(payload) {
+  if (!backendConfigurato()) throw new Error('Backend non configurato.');
 
-function mostraAvvisoBrowserInterno() {
-  const ua = navigator.userAgent || '';
-  const browserInterno = /FBAN|FBAV|Instagram|Line\/|LinkedInApp|Twitter/i.test(ua);
-  const box = document.getElementById('inAppBrowserWarning');
-  if (box) box.hidden = !browserInterno;
+  const body = JSON.stringify(payload || {});
+  if (body.length > 210000) {
+    const err = new Error('Richiesta troppo grande.');
+    err.code = 'PAYLOAD_TOO_LARGE';
+    throw err;
+  }
+
+  let ultimoErrore = null;
+
+  // Due tentativi POST. Gli invii elettorali hanno ID idempotente; login e
+  // aggiornamento messaggi sono a loro volta sicuri da ripetere.
+  for (let tentativo = 0; tentativo < 2; tentativo++) {
+    try {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeout = controller ? setTimeout(() => controller.abort(), 35000) : null;
+
+      let res;
+      try {
+        res = await fetch(BACKEND_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+          body,
+          cache: 'no-store',
+          redirect: 'follow',
+          referrerPolicy: 'no-referrer',
+          credentials: 'omit',
+          signal: controller ? controller.signal : undefined,
+        });
+      } finally {
+        if (timeout) clearTimeout(timeout);
+      }
+
+      const testo = await res.text();
+      let data;
+      try { data = JSON.parse(testo); }
+      catch (e) {
+        const err = new Error('Risposta del coordinamento non valida.');
+        err.code = 'INVALID_SERVER_RESPONSE';
+        throw err;
+      }
+      return data;
+    } catch (e) {
+      ultimoErrore = e;
+      if (tentativo === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 700));
+      }
+    }
+  }
+
+  throw ultimoErrore || new Error('Nessuna risposta dal coordinamento.');
 }
 
 // =======================================================================
@@ -511,24 +506,17 @@ async function onLogin() {
   btn.disabled = true;
 
   try {
-    if (!BACKEND_URL || BACKEND_URL.includes('INSERIRE_NUOVO_DEPLOYMENT')) {
-      throw new Error('BACKEND_NOT_CONFIGURED');
-    }
-    const res = await fetch(BACKEND_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body: JSON.stringify({ tipo: 'login', codice, telefono }),
-      cache: 'no-store', redirect: 'follow'
-    });
-    const data = JSON.parse(await res.text());
-    if (!data.ok || !data.sessionToken) throw new Error(data.error || 'Codice non valido.');
+    const data = await backendPostSicuro({ tipo: 'login', codice, telefono });
+    if (!data.ok || !data.sessionToken) throw new Error(data.error || 'Codice o telefono non validi.');
+
+    const ownerId = await ownerIdDaCodice(codice);
+    if (!ownerId) throw new Error('Impossibile inizializzare la sessione locale.');
+    try { localStorage.setItem(LS.OWNER, JSON.stringify(ownerId)); }
+    catch (e) { throw new Error('Archiviazione locale non disponibile sul dispositivo.'); }
 
     gestisciRevisioneDati(data.dataRevision);
-    saveJSON(LS.CODICE, 'sessione-attiva');
-    saveJSON(LS.TOKEN, data.sessionToken);
-    saveJSON(LS.TOKEN_EXPIRES, data.sessionExpiresAt || null);
-    migraDatiOperativiLegacy();
-    aggiornaTokenInviiInCoda(data.sessionToken);
+    saveSessionJSON(LS.TOKEN, data.sessionToken);
+    saveSessionJSON(LS.TOKEN_EXPIRES, data.sessionExpiresAt || null);
     STATE.persona = { nome: data.nome || 'Rappresentante', telefono: data.telefono || telefono };
     saveJSON(LS.PERSONA, STATE.persona);
     STATE.seggi = [];
@@ -539,14 +527,10 @@ async function onLogin() {
           const munData = await caricaDatiMunicipio(assegnazione.municipio);
           const sezInfo = trovaSezione(munData, assegnazione.sezione) || { s: assegnazione.sezione, addr: '', cap: '' };
           const id = idSeggio(assegnazione.municipio, sezInfo.s);
-          if (!STATE.seggi.some((seg) => seg.id === id)) {
-            STATE.seggi.push({ id, municipio: assegnazione.municipio, sezione: sezInfo.s, addr: sezInfo.addr, cap: sezInfo.cap, elettori: null });
-          }
+          if (!STATE.seggi.some((seg) => seg.id === id)) STATE.seggi.push({ id, municipio: assegnazione.municipio, sezione: sezInfo.s, addr: sezInfo.addr, cap: sezInfo.cap, elettori: null });
         } catch (e) {
           const id = idSeggio(assegnazione.municipio, assegnazione.sezione);
-          if (!STATE.seggi.some((seg) => seg.id === id)) {
-            STATE.seggi.push({ id, municipio: assegnazione.municipio, sezione: assegnazione.sezione, addr: '', cap: '', elettori: null });
-          }
+          if (!STATE.seggi.some((seg) => seg.id === id)) STATE.seggi.push({ id, municipio: assegnazione.municipio, sezione: assegnazione.sezione, addr: '', cap: '', elettori: null });
         }
       }
       saveJSON(LS.SEGGI, STATE.seggi);
@@ -555,18 +539,14 @@ async function onLogin() {
       ricostruisciProfileDaSeggioAttivo();
       mostraDashboard();
       showToast('Accesso effettuato come ' + STATE.persona.nome + '.');
+      provaSvuotaCode();
     } else {
       vaiAlSetupPrecompilato(data);
     }
   } catch (e) {
-    const configurazioneIncompleta = !BACKEND_URL || BACKEND_URL.includes('INSERIRE_NUOVO_DEPLOYMENT');
-    errBox.textContent = configurazioneIncompleta
-      ? 'Il servizio di accesso non è ancora configurato. Inserisci in config.js l’indirizzo /exec del deployment Apps Script.'
-      : (e.message === 'BACKEND_NOT_CONFIGURED'
-        ? 'Il servizio di accesso non è ancora configurato. Inserisci in config.js l’indirizzo /exec del deployment Apps Script.'
-        : (e.message === 'Failed to fetch'
-        ? 'Impossibile raggiungere il servizio di accesso. Controlla la connessione, l’URL del backend e le autorizzazioni della Web App.'
-          : (e.message || 'Impossibile verificare telefono e codice.')));
+    errBox.textContent = e.message === 'Failed to fetch'
+      ? 'Connessione non disponibile. Il primo accesso richiede la rete.'
+      : (e.message || 'Impossibile verificare il codice.');
     errBox.hidden = false;
   } finally {
     btn.textContent = 'Accedi';
@@ -582,8 +562,7 @@ function vaiAlSetupPrecompilato(data) {
 }
 
 function mostraLoginSeNecessario() {
-  const codice = loadJSON(LS.CODICE, null);
-  if (!codice) {
+  if (!sessionToken() || !ownerStorageId()) {
     $('#screen-login').classList.add('active');
     return true;
   }
@@ -613,18 +592,20 @@ function chiudiModalLogout() {
 }
 
 function confermaLogout() {
-  // Salva l'eventuale bozza prima di rimuovere i dati di accesso.
   if (STATE.profile && timerBozzaScrutinio) salvaBozzaScrutinio(false, 'bozza');
   clearTimeout(timerBozzaScrutinio);
   timerBozzaScrutinio = null;
 
-  [LS.CODICE, LS.TOKEN, LS.TOKEN_EXPIRES, LS.PERSONA, LS.SEGGI, LS.SEGGIO_ATTIVO].forEach((key) => localStorage.removeItem(key));
+  clearSessionCredentials();
+  [LS.PERSONA, LS.SEGGI, LS.SEGGIO_ATTIVO].forEach((key) => removeJSON(key));
+  localStorage.removeItem(LS.OWNER);
   STATE.persona = null;
   STATE.seggi = [];
   STATE.seggioAttivoId = null;
   STATE.profile = null;
   STATE.municipioData = null;
   STATE.modalitaAggiungiSeggio = false;
+  STATE.messaggi = [];
 
   chiudiModalLogout();
   $('#screen-dashboard').classList.remove('active');
@@ -636,7 +617,7 @@ function confermaLogout() {
   $('#loginErrore').hidden = true;
   window.scrollTo({ top: 0, behavior: 'auto' });
   requestAnimationFrame(() => $('#loginTelefono').focus());
-  showToast('Sessione chiusa su questo dispositivo.');
+  showToast('Sessione chiusa. Eventuali dati offline restano isolati e saranno visibili solo allo stesso codice dopo un nuovo accesso.');
 }
 
 // =======================================================================
@@ -843,7 +824,7 @@ function predisponiSchermataSetup(modalitaAggiungi) {
   $('#btnAnnullaAggiungiSeggio').hidden = !haSeggi;
   renderElencoSeggi();
 
-  if (haPersona && (modalitaAggiungi || loadJSON(LS.CODICE, null))) {
+  if (haPersona && (modalitaAggiungi || ownerStorageId())) {
     $('#cardDatiPersona').hidden = true;
     $('#titoloNuovoSeggio').textContent = haSeggi ? 'Aggiungi un nuovo seggio' : 'Il tuo seggio';
   } else {
@@ -912,7 +893,9 @@ function eseguiRimozioneSeggio(id) {
 }
 
 function onGestisciSeggi() {
-  showToast('Le sezioni sono assegnate dal coordinamento. Per aggiungere o cambiare una sezione contatta il coordinatore.', 5500);
+  $('#screen-dashboard').classList.remove('active');
+  $('#screen-setup').classList.add('active');
+  predisponiSchermataSetup(true);
 }
 
 function onAnnullaAggiungiSeggio() {
@@ -948,15 +931,12 @@ function onCambiaSeggioAttivo() {
 // =======================================================================
 function mostraDashboard() {
   $('#btnLogout').hidden = false;
-  const btnGestisciSeggi = $('#btnGestisciSeggi');
-  if (btnGestisciSeggi) btnGestisciSeggi.hidden = true;
   $('#screen-login').classList.remove('active');
   $('#screen-setup').classList.remove('active');
   $('#screen-dashboard').classList.add('active');
   popolaSelectSeggioAttivo();
-  aggiornaBrandTerritoriale();
   const indirizzo = [STATE.profile.addr, STATE.profile.cap ? 'CAP ' + STATE.profile.cap : ''].filter(Boolean).join(' · ');
-  $('#seggioIndirizzo').textContent = indirizzo || (NOMI_MUNICIPI[STATE.profile.municipio] || 'Roma Capitale');
+  $('#seggioIndirizzo').textContent = indirizzo || 'Municipio Roma IX';
   renderElettoriBanner();
   renderAffluenza();
   renderScrutinioListeECandidati();
@@ -970,7 +950,6 @@ function mostraDashboard() {
   if (appLabel) appLabel.textContent = APP_VERSION;
   if (backendLabel) backendLabel.textContent = (STATE.config && STATE.config.app && STATE.config.app.backendVersion) || '—';
   caricaMessaggi(true);
-  setTimeout(() => caricaStoricoInvii(true), 0);
   setTimeout(() => eseguiControlloDispositivo(false), 300);
 }
 
@@ -992,21 +971,12 @@ function attivaTabPerNome(nome) {
 
 function inviiCorrenti(queueKey) {
   if (!STATE.profile) return [];
-  return loadJSON(queueKey, []).filter((it) => it.payload && stessaSezioneClient(it.payload, STATE.profile));
+  return loadJSON(queueKey, []).filter((it) => it.payload && it.payload.sezione === STATE.profile.sezione && it.payload.municipio === STATE.profile.municipio);
 }
 
 function ultimoInvioAttivo(queueKey) {
   const sostituiti = idsSostituiti(queueKey);
-  const tipoServer = queueKey === LS.QUEUE_AFF ? 'affluenza' : (queueKey === LS.QUEUE_SCR ? 'scrutinio' : '');
-  const tutti = tipoServer ? unisciStoricoLocaleEServer(queueKey, tipoServer) : inviiCorrenti(queueKey);
-  return tutti
-    .filter((it) =>
-      it && it.payload &&
-      !sostituiti.has(it.idInvio) &&
-      !it.superatoServer &&
-      it.statoServer !== 'SOSTITUITO'
-    )
-    .sort((a, b) => String(b.sincronizzatoIl || b.creato || '').localeCompare(String(a.sincronizzatoIl || a.creato || '')))[0] || null;
+  return inviiCorrenti(queueKey).filter((it) => !sostituiti.has(it.idInvio)).sort((a, b) => (a.creato < b.creato ? 1 : -1))[0] || null;
 }
 
 function statoTimelineDaInvio(item) {
@@ -1016,137 +986,18 @@ function statoTimelineDaInvio(item) {
   return { classe: 'queued', etichetta: 'Sul telefono' };
 }
 
-
-let sincronizzazioneStoricoInCorso = false;
-
-function storicoServerCorrente(tipo) {
-  if (!STATE.profile) return [];
-  return loadJSON(LS.SERVER_HISTORY, []).filter((it) =>
-    it && it.payload && it.tipoServer === tipo && stessaSezioneClient(it.payload, STATE.profile)
-  );
-}
-
-function unisciStoricoLocaleEServer(queueKey, tipoServer) {
-  const locali = inviiCorrenti(queueKey);
-  const idsLocali = new Set(locali.map((it) => String(it.idInvio || '')));
-  const remoti = storicoServerCorrente(tipoServer).filter((it) => !idsLocali.has(String(it.idInvio || '')));
-  return locali.concat(remoti);
-}
-
-async function caricaStoricoInvii(silenzioso) {
-  const statoEl = $('#storicoSyncStato');
-  if (sincronizzazioneStoricoInCorso) return false;
-  if (!navigator.onLine) {
-    if (statoEl) statoEl.textContent = 'Offline: impossibile recuperare lo storico dal coordinamento.';
-    if (!silenzioso) showToast('Sei offline: storico non aggiornato.', 4000);
-    return false;
-  }
-  if (!backendConfigurato() || !sessionToken()) {
-    if (statoEl) statoEl.textContent = 'Sessione o backend non disponibile.';
-    return false;
-  }
-  sincronizzazioneStoricoInCorso = true;
-  if (statoEl) statoEl.textContent = 'Aggiornamento storico in corso…';
-  const btn = $('#btnAggiornaStorico');
-  if (btn) btn.disabled = true;
-  try {
-    const res = await fetch(BACKEND_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body: JSON.stringify({ tipo: 'storico_invii', sessionToken: sessionToken(), limit: 200 }),
-      cache: 'no-store', redirect: 'follow',
-    });
-    const data = await leggiRispostaBackend(res);
-    const items = Array.isArray(data.items) ? data.items.map((it) => ({
-      idInvio: String(it.idInvio || ''),
-      creato: it.creato,
-      sincronizzatoIl: data.serverTime || it.creato,
-      status: 'synced',
-      tipoServer: it.tipo,
-      serverOnly: true,
-      superatoServer: !!it.sostituito,
-      sostituitoDa: it.sostituitoDa || '',
-      statoServer: it.stato || (it.sostituito ? 'SOSTITUITO' : 'ATTIVO'),
-      payload: {
-        municipio: normalizzaMunicipioClient(it.municipio),
-        sezione: String(it.sezione || '').trim(),
-        giorno: it.giorno || '',
-        orario: it.orario || '',
-        elettori: it.elettori,
-        maschi: it.maschi,
-        femmine: it.femmine,
-        totale: it.totale,
-        votanti: it.votanti,
-        schedaComune: it.schedaComune || {},
-        schedaMunicipio: it.schedaMunicipio || {},
-        sindaci: Array.isArray(it.sindaci) ? it.sindaci : [],
-        presidenti: Array.isArray(it.presidenti) ? it.presidenti : [],
-        liste: Array.isArray(it.liste) ? it.liste : [],
-        preferenze: Array.isArray(it.preferenze) ? it.preferenze : [],
-        note: it.note || '',
-        correzioneDi: it.correzioneDi || '',
-        motivoCorrezione: it.motivoCorrezione || '',
-      },
-    })).filter((it) => it.idInvio) : [];
-    saveJSON(LS.SERVER_HISTORY, items);
-    saveJSON(LS.LAST_HISTORY_SYNC, data.serverTime || new Date().toISOString());
-    if (statoEl) statoEl.textContent = 'Storico aggiornato: ' + items.length + ' invii recuperati · backend ' + (data.versioneBackend || '—');
-    if (STATE.profile) {
-      recuperaElettoriDalloStoricoServer();
-      renderElettoriBanner();
-      renderHomeDashboard();
-      renderAffluenza();
-      renderTabellaInvii();
-    }
-    if (!silenzioso) showToast('Storico aggiornato: ' + items.length + ' invii.', 3500);
-    return true;
-  } catch (e) {
-    const messaggio = e && e.message ? e.message : 'errore di rete';
-    if (statoEl) statoEl.textContent = 'Errore recupero storico: ' + messaggio;
-    showToast('Storico non aggiornato: ' + messaggio, 5500);
-    return false;
-  } finally {
-    sincronizzazioneStoricoInCorso = false;
-    if (btn) btn.disabled = false;
-  }
-}
-function recuperaElettoriDalloStoricoServer() {
-  if (!STATE.profile) return;
-
-  const storico = loadJSON(LS.SERVER_HISTORY, [])
-    .filter((it) =>
-      it &&
-      it.tipoServer === 'affluenza' &&
-      it.payload &&
-      stessaSezioneClient(it.payload, STATE.profile) &&
-      Number(it.payload.elettori) > 0
-    )
-    .sort((a, b) => String(b.creato || '').localeCompare(String(a.creato || '')));
-
-  if (!storico.length) return;
-
-  const elettori = Number(storico[0].payload.elettori);
-  STATE.profile.elettori = elettori;
-
-  const seggio = STATE.seggi.find((item) => item.id === STATE.seggioAttivoId);
-  if (seggio) {
-    seggio.elettori = elettori;
-    saveJSON(LS.SEGGI, STATE.seggi);
-  }
-}
-
 function renderHomeDashboard() {
   if (!STATE.profile) return;
   const nome = (STATE.profile.nome || 'rappresentante').trim().split(/\s+/)[0];
   const nomeEl = $('#homeNome');
   const seggioEl = $('#homeSeggio');
   if (nomeEl) nomeEl.textContent = nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
-  if (seggioEl) seggioEl.textContent = (NOMI_MUNICIPI[STATE.profile.municipio] || 'Municipio ' + STATE.profile.municipio) + ' · Sezione ' + STATE.profile.sezione;
+  if (seggioEl) seggioEl.textContent = 'Municipio Roma IX · Sezione ' + STATE.profile.sezione;
   const elettori = $('#homeElettori');
   if (elettori) elettori.textContent = STATE.profile.elettori || '—';
 
-  const aff = unisciStoricoLocaleEServer(LS.QUEUE_AFF, 'affluenza');
-  const scr = unisciStoricoLocaleEServer(LS.QUEUE_SCR, 'scrutinio');
+  const aff = inviiCorrenti(LS.QUEUE_AFF);
+  const scr = inviiCorrenti(LS.QUEUE_SCR);
   const pending = [...aff, ...scr].filter((it) => it.status !== 'synced').length;
   const pendingEl = $('#homePending');
   if (pendingEl) pendingEl.textContent = pending;
@@ -1178,55 +1029,16 @@ function renderHomeDashboard() {
     });
   }
 
-  const tuttiHome = [
-    ...aff.map((item) => ({ ...item, tipoHome: 'Affluenza' })),
-    ...scr.map((item) => ({ ...item, tipoHome: 'Scrutinio' })),
-  ];
-
-  const ultimo = tuttiHome
-    .filter((item) =>
-      item && item.payload &&
-      !item.superato && !item.superatoServer &&
-      item.statoServer !== 'SOSTITUITO'
-    )
-    .sort((a, b) => {
-      const dataA = new Date(a.sincronizzatoIl || a.creato || 0).getTime();
-      const dataB = new Date(b.sincronizzatoIl || b.creato || 0).getTime();
-      return dataB - dataA;
-    })[0];
-
+  const ultimo = [...aff.map((x) => ({ ...x, tipoHome: 'Affluenza' })), ...scr.map((x) => ({ ...x, tipoHome: 'Scrutinio' }))].sort((a, b) => (a.creato < b.creato ? 1 : -1))[0];
   const ultimoEl = $('#homeUltimoInvio');
   if (ultimoEl) {
     if (!ultimo) {
       ultimoEl.innerHTML = '<span class="latest-empty">Nessun dato ancora salvato per questa sezione.</span>';
     } else {
-      const p = ultimo.payload || {};
-      const dataInvio = ultimo.sincronizzatoIl || ultimo.creato;
-      const quando = dataInvio
-        ? new Date(dataInvio).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })
-        : 'data non disponibile';
+      const quando = new Date(ultimo.creato).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' });
       const stato = statoTimelineDaInvio(ultimo);
-      let dettaglio = '';
-
-      if (ultimo.tipoHome === 'Affluenza') {
-        const giorno = String(p.giorno || '').trim();
-        const orario = String(p.orario || '').trim();
-        const totale = Number(p.totale ?? p.votanti ?? 0);
-        const elettoriTotali = Number(p.elettori || STATE.profile.elettori || elettoriAffluenzaCorrenti() || 0);
-        const percentualeTesto = elettoriTotali > 0 ? percentuale(totale, elettoriTotali) + '%' : '—';
-        dettaglio = [giorno, orario].filter(Boolean).join(' ') +
-          ' · ' + totale + ' votanti · ' + percentualeTesto;
-      } else {
-        const votanti = Number(p.votanti ?? p.totale ?? 0);
-        dettaglio = votanti + ' votanti · risultati scrutinio';
-      }
-
-      ultimoEl.innerHTML =
-        '<div class="latest-icon ' + stato.classe + '" aria-hidden="true">' +
-          (ultimo.tipoHome === 'Affluenza' ? '%' : '▣') +
-        '</div><div><strong>' + escapeHtml(ultimo.tipoHome) + '</strong><span>' +
-          escapeHtml(dettaglio) + '</span><small>' + escapeHtml(quando) + ' · ' +
-          escapeHtml(stato.etichetta) + '</small></div>';
+      let dettaglio = ultimo.tipoHome === 'Affluenza' ? (ultimo.payload.orario + ' · ' + ultimo.payload.totale + ' votanti') : ((ultimo.payload.votanti || 0) + ' votanti · risultati scrutinio');
+      ultimoEl.innerHTML = '<div class="latest-icon ' + stato.classe + '" aria-hidden="true">' + (ultimo.tipoHome === 'Affluenza' ? '%' : '▣') + '</div><div><strong>' + ultimo.tipoHome + '</strong><span>' + escapeHtml(dettaglio) + '</span><small>' + escapeHtml(quando) + ' · ' + escapeHtml(stato.etichetta) + '</small></div>';
     }
   }
   aggiornaStatoConnessione();
@@ -1319,11 +1131,6 @@ function initTabs() {
       renderTabellaInvii();
       aggiornaBadgeInCoda();
     }
-    // La Home deve essere ricostruita ogni volta che viene riaperta: su iOS
-    // può essere rimasta in memoria mentre lo storico/coda sono cambiati.
-    if (tab.dataset.tab === 'home' && STATE.profile) {
-      renderHomeDashboard();
-    }
     if (spostaFocus) tab.focus();
   }
   tabs.forEach((tab, index) => {
@@ -1345,11 +1152,7 @@ function initTabs() {
 }
 
 // ---------------------------- AFFLUENZA --------------------------------
-function chiaveAffluenza(giorno, orario) {
-  const g = String(giorno || '').trim().toLowerCase();
-  const o = String(orario || '').trim().slice(0, 5);
-  return g + '|' + o;
-}
+function chiaveAffluenza(giorno, orario) { return giorno + '|' + orario; }
 
 function renderAffluenza() {
   const cont = $('#orariAffluenza');
@@ -1406,42 +1209,11 @@ function totaleAffluenzaCorrente() {
   return numOr0($('#affMaschi').value) + numOr0($('#affFemmine').value);
 }
 
-function elettoriAffluenzaCorrenti() {
-  if (STATE.profile && Number(STATE.profile.elettori) > 0) {
-    return Number(STATE.profile.elettori);
-  }
-
-  const storico = loadJSON(LS.QUEUE_AFF, [])
-    .filter((it) =>
-      it &&
-      it.payload &&
-      STATE.profile &&
-      it.payload.municipio === STATE.profile.municipio &&
-      it.payload.sezione === STATE.profile.sezione &&
-      Number(it.payload.elettori) > 0
-    )
-    .sort((a, b) => String(a.creato || '') < String(b.creato || '') ? 1 : -1);
-
-  if (storico.length) {
-    const valore = Number(storico[0].payload.elettori);
-    STATE.profile.elettori = valore;
-
-    const seggio = STATE.seggi.find((s) => s.id === STATE.seggioAttivoId);
-    if (seggio) {
-      seggio.elettori = valore;
-      saveJSON(LS.SEGGI, STATE.seggi);
-    }
-    return valore;
-  }
-
-  return 0;
-}
-
 function aggiornaTotaleAffluenza() {
   const tot = totaleAffluenzaCorrente();
-  const el = elettoriAffluenzaCorrenti();
+  const el = STATE.profile.elettori;
   let testo = 'Totale votanti: ' + tot;
-  testo += ' &nbsp;·&nbsp; Affluenza: ' + (el ? percentuale(tot, el) + '%' : '—');
+  if (el) testo += ' &nbsp;·&nbsp; Affluenza: ' + percentuale(tot, el) + '%';
   $('#affTotaleBox').innerHTML = testo;
 }
 
@@ -1451,10 +1223,9 @@ function percentuale(parte, totale) {
 }
 
 function invitiAffluenzaSezione() {
-  const tutti = unisciStoricoLocaleEServer(LS.QUEUE_AFF, 'affluenza');
+  const tutti = loadJSON(LS.QUEUE_AFF, []);
   const mappa = {};
-  tutti
-    .filter((it) => it && it.payload && stessaSezioneClient(it.payload, STATE.profile))
+  tutti.filter((it) => it.payload.sezione === STATE.profile.sezione && it.payload.municipio === STATE.profile.municipio)
     .forEach((it) => { mappa[chiaveAffluenza(it.payload.giorno, it.payload.orario)] = it.status; });
   return mappa;
 }
@@ -1491,8 +1262,7 @@ async function onInviaAffluenza() {
   }
 
   const payload = {
-    tipo: 'affluenza', idInvio: tentativoAffluenzaDaSostituireId || uuid(), sessionToken: sessionToken(),
-    municipio: STATE.profile.municipio, sezione: STATE.profile.sezione,
+    tipo: 'affluenza', idInvio: tentativoAffluenzaDaSostituireId || uuid(),     municipio: STATE.profile.municipio, sezione: STATE.profile.sezione,
     telefono: STATE.profile.telefono,
     giorno: affluenzaCorrente.giorno, orario: affluenzaCorrente.orario,
     elettori: STATE.profile.elettori || null, maschi, femmine, totale,
@@ -1517,7 +1287,6 @@ async function onInviaAffluenza() {
   // provaSvuotaCode() termina prima del blocco finally e, senza questo render,
   // il badge della coda si aggiornava ma la tabella “Stato invii” restava vuota.
   renderTabellaInvii();
-  renderHomeDashboard();
   aggiornaBadgeInCoda();
   showToast(navigator.onLine ? 'Salvato sul telefono. Verifico la ricezione…' : 'Salvato sul telefono. Sarà inviato quando torna la rete.');
   await provaSvuotaCode();
@@ -1530,21 +1299,18 @@ function renderTabellaAffluenza() {
   const tbody = $('#tabellaAffluenza tbody');
   tbody.innerHTML = '';
   const sostituiti = idsSostituiti(LS.QUEUE_AFF);
-  const tutti = unisciStoricoLocaleEServer(LS.QUEUE_AFF, 'affluenza')
-    .filter((it) => it.payload && stessaSezioneClient(it.payload, STATE.profile))
-    .sort((a, b) => String(b.creato || '').localeCompare(String(a.creato || '')));
+  const tutti = loadJSON(LS.QUEUE_AFF, [])
+    .filter((it) => it.payload.sezione === STATE.profile.sezione && it.payload.municipio === STATE.profile.municipio)
+    .sort((a, b) => (a.creato < b.creato ? 1 : -1));
   if (!tutti.length) {
     tbody.innerHTML = '<tr><td colspan="7" class="muted-text">Nessuna rilevazione ancora salvata.</td></tr>';
     return;
   }
   tutti.forEach((it) => {
     const p = it.payload;
-    const el = Number(p.elettori) > 0 ? Number(p.elettori) : elettoriAffluenzaCorrenti();
+    const el = p.elettori || STATE.profile.elettori;
     const perc = el ? percentuale(p.totale, el) + '%' : '—';
-    const superato =
-      sostituiti.has(it.idInvio) ||
-      it.superatoServer ||
-      it.statoServer === 'SOSTITUITO';
+    const superato = sostituiti.has(it.idInvio);
     const tr = document.createElement('tr');
     tr.innerHTML = '<td>' + escapeHtml((p.giorno ? p.giorno + ' ' : '') + p.orario) + '</td><td>' + (p.maschi ?? '—') +
       '</td><td>' + (p.femmine ?? '—') + '</td><td>' + p.totale + '</td><td>' + perc + '</td><td>' +
@@ -1559,29 +1325,12 @@ function renderTabellaAffluenza() {
   });
 }
 
-function trovaInvioAffluenzaCorreggibile(idInvio) {
-  const locale = trovaItem(LS.QUEUE_AFF, idInvio);
-  if (locale && locale.payload) return locale;
-
-  return loadJSON(LS.SERVER_HISTORY, []).find((item) =>
-    item &&
-    String(item.idInvio || '') === String(idInvio || '') &&
-    item.tipoServer === 'affluenza' &&
-    item.payload &&
-    !item.superatoServer &&
-    item.statoServer !== 'SOSTITUITO'
-  ) || null;
-}
-
 function correggiAffluenza(idInvio) {
-  const item = trovaInvioAffluenzaCorreggibile(idInvio);
-  if (!item || !item.payload) {
-    showToast('Invio non disponibile per la correzione.', 4000);
-    return;
-  }
+  const item = trovaItem(LS.QUEUE_AFF, idInvio);
+  if (!item || !item.payload) return;
   const p = item.payload;
   apriFormAffluenza(p.giorno, p.orario);
-  const giaRicevuto = item.status === 'synced' || item.serverOnly === true || item.tipoServer === 'affluenza';
+  const giaRicevuto = item.status === 'synced';
   correzioneAffluenzaId = giaRicevuto ? idInvio : null;
   tentativoAffluenzaDaSostituireId = giaRicevuto ? null : idInvio;
   $('#affCorrezioneBox').hidden = !giaRicevuto;
@@ -1682,17 +1431,10 @@ function validaScrutinio(s) {
     const campiCandidati = $all('[id^="' + prefixCandidati + '_"]');
     const sommaCandidati = sommaVoci(leggiDynList(prefixCandidati));
 
-    // Il backend accetta lo scrutinio solo quando, per ciascuna scheda,
-    // valide + bianche + nulle + contestate coincide esattamente con i votanti.
-    // Manteniamo la stessa regola anche nel client per evitare invii destinati
-    // a restare in coda con errore INVALID_DATA.
-    if (sommaSchede !== s.votanti) {
-      const differenza = sommaSchede - s.votanti;
-      errori.push(
-        'Scheda ' + nomeScheda + ': il totale delle schede (' + sommaSchede +
-        ') deve coincidere con i votanti (' + s.votanti + '). ' +
-        (differenza < 0 ? 'Mancano ' + Math.abs(differenza) + ' schede.' : 'Ci sono ' + differenza + ' schede in più.')
-      );
+    if (sommaSchede > s.votanti) {
+      errori.push('Scheda ' + nomeScheda + ': valide + bianche + nulle + contestate (' + sommaSchede + ') supera i votanti (' + s.votanti + ').');
+    } else if (sommaSchede < s.votanti) {
+      avvisi.push('Scheda ' + nomeScheda + ': il totale delle schede (' + sommaSchede + ') è inferiore ai votanti (' + s.votanti + ') di ' + (s.votanti - sommaSchede) + '.');
     }
     if (sommaListe > blocco.valide) {
       errori.push('Scheda ' + nomeScheda + ': la somma dei voti di lista (' + sommaListe + ') supera le schede valide (' + blocco.valide + ').');
@@ -1737,7 +1479,7 @@ function aggiornaAvvisiScrutinio() {
 }
 
 function chiaveBozza() {
-  return STATE.profile ? LS.SCR_DRAFT(STATE.profile.municipio, STATE.profile.sezione) + (identitaStorageCorrente() ? '__' + identitaStorageCorrente() : '') : '';
+  return STATE.profile ? LS.SCR_DRAFT(STATE.profile.municipio, STATE.profile.sezione) : '';
 }
 
 let timerBozzaScrutinio = null;
@@ -1806,10 +1548,6 @@ function pianificaSalvataggioBozzaScrutinio() {
 }
 
 function resetCampiScrutinio() {
-  const pannelloScrutinio = $('#tab-scrutinio');
-  const bannerCorrezione = $('#scrutinioCorrezioneBanner');
-  if (pannelloScrutinio) pannelloScrutinio.classList.remove('correction-mode');
-  if (bannerCorrezione) bannerCorrezione.hidden = true;
   caricamentoBozzaInCorso = true;
   ['#scElettori','#scVotanti','#comValide','#comBianche','#comNulle','#comContestate','#munValide','#munBianche','#munNulle','#munContestate'].forEach((sel) => {
     const el = $(sel); if (el) el.value = '';
@@ -1865,7 +1603,7 @@ function eliminaBozzaScrutinio() {
 }
 
 function eseguiEliminazioneBozzaScrutinio() {
-  localStorage.removeItem(chiaveBozza());
+  removeJSON(chiaveBozza());
   resetCampiScrutinio();
   if (STATE.profile.elettori) $('#scElettori').value = STATE.profile.elettori;
   aggiornaStatoBozzaScrutinio('', '');
@@ -1876,7 +1614,7 @@ function eseguiEliminazioneBozzaScrutinio() {
 
 function aggiornaDocumentoBozzaDaInvio(item, stato) {
   if (!item || !item.payload) return;
-  const key = LS.SCR_DRAFT(item.payload.municipio, item.payload.sezione) + (identitaStorageCorrente() ? '__' + identitaStorageCorrente() : '');
+  const key = LS.SCR_DRAFT(item.payload.municipio, item.payload.sezione);
   const documento = estraiDocumentoBozza(loadJSON(key, null));
   if (!documento || documento.idInvio !== item.idInvio) return;
   documento.stato = stato;
@@ -1932,8 +1670,7 @@ async function onInviaScrutinio() {
 
   const idInvio = tentativoScrutinioDaSostituireId || uuid();
   payloadScrutinioPronto = {
-    tipo: 'scrutinio', idInvio, sessionToken: sessionToken(),
-    municipio: STATE.profile.municipio, sezione: STATE.profile.sezione,
+    tipo: 'scrutinio', idInvio,     municipio: STATE.profile.municipio, sezione: STATE.profile.sezione,
     rappresentante: STATE.profile.nome, telefono: STATE.profile.telefono,
     elettori: s.elettori, votanti: s.votanti,
     schedaComune: { valide: s.comune.valide, bianche: s.comune.bianche, nulle: s.comune.nulle, contestate: s.comune.contestate },
@@ -2039,21 +1776,13 @@ async function onConfermaInvioScrutinio() {
   tentativoScrutinioDaSostituireId = null;
   $('#scCorrezioneBox').hidden = true;
   $('#scMotivoCorrezione').value = '';
-  const pannelloScrutinio = $('#tab-scrutinio');
-  const bannerCorrezione = $('#scrutinioCorrezioneBanner');
-  if (pannelloScrutinio) pannelloScrutinio.classList.remove('correction-mode');
-  if (bannerCorrezione) bannerCorrezione.hidden = true;
   aggiornaBadgeScrutinio(); renderTabellaInvii(); aggiornaBadgeInCoda();
-  aggiornaPulsanteCorrezioneScrutinio();
   showToast(navigator.onLine ? 'Salvato sul telefono. Verifico la ricezione…' : 'Salvato sul telefono. Sarà inviato quando torna la rete.');
   payloadScrutinioPronto = null;
   await provaSvuotaCode();
   const item = trovaItem(LS.QUEUE_SCR, id);
   if (item && item.status === 'synced') showToast('Scrutinio ricevuto dal coordinamento.');
-  else if (item && item.status === 'error') {
-    const dettaglio = item.ultimoErrore ? ' Motivo: ' + item.ultimoErrore : ' Controlla “I miei invii”.';
-    showToast('Scrutinio salvato sul telefono, ma non ricevuto.' + dettaglio, 7000);
-  }
+  else if (item && item.status === 'error') showToast('Scrutinio salvato, ma non ancora ricevuto. Controlla “I miei invii”.', 4500);
 }
 
 function ultimoScrutinioAttivo() {
@@ -2065,53 +1794,9 @@ function ultimoScrutinioAttivo() {
 
 function aggiornaPulsanteCorrezioneScrutinio() {
   const btn = $('#btnCorreggiScrutinio');
-  const ultimoLocale = ultimoScrutinioAttivo();
-  const scrutiniServer = storicoServerCorrente('scrutinio').filter((item) =>
-    item && !item.superatoServer && item.statoServer !== 'SOSTITUITO'
-  );
-  const disponibile = ultimoLocale || scrutiniServer.length;
-  btn.hidden = !disponibile;
-  if (disponibile) {
-    btn.textContent = ultimoLocale && ultimoLocale.status !== 'synced'
-      ? 'Correggi tentativo non inviato'
-      : 'Scegli scrutinio da correggere';
-  }
-}
-
-function trovaInvioScrutinioCorreggibile(idInvio) {
-  const id = String(idInvio || '');
-  const sostituiti = idsSostituiti(LS.QUEUE_SCR);
-
-  const locale = loadJSON(LS.QUEUE_SCR, []).find((item) =>
-    item &&
-    String(item.idInvio || '') === id &&
-    item.payload &&
-    stessaSezioneClient(item.payload, STATE.profile) &&
-    !sostituiti.has(item.idInvio)
-  );
-  if (locale) return locale;
-
-  return loadJSON(LS.SERVER_HISTORY, []).find((item) =>
-    item &&
-    String(item.idInvio || '') === id &&
-    item.tipoServer === 'scrutinio' &&
-    item.payload &&
-    stessaSezioneClient(item.payload, STATE.profile) &&
-    !item.superatoServer &&
-    item.statoServer !== 'SOSTITUITO'
-  ) || null;
-}
-
-function apriSceltaScrutinioDaCorreggere() {
-  const ultimoLocale = ultimoScrutinioAttivo();
-  if (ultimoLocale && ultimoLocale.status !== 'synced') {
-    correggiScrutinio(ultimoLocale.idInvio);
-    return;
-  }
-
-  attivaTabPerNome('invii');
-  renderTabellaInvii();
-  showToast('Seleziona lo scrutinio da correggere nella tabella “I miei invii”.', 5000);
+  const ultimo = ultimoScrutinioAttivo();
+  btn.hidden = !ultimo;
+  if (ultimo) btn.textContent = ultimo.status === 'synced' ? 'Correggi ultimo invio' : 'Correggi tentativo non inviato';
 }
 
 function impostaDynPerNome(prefix, valori, campoNome) {
@@ -2119,134 +1804,30 @@ function impostaDynPerNome(prefix, valori, campoNome) {
   $all('[id^="' + prefix + '_"]').forEach((inp) => { inp.value = mappa.get(inp.dataset.nome) ?? 0; });
 }
 
-function mostraPassaggioScrutinio(targetId, scorri) {
-  const target = document.getElementById(targetId);
-  if (!target || !target.classList.contains('scrutiny-card')) return false;
-  const modalitaCorrezione = $('#tab-scrutinio').classList.contains('correction-mode');
-  $all('.scrutiny-card').forEach((card) => {
-    const attiva = card === target;
-    // In correzione tutti i pannelli devono restare sempre raggiungibili:
-    // evita che una cache PWA o un problema nella barra dei passaggi nasconda
-    // il motivo della correzione e il comando finale.
-    card.hidden = modalitaCorrezione ? false : !attiva;
-    card.classList.toggle('active', attiva);
-  });
-  $all('.scrutiny-step').forEach((step) => {
-    const attiva = step.dataset.scrollStep === targetId;
-    step.classList.toggle('active', attiva);
-    step.setAttribute('aria-current', attiva ? 'step' : 'false');
-  });
-  if (scorri) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  return true;
-}
-
-async function correggiScrutinio(idInvio) {
-  const item = trovaInvioScrutinioCorreggibile(idInvio);
-  if (!item || !item.payload) {
-    showToast('Scrutinio non disponibile per la correzione.', 4000);
-    return;
-  }
-
+function correggiUltimoScrutinio() {
+  const item = ultimoScrutinioAttivo();
+  if (!item) return;
   const p = item.payload;
-  const giaRicevuto = item.status === 'synced' || item.serverOnly === true || item.tipoServer === 'scrutinio';
-  if (!giaRicevuto && !p.correzioneDi && item.codiceErrore === 'ACTIVE_SCRUTINY_EXISTS' && navigator.onLine) {
-    await caricaStoricoInvii(true);
-  }
-  const originaleServer = !giaRicevuto && !p.correzioneDi
-    ? storicoServerCorrente('scrutinio').find((storico) =>
-        storico && storico.idInvio !== item.idInvio &&
-        !storico.superatoServer && storico.statoServer !== 'SOSTITUITO')
-    : null;
-  // Un tentativo locale può essere già una correzione respinta dal backend.
-  // In quel caso va conservato il collegamento all'originale: perderlo farebbe
-  // reinterpretare il retry come nuovo scrutinio. Per le code già danneggiate
-  // da versioni precedenti, recupera l'originale attivo dallo storico server.
-  correzioneScrutinioId = giaRicevuto
-    ? item.idInvio
-    : (p.correzioneDi || (originaleServer && originaleServer.idInvio) || null);
-  if (!giaRicevuto && item.codiceErrore === 'ACTIVE_SCRUTINY_EXISTS' && !correzioneScrutinioId) {
-    showToast('Non riesco a recuperare lo scrutinio originale. Aggiorna lo storico e riprova.', 6000);
-    return;
-  }
+  const giaRicevuto = item.status === 'synced';
+  correzioneScrutinioId = giaRicevuto ? item.idInvio : null;
   tentativoScrutinioDaSostituireId = giaRicevuto ? null : item.idInvio;
-
-  const pannello = $('#tab-scrutinio');
-  const banner = $('#scrutinioCorrezioneBanner');
-  if (pannello) pannello.classList.add('correction-mode');
-  if (banner) banner.hidden = false;
-
-  const boxCorrezione = $('#scCorrezioneBox');
-  const motivoCorrezione = $('#scMotivoCorrezione');
-  if (boxCorrezione) boxCorrezione.hidden = !correzioneScrutinioId;
-  if (motivoCorrezione) motivoCorrezione.value = p.motivoCorrezione || '';
-
+  $('#scCorrezioneBox').hidden = !giaRicevuto;
+  $('#scMotivoCorrezione').value = '';
   $('#scElettori').value = p.elettori ?? '';
   $('#scVotanti').value = p.votanti ?? '';
-
-  const sc = p.schedaComune || {};
-  const sm = p.schedaMunicipio || {};
-  $('#comValide').value = sc.valide ?? '';
-  $('#comBianche').value = sc.bianche ?? '';
-  $('#comNulle').value = sc.nulle ?? '';
-  $('#comContestate').value = sc.contestate ?? '';
-  $('#munValide').value = sm.valide ?? '';
-  $('#munBianche').value = sm.bianche ?? '';
-  $('#munNulle').value = sm.nulle ?? '';
-  $('#munContestate').value = sm.contestate ?? '';
+  const sc = p.schedaComune || {}, sm = p.schedaMunicipio || {};
+  $('#comValide').value = sc.valide ?? ''; $('#comBianche').value = sc.bianche ?? ''; $('#comNulle').value = sc.nulle ?? ''; $('#comContestate').value = sc.contestate ?? '';
+  $('#munValide').value = sm.valide ?? ''; $('#munBianche').value = sm.bianche ?? ''; $('#munNulle').value = sm.nulle ?? ''; $('#munContestate').value = sm.contestate ?? '';
   $('#scNote').value = p.note || '';
-
-  impostaDynPerNome('si', p.sindaci || []);
-  impostaDynPerNome('pr', p.presidenti || []);
+  impostaDynPerNome('si', p.sindaci || []); impostaDynPerNome('pr', p.presidenti || []);
   impostaDynPerNome('lc', (p.liste || []).filter((x) => x.livello === 'Comune'));
   impostaDynPerNome('lm', (p.liste || []).filter((x) => x.livello === 'Municipio'));
   impostaDynPerNome('pc', (p.preferenze || []).filter((x) => x.livello === 'Comune'), 'candidato');
   impostaDynPerNome('pm', (p.preferenze || []).filter((x) => x.livello === 'Municipio'), 'candidato');
-
-  const tabScrutinio = document.querySelector('.tab[data-tab="scrutinio"]');
-  if (tabScrutinio && !tabScrutinio.classList.contains('active')) {
-    tabScrutinio.click();
-  }
-
-  const btnCorreggi = $('#btnCorreggiScrutinio');
-  if (btnCorreggi) btnCorreggi.hidden = true;
-
-  // La correzione riapre l'intero scrutinio dal primo passaggio. I pulsanti
-  // della barra mostrano poi esplicitamente il pannello scelto.
-  mostraPassaggioScrutinio('scrStepGenerali', false);
-
+  document.querySelector('.tab[data-tab="scrutinio"]').click();
+  $('#scCorrezioneBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
   aggiornaAvvisiScrutinio();
-
-  // Nessun focus automatico: su iPhone evitita il salto del viewport.
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    const destinazione = document.querySelector('.scrutiny-card[data-step-number="1"]') || $('#tab-scrutinio');
-    if (!destinazione) return;
-
-    const topbar = document.querySelector('.topbar');
-    const progress = document.querySelector('.scrutiny-progress');
-    const offset =
-      (topbar ? topbar.getBoundingClientRect().height : 0) +
-      (progress && getComputedStyle(progress).position === 'sticky'
-        ? progress.getBoundingClientRect().height
-        : 0) +
-      16;
-
-    const top =
-      window.scrollY +
-      destinazione.getBoundingClientRect().top -
-      offset;
-
-    window.scrollTo({
-      top: Math.max(0, top),
-      behavior: 'auto'
-    });
-  }));
-
-  showToast(
-    giaRicevuto
-      ? 'Ultimo scrutinio caricato. Inserisci il motivo della correzione e modifica i valori necessari.'
-      : 'Tentativo precedente caricato. Puoi correggere i valori e reinviarlo.',
-    5500
-  );
+  $('#scMotivoCorrezione').focus();
 }
 
 // =======================================================================
@@ -2256,8 +1837,10 @@ let sincronizzazioneInCorso = false;
 
 function accodaInvio(queueKey, payload) {
   const coda = loadJSON(queueKey, []);
+  const payloadPersistito = Object.assign({}, payload || {});
+  delete payloadPersistito.sessionToken;
   coda.push({
-    idInvio: payload.idInvio, payload, status: 'pending', creato: new Date().toISOString(),
+    idInvio: payloadPersistito.idInvio, payload: payloadPersistito, status: 'pending', creato: new Date().toISOString(),
     tentativi: 0, ultimoTentativo: null, ultimoErrore: '', sincronizzatoIl: null,
   });
   return saveJSON(queueKey, coda);
@@ -2267,8 +1850,10 @@ function sostituisciInvioInCoda(queueKey, idInvio, payload) {
   const coda = loadJSON(queueKey, []);
   const item = coda.find((x) => x.idInvio === idInvio);
   if (!item || item.status === 'synced') return false;
-  item.payload = payload;
-  item.idInvio = payload.idInvio;
+  const payloadPersistito = Object.assign({}, payload || {});
+  delete payloadPersistito.sessionToken;
+  item.payload = payloadPersistito;
+  item.idInvio = payloadPersistito.idInvio;
   item.status = 'pending';
   item.tentativi = 0;
   item.ultimoTentativo = null;
@@ -2294,27 +1879,20 @@ async function leggiRispostaBackend(res) {
 
 async function inviaAlBackend(payload) {
   if (!backendConfigurato()) throw new Error('Backend non configurato.');
-  if (!payload.sessionToken) throw new Error('Sessione mancante: effettua nuovamente l’accesso.');
-  const body = JSON.stringify(payload);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Number(RUNTIME_CONFIG.requestTimeoutMs || 20000));
-  try {
-    const post = await fetch(BACKEND_URL, {
-      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body, cache: 'no-store', redirect: 'follow', signal: controller.signal,
-    });
-    return await leggiRispostaBackend(post);
-  } catch (e) {
-    if (e && e.name === 'AbortError') throw new Error('Tempo di risposta scaduto. L’invio resta in coda e verrà ritentato.');
-    throw e;
-  } finally {
-    clearTimeout(timeout);
+  const token = sessionToken();
+  if (!token) { const err = new Error('Sessione mancante: effettua nuovamente l’accesso.'); err.code = 'SESSION_INVALID'; throw err; }
+  const body = Object.assign({}, payload || {}, { sessionToken: token });
+  const data = await backendPostSicuro(body);
+  if (!data.ok) {
+    const err = new Error(data.error || 'Invio rifiutato dal coordinamento.');
+    err.code = data.code || '';
+    throw err;
   }
+  return data;
 }
 
-async function provaSvuotaCode(opzioni) {
+async function provaSvuotaCode() {
   if (sincronizzazioneInCorso || !navigator.onLine || !backendConfigurato()) return false;
-  const forzaRiprovaManuale = !!(opzioni && opzioni.forzaRiprovaManuale === true);
   sincronizzazioneInCorso = true;
   let almenoUnSuccesso = false;
   try {
@@ -2323,28 +1901,9 @@ async function provaSvuotaCode(opzioni) {
       let cambiato = false;
       for (const item of coda) {
         if (item.status === 'synced') continue;
-        // Gli errori logici restano esclusi dai retry periodici per evitare loop.
-        // Il retry MANUALE può però riprovare ACTIVE_SCRUTINY_EXISTS: il blocco
-        // può essere stato causato da uno scrutinio del simulatore ora ignorato
-        // dal backend, oppure essere stato rimosso dal coordinamento.
-        const erroriLogiciNonAutomatici = ['CORRECTION_TARGET_NOT_FOUND', 'CORRECTION_NOT_ALLOWED', 'ALREADY_SUPERSEDED', 'ACTIVE_TURNOUT_EXISTS', 'ACTIVE_SCRUTINY_EXISTS', 'MULTIPLE_ACTIVE_SCRUTINIES', 'INVALID_DATA'];
-        const retryScrutinioManuale = forzaRiprovaManuale && queueKey === LS.QUEUE_SCR &&
-          (item.codiceErrore === 'ACTIVE_SCRUTINY_EXISTS' || item.codiceErrore === 'CORRECTION_NOT_ALLOWED');
-        if (item.status === 'error' && erroriLogiciNonAutomatici.includes(item.codiceErrore) && !retryScrutinioManuale) continue;
-        if (retryScrutinioManuale && item.payload) {
-          // Le versioni precedenti potevano trasformare un tentativo reale in
-          // "correzione" dello scrutinio SIM già presente sulla sezione. Quel
-          // target appartiene al simulatore e il backend risponde correttamente
-          // CORRECTION_NOT_ALLOWED. Il retry manuale deve riproporre il dato come
-          // NUOVO scrutinio reale; il backend controllerà comunque l'eventuale
-          // presenza di un altro scrutinio reale ATTIVO.
-          item.payload = Object.assign({}, item.payload, {
-            correzioneDi: '',
-            motivoCorrezione: '',
-            sessionToken: sessionToken(),
-            versioneApp: APP_VERSION,
-          });
-        }
+        // Errori logici non cambiano da soli: evita nuovi tentativi ogni 45 secondi.
+        // L'utente può correggere il tentativo oppure usare “Invia come nuovo”.
+        if (item.status === 'error' && ['CORRECTION_TARGET_NOT_FOUND', 'CORRECTION_NOT_ALLOWED', 'ALREADY_SUPERSEDED', 'ACTIVE_SCRUTINY_EXISTS', 'MULTIPLE_ACTIVE_SCRUTINIES', 'INVALID_DATA'].includes(item.codiceErrore)) continue;
         item.status = 'syncing'; item.ultimoTentativo = new Date().toISOString(); cambiato = true;
         saveJSON(queueKey, coda);
         aggiornaBadgeInCoda();
@@ -2353,7 +1912,6 @@ async function provaSvuotaCode(opzioni) {
           item.status = 'synced';
           item.sincronizzatoIl = new Date().toISOString();
           item.ultimoErrore = '';
-          item.codiceErrore = '';
           item.rispostaServer = { duplicato: !!risposta.duplicato, correzione: !!risposta.correzione };
           if (queueKey === LS.QUEUE_SCR) {
             aggiornaDocumentoBozzaDaInvio(item, 'sincronizzato');
@@ -2361,6 +1919,15 @@ async function provaSvuotaCode(opzioni) {
           }
           almenoUnSuccesso = true;
         } catch (e) {
+          if (e && (e.code === 'SESSION_EXPIRED' || e.code === 'SESSION_INVALID')) {
+            item.status = 'pending';
+            item.ultimoErrore = 'Sessione da rinnovare prima della sincronizzazione.';
+            item.codiceErrore = e.code;
+            saveJSON(queueKey, coda);
+            clearSessionCredentials();
+            showToast('Sessione scaduta: effettua nuovamente l’accesso. Gli invii restano conservati sul telefono.', 6500);
+            return false;
+          }
           item.status = 'error';
           item.tentativi = (item.tentativi || 0) + 1;
           item.ultimoErrore = e && e.message ? e.message : 'Errore di rete';
@@ -2385,33 +1952,9 @@ async function provaSvuotaCode(opzioni) {
   return almenoUnSuccesso;
 }
 
-function ultimoErroreCoda() {
-  const errori = [].concat(loadJSON(LS.QUEUE_AFF, []), loadJSON(LS.QUEUE_SCR, []))
-    .filter((item) => item && item.status === 'error' && item.ultimoErrore)
-    .sort((a, b) => String(b.ultimoTentativo || b.creato || '').localeCompare(String(a.ultimoTentativo || a.creato || '')));
-  return errori.length ? String(errori[0].ultimoErrore || '') : '';
-}
-
-function messaggioEsitoSincronizzazione(ok) {
-  if (ok) return 'Sincronizzazione completata.';
-  if (!navigator.onLine) return 'Sei offline: riproverò automaticamente.';
-  const errore = ultimoErroreCoda();
-  return errore ? 'Invio non ricevuto: ' + errore : 'Nessun invio ricevuto: controlla i dettagli.';
-}
-
 function contaInCoda() {
   const conta = (key) => loadJSON(key, []).filter((i) => i.status !== 'synced').length;
   return conta(LS.QUEUE_AFF) + conta(LS.QUEUE_SCR);
-}
-
-
-function correggiUltimoScrutinio() {
-  const ultimo = ultimoScrutinioAttivo();
-  if (!ultimo) {
-    showToast('Nessuno scrutinio disponibile per la correzione.', 4000);
-    return;
-  }
-  correggiScrutinio(ultimo.idInvio);
 }
 
 function aggiornaBadgeInCoda() {
@@ -2427,17 +1970,11 @@ function renderTabellaInvii() {
   const tbody = $('#tabellaInvii tbody');
   tbody.innerHTML = '';
   const sostAff = idsSostituiti(LS.QUEUE_AFF), sostScr = idsSostituiti(LS.QUEUE_SCR);
-  const locali = [
+  const tutti = [
     ...loadJSON(LS.QUEUE_AFF, []).map((i) => ({ ...i, tipo: 'Affluenza', queueKey: LS.QUEUE_AFF, superato: sostAff.has(i.idInvio) })),
     ...loadJSON(LS.QUEUE_SCR, []).map((i) => ({ ...i, tipo: 'Scrutinio', queueKey: LS.QUEUE_SCR, superato: sostScr.has(i.idInvio) })),
-  ];
-  const idsLocali = new Set(locali.map((i) => String(i.idInvio || '')));
-  const remoti = loadJSON(LS.SERVER_HISTORY, [])
-    .filter((i) => !idsLocali.has(String(i.idInvio || '')))
-    .map((i) => ({ ...i, tipo: i.tipoServer === 'affluenza' ? 'Affluenza' : 'Scrutinio', queueKey: null, superato: !!i.superatoServer, serverOnly: true }));
-  const tutti = locali.concat(remoti)
-    .filter((i) => STATE.profile && i.payload && stessaSezioneClient(i.payload, STATE.profile))
-    .sort((a, b) => (a.creato < b.creato ? 1 : -1));
+  ].filter((i) => STATE.profile && i.payload.sezione === STATE.profile.sezione && i.payload.municipio === STATE.profile.municipio)
+   .sort((a, b) => (a.creato < b.creato ? 1 : -1));
 
   if (!tutti.length) {
     tbody.innerHTML = '<tr><td colspan="4" class="muted-text">Nessun invio per questa sezione.</td></tr>';
@@ -2448,8 +1985,7 @@ function renderTabellaInvii() {
     const quando = new Date(it.creato).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' });
     let dettagli = '';
     const targetMancante = it.codiceErrore === 'CORRECTION_TARGET_NOT_FOUND' && it.payload.correzioneDi;
-    if (it.serverOnly) dettagli = it.superato ? 'Invio precedente sostituito da una correzione confermata.' : (it.payload.correzioneDi ? 'Correzione confermata dal coordinamento e recuperata dal server.' : 'Confermato dal coordinamento e recuperato dal server.');
-    else if (targetMancante) dettagli = 'Il dato precedente è stato cancellato dal coordinamento. Puoi recuperare questi valori come nuovo invio.';
+    if (targetMancante) dettagli = 'Il dato precedente è stato cancellato dal coordinamento. Puoi recuperare questi valori come nuovo invio.';
     else {
       if (it.payload.correzioneDi) dettagli += 'Correzione tracciata. ';
       if (it.ultimoErrore) dettagli += it.ultimoErrore;
@@ -2464,28 +2000,6 @@ function renderTabellaInvii() {
       btn.className = 'btn primary small';
       btn.textContent = 'Invia come nuovo';
       btn.addEventListener('click', () => recuperaCorrezioneComeNuovo(it.queueKey, it.idInvio));
-      tr.lastElementChild.appendChild(document.createElement('br'));
-      tr.lastElementChild.appendChild(btn);
-    } else if (!it.superato) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn ghost small';
-      btn.textContent = 'Modifica';
-
-      if (it.queueKey === LS.QUEUE_AFF || it.tipoServer === 'affluenza') {
-        btn.addEventListener('click', () => {
-          attivaTabPerNome('affluenza');
-          correggiAffluenza(it.idInvio);
-        });
-      } else {
-        btn.textContent = 'Correggi scrutinio';
-        btn.title = 'Carica questo scrutinio per correggerlo';
-        btn.addEventListener('click', () => {
-          attivaTabPerNome('scrutinio');
-          correggiScrutinio(it.idInvio);
-        });
-      }
-
       tr.lastElementChild.appendChild(document.createElement('br'));
       tr.lastElementChild.appendChild(btn);
     }
@@ -2516,8 +2030,7 @@ function recuperaCorrezioneComeNuovo(queueKey, idInvio) {
       corrente.idInvio = nuovoId;
       corrente.payload = Object.assign({}, corrente.payload, {
         idInvio: nuovoId,
-        sessionToken: sessionToken(),
-        correzioneDi: '',
+                correzioneDi: '',
         motivoCorrezione: '',
         versioneApp: APP_VERSION,
       });
@@ -2737,10 +2250,8 @@ async function caricaMessaggi(silent) {
   renderNotificheHome();
   if (!navigator.onLine || !backendConfigurato() || !sessionToken()) return STATE.messaggi;
   try {
-    const data = await inviaAlBackend({
-      tipo: 'messaggi', sessionToken: sessionToken(),
-      municipio: STATE.profile.municipio, sezione: STATE.profile.sezione
-    });
+    const data = await backendPostSicuro({ tipo: 'messaggi', sessionToken: sessionToken(), municipio: STATE.profile.municipio, sezione: STATE.profile.sezione });
+    if (!data.ok) throw Object.assign(new Error(data.error || 'Messaggi non disponibili'), { code: data.code || '' });
     const precedenti = new Set((STATE.messaggi || []).map((x) => x.id));
     STATE.messaggi = data.items || [];
     salvaMessaggiCache(STATE.messaggi);
@@ -2749,6 +2260,7 @@ async function caricaMessaggi(silent) {
     if (!silent && STATE.messaggi.some((x) => !precedenti.has(x.id) && x.stato === 'NUOVO')) showToast('Nuovo messaggio dal coordinamento.', 5000);
     return STATE.messaggi;
   } catch (e) {
+    if (e && (e.code === 'SESSION_EXPIRED' || e.code === 'SESSION_INVALID')) clearSessionCredentials();
     if (!silent) showToast('Messaggi non aggiornati: ' + (e.message || 'connessione non disponibile'), 4500);
     return STATE.messaggi;
   }
@@ -2757,14 +2269,14 @@ async function caricaMessaggi(silent) {
 async function aggiornaMessaggio(id, stato) {
   if (!STATE.profile || !navigator.onLine) return showToast('Serve la connessione per aggiornare il messaggio.', 4000);
   try {
-    await inviaAlBackend({
-      tipo: 'messaggio_ack', sessionToken: sessionToken(),
-      municipio: STATE.profile.municipio, sezione: STATE.profile.sezione,
-      id, stato
-    });
+    const data = await backendPostSicuro({ tipo: 'messaggio_ack', sessionToken: sessionToken(), municipio: STATE.profile.municipio, sezione: STATE.profile.sezione, id, stato });
+    if (!data.ok) throw Object.assign(new Error(data.error || 'Aggiornamento non riuscito'), { code: data.code || '' });
     await caricaMessaggi(true);
     showToast(stato === 'RISOLTO' ? 'Richiesta segnata come risolta.' : 'Messaggio segnato come letto.');
-  } catch (e) { showToast(e.message || 'Aggiornamento non riuscito.', 4500); }
+  } catch (e) {
+    if (e && (e.code === 'SESSION_EXPIRED' || e.code === 'SESSION_INVALID')) clearSessionCredentials();
+    showToast(e.message || 'Aggiornamento non riuscito.', 4500);
+  }
 }
 
 function creaNotificaDom(titolo, testo, meta, classe) {
@@ -2824,10 +2336,7 @@ function normalizzaTelefonoLink(value) {
 function testoDiagnostica() {
   const p = STATE.profile || {};
   return [
-    APP_NAME + ' ' + APP_VERSION,
-    'Build: ' + (BUILD_DATE || '—'),
-    'Ambiente: ' + APP_ENVIRONMENT.toUpperCase(),
-    'Provider: ' + BACKEND_PROVIDER,
+    'Rete Seggi ' + APP_VERSION,
     'Backend: ' + ((STATE.config && STATE.config.app && STATE.config.app.backendVersion) || 'non rilevato'),
     'Rappresentante: ' + (p.nome || '—'),
     'Municipio: ' + (p.municipio || '—'),
@@ -2944,7 +2453,7 @@ async function eseguiControlloDispositivo(openModal) {
 
   results.push({
     title: 'Sessione',
-    detail: sessionToken() ? 'Accesso disponibile sul dispositivo.' : 'Sessione non presente.',
+    detail: sessionToken() ? 'Sessione attiva solo nella sessione corrente del browser.' : 'Sessione non presente.',
     level: sessionToken() ? 'ok' : 'warn'
   });
 
@@ -2972,57 +2481,6 @@ async function eseguiControlloDispositivo(openModal) {
   return results;
 }
 
-function renderIdentitaVersione() {
-  const envLabel = APP_ENVIRONMENT === 'production' ? 'PRODUZIONE' : 'TEST';
-  document.querySelectorAll('[data-app-version]').forEach((el) => { el.textContent = APP_VERSION; });
-  document.querySelectorAll('[data-environment-label]').forEach((el) => { el.textContent = envLabel; });
-  const banner = $('#environmentBanner');
-  if (banner) {
-    banner.textContent = APP_ENVIRONMENT === 'production' ? 'AMBIENTE DI PRODUZIONE' : 'AMBIENTE DI TEST · I dati potrebbero non essere ufficiali';
-    banner.className = 'environment-banner ' + APP_ENVIRONMENT;
-    banner.hidden = APP_ENVIRONMENT === 'production';
-  }
-  const footer = $('#environmentFooter'); if (footer) footer.textContent = envLabel;
-}
-
-function apriInfoApp() {
-  $('#infoAppVersion').textContent = APP_VERSION;
-  $('#infoBuildDate').textContent = BUILD_DATE || '—';
-  $('#infoEnvironment').textContent = APP_ENVIRONMENT === 'production' ? 'PRODUZIONE' : 'TEST';
-  $('#infoBackendProvider').textContent = BACKEND_PROVIDER === 'cloudflare-d1' ? 'Cloudflare Worker + D1' : 'Google Apps Script + Sheets';
-  $('#infoBackendVersion').textContent = (STATE.config && STATE.config.app && STATE.config.app.backendVersion) || 'non rilevata';
-  $('#infoMunicipalities').textContent = ENABLED_MUNICIPALITIES.join(', ');
-  $('#modalInfoApp').hidden = false;
-}
-function chiudiInfoApp() { $('#modalInfoApp').hidden = true; }
-
-function bloccaPerAggiornamento(testo) {
-  const modal = $('#modalMandatoryUpdate');
-  if (!modal) return;
-  $('#mandatoryUpdateText').textContent = testo || 'Aggiorna SeggioLink prima di continuare.';
-  modal.hidden = false;
-  document.body.classList.add('version-blocked');
-}
-
-async function verificaBuildPubblicata() {
-  if (!navigator.onLine || !LATEST_VERSION_URL) return;
-  try {
-    const sep = LATEST_VERSION_URL.includes('?') ? '&' : '?';
-    const r = await fetch(LATEST_VERSION_URL + sep + 't=' + Date.now(), { cache: 'no-store' });
-    if (!r.ok) return;
-    const info = await r.json();
-    const latest = String(info.latestVersion || '');
-    const minimum = String(info.minimumVersion || '');
-    if (minimum && confrontaVersioni(APP_VERSION, minimum) < 0) {
-      bloccaPerAggiornamento('Questa è la versione ' + APP_VERSION + '. È richiesta almeno la ' + minimum + '.');
-      return;
-    }
-    if (latest && confrontaVersioni(APP_VERSION, latest) < 0) {
-      mostraAggiornamento('Disponibile la versione ' + latest + '. Stai usando la ' + APP_VERSION + '.', false);
-    }
-  } catch (e) {}
-}
-
 function mostraAggiornamento(testo, obbligatorio) {
   const banner = $('#updateBanner');
   if (!banner) return;
@@ -3035,16 +2493,14 @@ function verificaVersioneConfigurata() {
   const appCfg = STATE.config && STATE.config.app;
   if (!appCfg || !appCfg.versioneMinima) return;
   if (confrontaVersioni(APP_VERSION, appCfg.versioneMinima) < 0) {
-    const msg = 'La versione minima richiesta è ' + appCfg.versioneMinima + '. Stai usando la ' + APP_VERSION + '.';
-    mostraAggiornamento(msg, !!appCfg.aggiornamentoObbligatorio);
-    if (appCfg.aggiornamentoObbligatorio) bloccaPerAggiornamento(msg);
+    mostraAggiornamento('La versione minima richiesta è ' + appCfg.versioneMinima + '. Aggiorna prima di proseguire.', !!appCfg.aggiornamentoObbligatorio);
   }
 }
 
 async function initServiceWorkerUpdates() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    const reg = await navigator.serviceWorker.register('service-worker.js?v=' + encodeURIComponent(APP_VERSION));
+    const reg = await navigator.serviceWorker.register('service-worker.js');
     STATE.swRegistration = reg;
     if (reg.waiting) { STATE.swWaiting = reg.waiting; mostraAggiornamento('È disponibile una nuova versione dell’app.', false); }
     reg.addEventListener('updatefound', () => {
@@ -3100,7 +2556,7 @@ function initInstallBanner() {
 // AVVIO APP
 // =======================================================================
 async function avvia() {
-  renderIdentitaVersione();
+  migraStorageSicurezza();
   aggiornaStatoConnessione();
   applicaAccessibilita();
   initInstallBanner();
@@ -3110,7 +2566,6 @@ async function avvia() {
   await caricaConfig();
   renderModalitaDemo();
   verificaVersioneConfigurata();
-  await verificaBuildPubblicata();
   popolaSelectMunicipi();
 
   $('#btnLogin').addEventListener('click', onLogin);
@@ -3135,7 +2590,6 @@ async function avvia() {
   $('#selectSeggioAttivo').addEventListener('change', onCambiaSeggioAttivo);
   $('#btnVaiAffluenza').addEventListener('click', () => attivaTabPerNome('affluenza'));
   $('#btnVaiScrutinio').addEventListener('click', () => attivaTabPerNome('scrutinio'));
-  $('#btnTornaHomeScrutinio').addEventListener('click', () => attivaTabPerNome('home'));
   $('#btnVaiInvii').addEventListener('click', () => attivaTabPerNome('invii'));
   $('#btnHomeModificaElettori').addEventListener('click', onModificaElettori);
   $('#btnHomeCondividi').addEventListener('click', onCondividi);
@@ -3150,14 +2604,10 @@ async function avvia() {
   $('#btnChiudiDeviceCheck2').addEventListener('click', () => { $('#modalDeviceCheck').hidden = true; });
   $('#modalDeviceCheck').addEventListener('click', (e) => { if (e.target.id === 'modalDeviceCheck') $('#modalDeviceCheck').hidden = true; });
   $('#btnUpdateApp').addEventListener('click', applicaAggiornamento);
-  $('#btnMandatoryUpdate').addEventListener('click', applicaAggiornamento);
-  $('#btnInfoLogin').addEventListener('click', apriInfoApp);
-  $('#btnInfoApp').addEventListener('click', apriInfoApp);
-  $('#btnChiudiInfoApp').addEventListener('click', chiudiInfoApp);
-  $('#btnInfoDeviceCheck').addEventListener('click', () => { chiudiInfoApp(); eseguiControlloDispositivo(true); });
-  $('#modalInfoApp').addEventListener('click', (e) => { if (e.target.id === 'modalInfoApp') chiudiInfoApp(); });
   $$('.scrutiny-step').forEach((btn) => btn.addEventListener('click', () => {
-    mostraPassaggioScrutinio(btn.dataset.scrollStep, true);
+    $$('.scrutiny-step').forEach((b) => b.classList.toggle('active', b === btn));
+    const target = document.getElementById(btn.dataset.scrollStep);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));
 
   $('#affMaschi').addEventListener('input', aggiornaTotaleAffluenza);
@@ -3188,7 +2638,7 @@ async function avvia() {
   $('#btnSalvaBozzaScrutinio').addEventListener('click', () => salvaBozzaScrutinio(true, 'bozza'));
   $('#btnEliminaBozzaScrutinio').addEventListener('click', eliminaBozzaScrutinio);
   $('#btnInviaScrutinio').addEventListener('click', onInviaScrutinio);
-  $('#btnCorreggiScrutinio').addEventListener('click', apriSceltaScrutinioDaCorreggere);
+  $('#btnCorreggiScrutinio').addEventListener('click', correggiUltimoScrutinio);
   $('#checkConfermaScrutinio').addEventListener('change', () => { $('#btnConfermaInvio').disabled = !$('#checkConfermaScrutinio').checked; });
   $('#btnConfermaInvio').addEventListener('click', onConfermaInvioScrutinio);
   $('#btnAnnullaInvio').addEventListener('click', () => {
@@ -3197,11 +2647,7 @@ async function avvia() {
     $('#btnConfermaInvio').disabled = true;
     payloadScrutinioPronto = null;
   });
-  $('#btnRiprovaInvii').addEventListener('click', async () => {
-    showToast('Provo a sincronizzare…');
-    const ok = await provaSvuotaCode({ forzaRiprovaManuale: true });
-    showToast(messaggioEsitoSincronizzazione(ok), ok ? 3500 : 7000);
-  });
+  $('#btnRiprovaInvii').addEventListener('click', async () => { showToast('Provo a sincronizzare…'); const ok = await provaSvuotaCode(); showToast(ok ? 'Sincronizzazione completata.' : (navigator.onLine ? 'Nessun invio ricevuto: controlla i dettagli.' : 'Sei offline: riproverò automaticamente.')); });
   $('#btnCondividi').addEventListener('click', onCondividi);
   $('#btnShareWhatsApp').addEventListener('click', condividiConWhatsApp);
   $('#btnShareSms').addEventListener('click', condividiConSms);
@@ -3225,18 +2671,21 @@ async function avvia() {
   STATE.seggioAttivoId = loadJSON(LS.SEGGIO_ATTIVO, null) || (STATE.seggi[0] && STATE.seggi[0].id) || null;
   ricostruisciProfileDaSeggioAttivo();
 
-  // Controlla se c'è un accesso completo salvato (codice + persona + almeno un seggio)
-  const codiceEsistente = loadJSON(LS.CODICE, null);
-  const tokenEsistente = loadJSON(LS.TOKEN, null);
+  // Il bearer token vive solo nella sessione del browser. Se l'app viene chiusa
+  // completamente sarà richiesto un nuovo accesso online; le code offline restano
+  // conservate in namespace isolati e si riaprono solo con lo stesso codice.
+  const ownerEsistente = ownerStorageId();
+  const tokenEsistente = sessionToken();
   const personaEsistente = loadJSON(LS.PERSONA, null);
   const seggiEsistenti = loadJSON(LS.SEGGI, []);
 
-  if (!codiceEsistente || !tokenEsistente || !personaEsistente || !personaEsistente.nome || !seggiEsistenti.length) {
-    // Dati incompleti: mostra sempre la schermata di login
-    localStorage.removeItem(LS.CODICE);
-    localStorage.removeItem(LS.PERSONA);
-    localStorage.removeItem(LS.TOKEN);
-    localStorage.removeItem(LS.TOKEN_EXPIRES);
+  if (!ownerEsistente || !tokenEsistente || !personaEsistente || !personaEsistente.nome || !seggiEsistenti.length) {
+    clearSessionCredentials();
+    removeJSON(LS.PERSONA);
+    removeJSON(LS.SEGGI);
+    removeJSON(LS.SEGGIO_ATTIVO);
+    localStorage.removeItem(LS.OWNER);
+    STATE.persona = null; STATE.seggi = []; STATE.seggioAttivoId = null; STATE.profile = null;
     $('#screen-login').classList.add('active');
     return;
   }

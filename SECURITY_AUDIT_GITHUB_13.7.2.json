@@ -1,0 +1,32 @@
+{
+  "release": "SeggioLink GitHub 13.7.2 SECURITY",
+  "backend_target": "13.7.2-security-production",
+  "checks": {
+    "app_version": true,
+    "login_post_tipo": true,
+    "no_login_query": true,
+    "no_payload_query": true,
+    "no_session_token_query": true,
+    "no_result_fallback": true,
+    "token_session_storage": true,
+    "no_token_local_storage": true,
+    "no_code_storage": true,
+    "owner_scoped": true,
+    "queue_token_removed": true,
+    "messages_post": true,
+    "ack_post": true,
+    "csp": true,
+    "referrer": true,
+    "sw_cross_origin_bypass": true,
+    "sw_new_cache": true,
+    "stale_backend_neutralized": true
+  },
+  "files_to_replace": [
+    "app.js",
+    "index.html",
+    "styles.css",
+    "service-worker.js",
+    "manifest.json",
+    "apps-script/Code.gs"
+  ]
+}
