@@ -13,7 +13,7 @@
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzSs2UcpiGNZDglnq9XM-Oz5ZAy2Lbh1uT70Wh7Ho_b80c7HOY07ETy_wYfgXFgAVnzlw/exec';
-const APP_VERSION = '13.7.3-security';
+const APP_VERSION = '13.7.4-security';
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -138,6 +138,11 @@ function saveSessionJSON(key, val) {
 }
 function clearSessionCredentials() {
   try { sessionStorage.removeItem(LS.TOKEN); sessionStorage.removeItem(LS.TOKEN_EXPIRES); } catch (e) {}
+}
+
+function erroreRichiedeNuovoLogin(code) {
+  return ['SESSION_EXPIRED', 'SESSION_INVALID', 'SESSION_REVOKED', 'REPRESENTATIVE_DISABLED']
+    .includes(String(code || ''));
 }
 
 function rimuoviBozzeScrutinioLocali(ownerSpecifico) {
@@ -1919,7 +1924,7 @@ async function provaSvuotaCode() {
           }
           almenoUnSuccesso = true;
         } catch (e) {
-          if (e && (e.code === 'SESSION_EXPIRED' || e.code === 'SESSION_INVALID')) {
+          if (e && erroreRichiedeNuovoLogin(e.code)) {
             item.status = 'pending';
             item.ultimoErrore = 'Sessione da rinnovare prima della sincronizzazione.';
             item.codiceErrore = e.code;
@@ -2260,7 +2265,7 @@ async function caricaMessaggi(silent) {
     if (!silent && STATE.messaggi.some((x) => !precedenti.has(x.id) && x.stato === 'NUOVO')) showToast('Nuovo messaggio dal coordinamento.', 5000);
     return STATE.messaggi;
   } catch (e) {
-    if (e && (e.code === 'SESSION_EXPIRED' || e.code === 'SESSION_INVALID')) clearSessionCredentials();
+    if (e && erroreRichiedeNuovoLogin(e.code)) clearSessionCredentials();
     if (!silent) showToast('Messaggi non aggiornati: ' + (e.message || 'connessione non disponibile'), 4500);
     return STATE.messaggi;
   }
@@ -2274,7 +2279,7 @@ async function aggiornaMessaggio(id, stato) {
     await caricaMessaggi(true);
     showToast(stato === 'RISOLTO' ? 'Richiesta segnata come risolta.' : 'Messaggio segnato come letto.');
   } catch (e) {
-    if (e && (e.code === 'SESSION_EXPIRED' || e.code === 'SESSION_INVALID')) clearSessionCredentials();
+    if (e && erroreRichiedeNuovoLogin(e.code)) clearSessionCredentials();
     showToast(e.message || 'Aggiornamento non riuscito.', 4500);
   }
 }
