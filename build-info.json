@@ -1,11 +1,11 @@
 {
-  "version": "14.0.3",
-  "latestVersion": "14.0.3",
-  "minimumVersion": "14.0.3",
+  "version": "14.0.4",
+  "latestVersion": "14.0.4",
+  "minimumVersion": "14.0.4",
   "buildDate": "2026-09-01",
   "name": "SeggioLink Roma",
-  "controlCenterVersion": "14.0.3",
+  "controlCenterVersion": "14.0.4",
   "backendVersion": "14.0.0-security-production",
   "channel": "production",
-  "notes": "Ripristino storico server cross-device/cross-version: dopo il login e su richiesta l’app ricostruisce affluenze, scrutini e correzioni già presenti nel Google Sheet per tutte le sezioni autorizzate, senza duplicare le code locali."
+  "notes": "Rifinitura GUI: stato rete online ridotto a “Online” e denominazione territoriale uniformata a “Municipio IX Roma”. Nessuna modifica alla logica backend o di sincronizzazione."
 }

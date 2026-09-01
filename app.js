@@ -444,9 +444,11 @@ function aggiornaStatoConnessione() {
   const home = $('#homeConnStatus');
   const pending = STATE.profile ? [...inviiCorrenti(LS.QUEUE_AFF), ...inviiCorrenti(LS.QUEUE_SCR)].filter((i) => i.status !== QUEUE_STATUS.CONFIRMED).length : contaInCoda();
   if (navigator.onLine) {
-    pill.textContent = pending ? ('Online · ' + pending + (pending === 1 ? ' da verificare' : ' da verificare')) : 'Online · tutto sincronizzato';
+    // La GUI mostra solo lo stato di connettività. Lo stato degli invii resta
+    // visibile nella sezione dedicata e nei badge, senza sovraccaricare il pill.
+    pill.textContent = 'Online';
     pill.className = 'status-pill online';
-    if (home) { home.textContent = pending ? 'Online · sincronizzazione in corso/da verificare' : 'Online · tutto sincronizzato'; home.className = 'home-status online'; }
+    if (home) { home.textContent = 'Online'; home.className = 'home-status online'; }
   } else {
     pill.textContent = pending ? ('Offline · ' + pending + (pending === 1 ? ' salvato' : ' salvati')) : 'Offline · puoi continuare';
     pill.className = 'status-pill offline';
@@ -1105,7 +1107,7 @@ function mostraDashboard() {
   $('#screen-dashboard').classList.add('active');
   popolaSelectSeggioAttivo();
   const indirizzo = [STATE.profile.addr, STATE.profile.cap ? 'CAP ' + STATE.profile.cap : ''].filter(Boolean).join(' · ');
-  $('#seggioIndirizzo').textContent = indirizzo || 'Municipio Roma IX';
+  $('#seggioIndirizzo').textContent = indirizzo || 'Municipio IX Roma';
   renderElettoriBanner();
   renderAffluenza();
   renderScrutinioListeECandidati();
@@ -1218,7 +1220,7 @@ function renderHomeDashboard() {
   const nomeEl = $('#homeNome');
   const seggioEl = $('#homeSeggio');
   if (nomeEl) nomeEl.textContent = nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
-  if (seggioEl) seggioEl.textContent = 'Municipio Roma IX · Sezione ' + STATE.profile.sezione;
+  if (seggioEl) seggioEl.textContent = 'Municipio IX Roma · Sezione ' + STATE.profile.sezione;
   const elettori = $('#homeElettori');
   if (elettori) elettori.textContent = STATE.profile.elettori || '—';
 
