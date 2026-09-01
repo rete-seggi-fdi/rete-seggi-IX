@@ -422,7 +422,13 @@ function trovaItem(queueKey, idInvio) {
   return loadJSON(queueKey, []).find((it) => it.idInvio === idInvio) || null;
 }
 function idsSostituiti(queueKey) {
-  return new Set(loadJSON(queueKey, []).map((it) => it.payload && it.payload.correzioneDi).filter(Boolean));
+  const items = loadJSON(queueKey, []);
+  const ids = new Set(items.map((it) => it.payload && it.payload.correzioneDi).filter(Boolean));
+  items.forEach((it) => {
+    if (!it || !it.idInvio) return;
+    if (String(it.statoServer || '').toUpperCase() === 'SOSTITUITO' || it.sostituitoDaServer) ids.add(it.idInvio);
+  });
+  return ids;
 }
 function aggiornaTokenInviiInCoda(token) {
   // SECURITY: i bearer token non vengono mai persistiti dentro le code offline.
@@ -447,7 +453,7 @@ function aggiornaStatoConnessione() {
     if (home) { home.textContent = pending ? 'Offline · dati al sicuro sul telefono' : 'Offline · puoi continuare a lavorare'; home.className = 'home-status offline'; }
   }
 }
-window.addEventListener('online', () => { aggiornaStatoConnessione(); provaSvuotaCode(); caricaMessaggi(true); });
+window.addEventListener('online', async () => { aggiornaStatoConnessione(); await provaSvuotaCode(); await sincronizzaStoricoDaServer(true); caricaMessaggi(true); });
 window.addEventListener('offline', () => { aggiornaStatoConnessione(); renderNotificheHome(); });
 
 // ---------------------------------------------------------------------
@@ -693,7 +699,8 @@ async function onLogin() {
       ricostruisciProfileDaSeggioAttivo();
       mostraDashboard();
       showToast('Accesso effettuato come ' + STATE.persona.nome + '.');
-      provaSvuotaCode();
+      await provaSvuotaCode();
+      await sincronizzaStoricoDaServer(true);
     } else {
       vaiAlSetupPrecompilato(data);
     }
@@ -2175,6 +2182,161 @@ function correggiUltimoScrutinio() {
 }
 
 // =======================================================================
+// STORICO SERVER — RIPRISTINO CROSS-DEVICE / CROSS-VERSION
+// =======================================================================
+let sincronizzazioneStoricoInCorso = false;
+
+function payloadDaStoricoServer(item) {
+  const base = {
+    tipo: item.tipo,
+    idInvio: String(item.idInvio || ''),
+    municipio: String(item.municipio || ''),
+    sezione: String(item.sezione || ''),
+    elettori: item.elettori === '' ? null : item.elettori,
+    note: item.note || '',
+    correzioneDi: item.correzioneDi || '',
+    motivoCorrezione: item.motivoCorrezione || '',
+    versioneApp: item.versioneApp || '',
+  };
+
+  if (item.tipo === 'affluenza') {
+    return Object.assign(base, {
+      giorno: item.giorno || '',
+      orario: item.orario || '',
+      maschi: item.maschi === '' ? null : item.maschi,
+      femmine: item.femmine === '' ? null : item.femmine,
+      totale: item.totale === '' ? null : item.totale,
+      percentuale: item.percentuale === '' ? null : item.percentuale,
+    });
+  }
+
+  return Object.assign(base, {
+    votanti: item.votanti === '' ? null : item.votanti,
+    schedaComune: Object.assign({}, item.schedaComune || {}),
+    schedaMunicipio: Object.assign({}, item.schedaMunicipio || {}),
+    liste: Array.isArray(item.liste) ? item.liste.map((x) => Object.assign({}, x)) : [],
+    preferenze: Array.isArray(item.preferenze) ? item.preferenze.map((x) => Object.assign({}, x)) : [],
+    sindaci: Array.isArray(item.sindaci) ? item.sindaci.map((x) => Object.assign({}, x)) : [],
+    presidenti: Array.isArray(item.presidenti) ? item.presidenti.map((x) => Object.assign({}, x)) : [],
+  });
+}
+
+function integraStoricoServerInCoda(queueKey, itemsServer) {
+  const coda = loadJSON(queueKey, []);
+  const perId = new Map(coda.filter((it) => it && it.idInvio).map((it) => [String(it.idInvio), it]));
+  let cambiato = false;
+
+  (itemsServer || []).forEach((serverItem) => {
+    const id = String(serverItem && serverItem.idInvio || '').trim();
+    if (!id) return;
+    const payloadServer = payloadDaStoricoServer(serverItem);
+    let locale = perId.get(id);
+
+    if (!locale) {
+      locale = {
+        idInvio: id,
+        payload: payloadServer,
+        status: QUEUE_STATUS.CONFIRMED,
+        creato: serverItem.creato || new Date().toISOString(),
+        tentativi: 0,
+        ultimoTentativo: null,
+        ultimoErrore: '',
+        codiceErrore: '',
+        sincronizzatoIl: serverItem.creato || null,
+        rispostaServer: {
+          elettori: payloadServer.elettori,
+          percentuale: serverItem.tipo === 'affluenza' ? payloadServer.percentuale : null,
+          ripristinatoDaStorico: true,
+        },
+        statoServer: serverItem.stato || '',
+        sostituitoDaServer: serverItem.sostituitoDa || '',
+      };
+      coda.push(locale);
+      perId.set(id, locale);
+      cambiato = true;
+    } else {
+      const prima = JSON.stringify({
+        payload: locale.payload,
+        status: locale.status,
+        creato: locale.creato,
+        sincronizzatoIl: locale.sincronizzatoIl,
+        statoServer: locale.statoServer,
+        sostituitoDaServer: locale.sostituitoDaServer,
+      });
+      // Se il record esiste sul server, il coordinamento ne ha confermato la ricezione.
+      locale.payload = Object.assign({}, locale.payload || {}, payloadServer);
+      locale.status = QUEUE_STATUS.CONFIRMED;
+      locale.creato = serverItem.creato || locale.creato || new Date().toISOString();
+      locale.sincronizzatoIl = serverItem.creato || locale.sincronizzatoIl || null;
+      locale.ultimoErrore = '';
+      locale.codiceErrore = '';
+      locale.statoServer = serverItem.stato || locale.statoServer || '';
+      locale.sostituitoDaServer = serverItem.sostituitoDa || locale.sostituitoDaServer || '';
+      locale.rispostaServer = Object.assign({}, locale.rispostaServer || {}, {
+        elettori: payloadServer.elettori,
+        percentuale: serverItem.tipo === 'affluenza' ? payloadServer.percentuale : null,
+        ripristinatoDaStorico: true,
+      });
+      const dopo = JSON.stringify({
+        payload: locale.payload,
+        status: locale.status,
+        creato: locale.creato,
+        sincronizzatoIl: locale.sincronizzatoIl,
+        statoServer: locale.statoServer,
+        sostituitoDaServer: locale.sostituitoDaServer,
+      });
+      if (prima !== dopo) cambiato = true;
+    }
+
+    if (Number(payloadServer.elettori) > 0) {
+      memorizzaElettoriSezioneLocali_(payloadServer.municipio, payloadServer.sezione, payloadServer.elettori);
+    }
+  });
+
+  if (cambiato) saveJSON(queueKey, coda);
+  return cambiato;
+}
+
+async function sincronizzaStoricoDaServer(silenzioso) {
+  if (sincronizzazioneStoricoInCorso || !navigator.onLine || !backendConfigurato() || !sessionToken()) return false;
+  sincronizzazioneStoricoInCorso = true;
+  try {
+    const data = await inviaAlBackend({ tipo: 'storico_invii', limit: 200 });
+    const items = Array.isArray(data.items) ? data.items : [];
+    const aff = items.filter((it) => it && it.tipo === 'affluenza');
+    const scr = items.filter((it) => it && it.tipo === 'scrutinio');
+    const cambiatoAff = integraStoricoServerInCoda(LS.QUEUE_AFF, aff);
+    const cambiatoScr = integraStoricoServerInCoda(LS.QUEUE_SCR, scr);
+
+    if (STATE.profile) {
+      renderTabellaAffluenza();
+      aggiornaBadgeScrutinio();
+      renderTabellaInvii();
+      aggiornaPulsanteCorrezioneScrutinio();
+      aggiornaBadgeInCoda();
+      renderHomeDashboard();
+    }
+
+    if (!silenzioso) {
+      showToast(items.length
+        ? 'Storico aggiornato dal coordinamento: ' + items.length + (items.length === 1 ? ' invio disponibile.' : ' invii disponibili.')
+        : 'Nessun invio precedente trovato per le sezioni assegnate.', 4500);
+    }
+    return true;
+  } catch (e) {
+    if (e && erroreRichiedeNuovoLogin(e.code)) {
+      clearSessionCredentials();
+      if (!silenzioso) showToast('Sessione scaduta: accedi nuovamente per aggiornare lo storico.', 5500);
+      return false;
+    }
+    if (!silenzioso) showToast(messaggioErroreUtente(e, 'Non riesco ad aggiornare lo storico dal coordinamento.'), 5500);
+    return false;
+  } finally {
+    sincronizzazioneStoricoInCorso = false;
+  }
+}
+
+// =======================================================================
 // CODA OFFLINE E INVIO AL BACKEND
 // =======================================================================
 let sincronizzazioneInCorso = false;
@@ -3065,7 +3227,13 @@ async function avvia() {
     $('#btnConfermaInvio').disabled = true;
     payloadScrutinioPronto = null;
   });
-  $('#btnRiprovaInvii').addEventListener('click', async () => { showToast('Provo a sincronizzare…'); const ok = await provaSvuotaCode(); showToast(ok ? 'Sincronizzazione completata.' : (navigator.onLine ? 'Nessun invio ricevuto: controlla i dettagli.' : 'Sei offline: riproverò automaticamente.')); });
+  $('#btnRiprovaInvii').addEventListener('click', async () => {
+    if (!navigator.onLine) { showToast('Sei offline: riproverò automaticamente.'); return; }
+    showToast('Aggiorno invii e storico…');
+    await provaSvuotaCode();
+    const storicoOk = await sincronizzaStoricoDaServer(true);
+    showToast(storicoOk ? 'Invii e storico aggiornati dal coordinamento.' : 'Invii locali verificati, ma non riesco ad aggiornare lo storico.', 4500);
+  });
   $('#btnCondividi').addEventListener('click', onCondividi);
   $('#btnShareWhatsApp').addEventListener('click', condividiConWhatsApp);
   $('#btnShareSms').addEventListener('click', condividiConSms);
@@ -3120,7 +3288,7 @@ async function avvia() {
     predisponiSchermataSetup(false);
   }
 
-  provaSvuotaCode();
+  provaSvuotaCode().then(() => sincronizzaStoricoDaServer(true));
   setInterval(provaSvuotaCode, 45000); // riprova periodica in background, utile su connessioni instabili
   const intervalloMessaggi = Math.max(60, Number(impostazione('INTERVALLO_MESSAGGI_SECONDI', '120')) || 120) * 1000;
   clearInterval(messaggiTimer);

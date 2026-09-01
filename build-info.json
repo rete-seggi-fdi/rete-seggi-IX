@@ -1,11 +1,11 @@
 {
-  "version": "14.0.2",
-  "latestVersion": "14.0.2",
-  "minimumVersion": "14.0.2",
+  "version": "14.0.3",
+  "latestVersion": "14.0.3",
+  "minimumVersion": "14.0.3",
   "buildDate": "2026-09-01",
   "name": "SeggioLink Roma",
-  "controlCenterVersion": "14.0.2",
+  "controlCenterVersion": "14.0.3",
   "backendVersion": "14.0.0-security-production",
   "channel": "production",
-  "notes": "Hotfix rete: timeout Apps Script portato a 60 secondi e gestione AbortController resa esplicita e compatibile, senza esporre al rappresentante errori tecnici del browser."
+  "notes": "Ripristino storico server cross-device/cross-version: dopo il login e su richiesta l’app ricostruisce affluenze, scrutini e correzioni già presenti nel Google Sheet per tutte le sezioni autorizzate, senza duplicare le code locali."
 }
