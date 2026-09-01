@@ -518,7 +518,7 @@ tbody tr:hover{background:#fbfcfe}
 
 
 /* =====================================================================
-   VERSIONE 7 — identità FdI Municipio Roma IX e interfaccia operativa
+   VERSIONE 7 — identità FdI Municipio IX Roma e interfaccia operativa
    ===================================================================== */
 /* Token identità già definiti nel :root principale. */
 body{
@@ -827,3 +827,10 @@ body.accessible-mode :focus-visible { outline: 4px solid #f6b800 !important; out
     flex: none;
   }
 }
+
+/* 14.0.6 — diagnostica browser/rete mostrata solo dopo un errore di login. */
+.login-network-help{display:flex;flex-direction:column;gap:8px}
+.login-network-help strong{display:block;line-height:1.35}
+.login-network-help p{margin:0;line-height:1.4}
+.login-network-detail{font-size:12px;opacity:.82}
+.login-network-retry{align-self:flex-start;margin-top:2px;background:#fff}

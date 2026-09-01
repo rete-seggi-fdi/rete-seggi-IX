@@ -193,9 +193,14 @@
 // ---------------------------------------------------------------------
 const RUNTIME_CONFIG = window.SEGGI_CONFIG || {};
 const BACKEND_URL = String(RUNTIME_CONFIG.backendUrl || '').trim();
-const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '14.0.5');
+const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '14.0.6');
 const REQUEST_TIMEOUT_MS = Number(RUNTIME_CONFIG.requestTimeoutMs || 60000);
+const LOGIN_TIMEOUT_MS = Math.min(12000, Math.max(6000, REQUEST_TIMEOUT_MS));
 const API_CLIENT = window.SeggioAPI ? window.SeggioAPI.create({ backendUrl: BACKEND_URL, timeoutMs: REQUEST_TIMEOUT_MS }) : null;
+// Il login usa lo stesso endpoint e gli stessi controlli, ma con timeout più breve:
+// non rallenta gli accessi riusciti e restituisce prima un aiuto utile quando il
+// browser o la rete bloccano il collegamento.
+const LOGIN_API_CLIENT = window.SeggioAPI ? window.SeggioAPI.create({ backendUrl: BACKEND_URL, timeoutMs: LOGIN_TIMEOUT_MS }) : null;
 const QUEUE_STATUS = window.SeggioUI ? window.SeggioUI.QUEUE_STATUS : Object.freeze({ LOCAL: 'pending', SENDING: 'syncing', CONFIRMED: 'synced', ACTION_REQUIRED: 'error' });
 
 const NOMI_MUNICIPI = {
@@ -528,6 +533,91 @@ function messaggioErroreUtente(err, fallback) {
   return (err && err.message) || fallback || 'Operazione non riuscita. Riprova.';
 }
 
+// Diagnostica browser/rete sul solo percorso di errore del login.
+// Non esegue ping, preflight o altre richieste prima dell'accesso: quando tutto
+// funziona non aggiunge alcuna latenza al login.
+function erroreLoginDiRete(err) {
+  const codice = err && typeof err.code === 'string' ? err.code : '';
+  return ['NETWORK_ERROR', 'NETWORK_TIMEOUT', 'INVALID_SERVER_RESPONSE'].includes(codice);
+}
+
+function browserCorrente() {
+  const ua = String((navigator && navigator.userAgent) || '');
+  if (navigator && navigator.brave && typeof navigator.brave.isBrave === 'function') return 'Brave';
+  if (/Edg\//i.test(ua)) return 'Edge';
+  if (/Firefox\//i.test(ua) || /FxiOS\//i.test(ua)) return 'Firefox';
+  if (/CriOS\//i.test(ua) || (/Chrome\//i.test(ua) && !/Edg\//i.test(ua))) return 'Chrome';
+  if (/Safari\//i.test(ua) && !/CriOS\//i.test(ua) && !/FxiOS\//i.test(ua)) return 'Safari';
+  return 'Browser';
+}
+
+function testoAiutoBrowser(browser) {
+  if (browser === 'Brave') {
+    return {
+      titolo: 'Brave sta probabilmente bloccando il collegamento al coordinamento.',
+      istruzioni: 'Tocca l’icona del leone, disattiva Shields solo per SeggioLink e poi premi “Riprova accesso”.'
+    };
+  }
+  if (browser === 'Firefox') {
+    return {
+      titolo: 'Firefox non riesce a raggiungere il coordinamento.',
+      istruzioni: 'Se hai la protezione antitracciamento in modalità restrittiva o un blocco contenuti, consentila per SeggioLink e poi riprova.'
+    };
+  }
+  if (browser === 'Safari') {
+    return {
+      titolo: 'Safari non riesce a raggiungere il coordinamento.',
+      istruzioni: 'Se usi un blocco contenuti o una protezione privacy aggiuntiva, disattivala solo per SeggioLink e poi riprova.'
+    };
+  }
+  if (browser === 'Chrome' || browser === 'Edge') {
+    return {
+      titolo: browser + ' non riesce a raggiungere il coordinamento.',
+      istruzioni: 'Controlla eventuali estensioni ad-block/privacy o filtri aziendali per questo sito, quindi premi “Riprova accesso”.'
+    };
+  }
+  return {
+    titolo: 'Il browser non riesce a raggiungere il coordinamento.',
+    istruzioni: 'Controlla eventuali blocchi privacy o contenuti per SeggioLink, quindi premi “Riprova accesso”.'
+  };
+}
+
+function mostraAiutoConnessioneLogin(errBox) {
+  const offline = navigator && navigator.onLine === false;
+  const browser = browserCorrente();
+  const aiuto = offline ? {
+    titolo: 'Connessione Internet assente.',
+    istruzioni: 'Riattiva Wi‑Fi o rete mobile e poi premi “Riprova accesso”.'
+  } : testoAiutoBrowser(browser);
+
+  errBox.textContent = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'login-network-help';
+
+  const strong = document.createElement('strong');
+  strong.textContent = aiuto.titolo;
+  wrap.appendChild(strong);
+
+  const p = document.createElement('p');
+  p.textContent = aiuto.istruzioni;
+  wrap.appendChild(p);
+
+  const detail = document.createElement('p');
+  detail.className = 'login-network-detail';
+  detail.textContent = 'Non serve disattivare protezioni globalmente: modifica solo questo sito. I dati già salvati sul telefono non vengono cancellati.';
+  wrap.appendChild(detail);
+
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'btn ghost compact login-network-retry';
+  retry.textContent = 'Riprova accesso';
+  retry.addEventListener('click', onLogin, { once: true });
+  wrap.appendChild(retry);
+
+  errBox.appendChild(wrap);
+  errBox.hidden = false;
+}
+
 async function caricaConfig() {
   if (!backendConfigurato()) {
     const cached = loadJSON(LS.CONFIG, null);
@@ -553,6 +643,27 @@ async function caricaConfig() {
 
 function configVuota() {
   return { ok: false, municipi: [], liste: { capitolina: [], municipio: {} }, candidati: { capitolina: [], municipio: {} }, orari: [], impostazioni: {}, app: {} };
+}
+
+function applicaConfigAggiornataAllaUI() {
+  renderModalitaDemo();
+  verificaVersioneConfigurata();
+  popolaSelectMunicipi();
+  if (!STATE.profile) return;
+  renderAffluenza();
+  renderScrutinioListeECandidati();
+  renderHomeDashboard();
+  const backendLabel = $('#backendVersionLabel');
+  if (backendLabel) backendLabel.textContent = (STATE.config && STATE.config.app && STATE.config.app.backendVersion) || '—';
+}
+
+let configRefreshPromise = null;
+function aggiornaConfigInBackground() {
+  if (configRefreshPromise) return configRefreshPromise;
+  configRefreshPromise = caricaConfig()
+    .then((data) => { applicaConfigAggiornataAllaUI(); return data; })
+    .finally(() => { configRefreshPromise = null; });
+  return configRefreshPromise;
 }
 
 function renderModalitaDemo() {
@@ -697,6 +808,10 @@ async function arricchisciSeggiDopoLogin(assegnazioni, ownerAtteso) {
 }
 
 function sincronizzazioniPostLoginInBackground() {
+  // Nessuna richiesta extra viene fatta prima del login. Solo dopo che
+  // l'autenticazione è riuscita aggiorniamo anche la configurazione ufficiale.
+  aggiornaConfigInBackground().catch(() => {});
+
   // Login e dashboard non attendono storico/code/messaggi: questi vengono
   // aggiornati subito dopo, in background, mantenendo tutte le funzionalità
   // introdotte nella 14.0.3.
@@ -732,7 +847,9 @@ async function onLogin() {
   btn.disabled = true;
 
   try {
-    const data = await backendPostSicuro({ tipo: 'login', codice, telefono }, 1);
+    const data = LOGIN_API_CLIENT
+      ? await LOGIN_API_CLIENT.post({ tipo: 'login', codice, telefono }, 1)
+      : await backendPostSicuro({ tipo: 'login', codice, telefono }, 1);
     if (!data.ok || !data.sessionToken) {
       const err = new Error(messaggioErroreUtente(data.code || '', data.error || 'Codice o telefono non validi.'));
       err.code = data.code || '';
@@ -768,13 +885,18 @@ async function onLogin() {
       sincronizzazioniPostLoginInBackground();
     } else {
       vaiAlSetupPrecompilato(data);
+      aggiornaConfigInBackground().catch(() => {});
     }
   } catch (e) {
-    errBox.textContent = messaggioErroreUtente(
-      e,
-      'Impossibile verificare il codice. Controlla la connessione e riprova.'
-    );
-    errBox.hidden = false;
+    if (erroreLoginDiRete(e)) {
+      mostraAiutoConnessioneLogin(errBox);
+    } else {
+      errBox.textContent = messaggioErroreUtente(
+        e,
+        'Impossibile verificare il codice. Controlla la connessione e riprova.'
+      );
+      errBox.hidden = false;
+    }
   } finally {
     btn.textContent = 'Accedi';
     btn.disabled = false;
@@ -3115,7 +3237,15 @@ async function eseguiControlloDispositivo(openModal) {
       const d = JSON.parse(await r.text());
       results.push({ title: 'Collegamento al coordinamento', detail: d.ok ? 'Backend raggiungibile.' : 'Risposta non valida.', level: d.ok ? 'ok' : 'error' });
     } catch (e) {
-      results.push({ title: 'Collegamento al coordinamento', detail: 'Backend non raggiungibile in questo momento.', level: 'error' });
+      const browser = browserCorrente();
+      const aiuto = testoAiutoBrowser(browser);
+      results.push({
+        title: 'Collegamento al coordinamento',
+        detail: browser === 'Brave'
+          ? 'Bloccato da Brave o dalla rete. Disattiva Shields solo per SeggioLink e ripeti il controllo.'
+          : 'Backend non raggiungibile. ' + aiuto.istruzioni,
+        level: 'error'
+      });
     }
   } else {
     results.push({ title: 'Collegamento al coordinamento', detail: 'Controllo rinviato perché il telefono è offline.', level: 'warn' });
@@ -3207,10 +3337,11 @@ async function avvia() {
   initTabs();
   initServiceWorkerUpdates();
 
-  await caricaConfig();
-  renderModalitaDemo();
-  verificaVersioneConfigurata();
-  popolaSelectMunicipi();
+  // Mostra subito la UI con l'ultima configurazione disponibile e abilita il
+  // login senza attendere Google Apps Script. Il refresh remoto parte solo
+  // dopo un accesso riuscito (o al ripristino di una sessione già valida).
+  STATE.config = loadJSON(LS.CONFIG, null) || configVuota();
+  applicaConfigAggiornataAllaUI();
 
   $('#btnLogin').addEventListener('click', onLogin);
   $('#inputCodice').addEventListener('keydown', (e) => { if (e.key === 'Enter') onLogin(); });
@@ -3353,6 +3484,7 @@ async function avvia() {
     predisponiSchermataSetup(false);
   }
 
+  aggiornaConfigInBackground().catch(() => {});
   provaSvuotaCode().then(() => sincronizzaStoricoDaServer(true));
   setInterval(provaSvuotaCode, 45000); // riprova periodica in background, utile su connessioni instabili
   const intervalloMessaggi = Math.max(60, Number(impostazione('INTERVALLO_MESSAGGI_SECONDI', '120')) || 120) * 1000;
