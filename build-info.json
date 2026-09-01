@@ -1,11 +1,11 @@
 {
-  "version": "14.0.0",
-  "latestVersion": "14.0.0",
-  "minimumVersion": "14.0.0",
+  "version": "14.0.1",
+  "latestVersion": "14.0.1",
+  "minimumVersion": "14.0.1",
   "buildDate": "2026-09-01",
   "name": "SeggioLink Roma",
-  "controlCenterVersion": "14.0.0",
+  "controlCenterVersion": "14.0.1",
   "backendVersion": "14.0.0-security-production",
   "channel": "production",
-  "notes": "Release definitiva di produzione: hardening sessioni, configurazione app completa, validazioni elettorali coerenti, PWA/versioning allineati e pacchetto runtime ripulito."
+  "notes": "Hotfix produzione: client API e utility UI incorporati nel bundle principale per eliminare dipendenze da asset JS secondari e rendere il caricamento più robusto sugli hosting statici."
 }

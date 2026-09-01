@@ -183,7 +183,7 @@ function prepareMapLayout(){
     list.style.padding='2px 4px 8px 2px';
   }
   const version=[...document.querySelectorAll('small,.brand-subtitle')].find(x=>/CONTROL CENTER/i.test(x.textContent||''));
-  if(version)version.textContent='CONTROL CENTER 14.0.0';
+  if(version)version.textContent='CONTROL CENTER 14.0.1';
   return {layout,aside,list,staticPanel};
 }
 function ensureMapContainer(){
