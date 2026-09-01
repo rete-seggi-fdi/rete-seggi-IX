@@ -1,8 +1,11 @@
 'use strict';
 const CFG=window.SEGGI_CONFIG||{};
 const BACKEND=String(CFG.backendUrl||'').trim();
-const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1532';
-let dashboardToken=localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY)||'',live=null;
+const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1400';
+// Token e dati live restano soltanto nella sessione della scheda/browser.
+// Rimuoviamo anche eventuali residui persistenti delle versioni precedenti.
+try{localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);localStorage.removeItem('seggi_control_center_live_1532');localStorage.removeItem(LIVE_CACHE_KEY)}catch(e){}
+let dashboardToken=sessionStorage.getItem(TOKEN_KEY)||'',live=null;
 let registry={schemaVersion:0,sezioniTotali:0,plessiTotali:0,sezioni:[]};
 let geoPlessi={schemaVersion:0,plessiTotali:0,plessiGeocodificati:0,plessi:[]};
 let registryBySection=new Map();
@@ -26,6 +29,8 @@ async function post(payload,tentativo=1){
       body:JSON.stringify(payload),
       cache:'no-store',
       redirect:'follow',
+      credentials:'omit',
+      referrerPolicy:'no-referrer',
       signal:controller.signal
     });
   }catch(error){
@@ -77,11 +82,12 @@ function showAppShell(){
 }
 function clearSession(){
   dashboardToken='';
-  localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);
-  sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY);
+  try{localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);localStorage.removeItem(LIVE_CACHE_KEY)}catch(e){}
+  sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY);sessionStorage.removeItem(LIVE_CACHE_KEY);
+  live=null;
 }
 function tokenScaduto(){
-  const exp=localStorage.getItem(EXP_KEY)||sessionStorage.getItem(EXP_KEY)||'';
+  const exp=sessionStorage.getItem(EXP_KEY)||'';
   if(!exp)return false;
   const t=Date.parse(exp);
   return Number.isFinite(t)&&Date.now()>=t;
@@ -91,14 +97,13 @@ async function login(password){
   if(!x.ok)throw new Error(x.error||'Accesso non riuscito');
   dashboardToken=String(x.dashboardToken||'');
   if(!dashboardToken)throw new Error('Il backend non ha restituito il token.');
-  localStorage.setItem(TOKEN_KEY,dashboardToken);
-  localStorage.setItem(EXP_KEY,x.expiresAt||'');
-  sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY);
+  sessionStorage.setItem(TOKEN_KEY,dashboardToken);
+  sessionStorage.setItem(EXP_KEY,x.expiresAt||'');
   return x;
 }
 function validateRegistry(data){if(!data||typeof data!=='object'||!Array.isArray(data.sezioni))throw new Error('Archivio sezioni non valido.');const rows=data.sezioni.filter(x=>x&&x.sezione&&x.indirizzo).map(x=>({...x,sezione:normSection(x.sezione),numeroVie:Number(x.numeroVie||((x.vieAssegnate||[]).length)),vieAssegnate:Array.isArray(x.vieAssegnate)?x.vieAssegnate:[]}));if(!rows.length)throw new Error('Archivio sezioni vuoto.');const plessi=new Set(rows.map(x=>String(x.indirizzo).trim()+'|'+String(x.cap||'').trim()));return {...data,sezioni:rows,sezioniTotali:rows.length,plessiTotali:Number(data.plessiTotali||plessi.size)}}
-async function loadRegistry(){const url='data/sezioni-ix-control.json?v=15.0.0';const r=await fetch(url,{cache:'force-cache'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
-async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=15.0.0';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
+async function loadRegistry(){const url='data/sezioni-ix-control.json?v=1400';const r=await fetch(url,{cache:'force-cache'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
+async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=1400';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
 
 function rebuildRegistryIndex(){
   registryBySection=new Map();
@@ -145,7 +150,7 @@ function mergeRegistryWithGeo(){
 function registryForSection(section){
   return registryBySection.get(normSection(section))||null;
 }
-function ensureLeaflet(){if(window.L)return Promise.resolve(window.L);if(leafletPromise)return leafletPromise;leafletPromise=new Promise((resolve,reject)=>{if(!document.querySelector('link[data-seggi-leaflet]')){const link=document.createElement('link');link.rel='stylesheet';link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';link.dataset.seggiLeaflet='1';document.head.appendChild(link)}const script=document.createElement('script');script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';script.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';script.crossOrigin='';script.onload=()=>resolve(window.L);script.onerror=()=>reject(new Error('Impossibile caricare la libreria della mappa.'));document.head.appendChild(script)});return leafletPromise}
+function ensureLeaflet(){if(window.L)return Promise.resolve(window.L);if(leafletPromise)return leafletPromise;leafletPromise=new Promise((resolve,reject)=>{if(!document.querySelector('link[data-seggi-leaflet]')){const link=document.createElement('link');link.rel='stylesheet';link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';link.integrity='sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';link.crossOrigin='anonymous';link.referrerPolicy='no-referrer';link.dataset.seggiLeaflet='1';document.head.appendChild(link)}const script=document.createElement('script');script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';script.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';script.crossOrigin='anonymous';script.referrerPolicy='no-referrer';script.onload=()=>window.L?resolve(window.L):reject(new Error('Libreria mappa non inizializzata.'));script.onerror=()=>reject(new Error('Impossibile caricare la libreria della mappa.'));document.head.appendChild(script)});return leafletPromise}
 function prepareMapLayout(){
   const view=$('#view-map');
   if(!view)return null;
@@ -153,7 +158,6 @@ function prepareMapLayout(){
   const staticPanel=view.querySelector('.map-panel');
   const aside=view.querySelector('.map-sections');
   const list=$('#mapSectionList');
-  if(staticPanel)staticPanel.hidden=true;
   if(layout){
     layout.style.display='block';
     layout.style.gridTemplateColumns='none';
@@ -179,7 +183,7 @@ function prepareMapLayout(){
     list.style.padding='2px 4px 8px 2px';
   }
   const version=[...document.querySelectorAll('small,.brand-subtitle')].find(x=>/CONTROL CENTER/i.test(x.textContent||''));
-  if(version)version.textContent='CONTROL CENTER 15.3.2';
+  if(version)version.textContent='CONTROL CENTER 14.0.0';
   return {layout,aside,list,staticPanel};
 }
 function ensureMapContainer(){
@@ -349,6 +353,7 @@ async function renderGeoMap(){
   if(!el)return;
   await ensureGeoReady();
   const L=await ensureLeaflet();
+  const staticPanel=$('#view-map .map-panel');
   if(!mapInstance){
     mapInstance=L.map(el,{zoomControl:true,scrollWheelZoom:true,preferCanvas:true}).setView([41.805,12.47],12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
@@ -376,13 +381,14 @@ async function renderGeoMap(){
   updateMapDiagnostics();
   const info=$('#mapGeoSummary');
   if(info)info.textContent=`${fmt(geoPlessi.plessiGeocodificati)} plessi geocodificati · ${fmt(geoSectionsTotal())} sezioni associate${confineOk?' · confine Municipio IX attivo':' · confine non disponibile'}`;
+  if(staticPanel)staticPanel.hidden=true;
   setTimeout(()=>{mapInstance.invalidateSize();fitMapToPlessi();},100);
 }
 async function focusSectionOnMap(section){const sec=normSection(section);if(!mapInstance||!mapMarkers.length){try{await renderGeoMap()}catch(e){console.error(e)}}const marker=mapMarkers.find(m=>m._seggiSections?.has(sec));if(marker&&mapInstance){mapInstance.setView(marker.getLatLng(),16,{animate:true});marker.openPopup();return true}openSection(sec);return false}
 function restoreLiveCache(){
   if(live)return false;
   try{
-    const cached=JSON.parse(localStorage.getItem(LIVE_CACHE_KEY)||'null');
+    const cached=JSON.parse(sessionStorage.getItem(LIVE_CACHE_KEY)||'null');
     if(!cached?.data)return false;
     live=cached.data;
     renderAll();
@@ -401,7 +407,7 @@ async function load(){
     const x=await post({tipo:'dashboard_affluenza',dashboardToken});
     if(!x.ok){if(String(x.code).includes('SESSION'))return showLogin(x.error,true);throw new Error(x.error||'Errore backend')}
     live=x;
-    try{localStorage.setItem(LIVE_CACHE_KEY,JSON.stringify({savedAt:Date.now(),data:x}))}catch(e){}
+    try{sessionStorage.setItem(LIVE_CACHE_KEY,JSON.stringify({savedAt:Date.now(),data:x}))}catch(e){}
     renderAll();
     showAppShell();
     setOnline(true,'Online');

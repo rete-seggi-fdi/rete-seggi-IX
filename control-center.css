@@ -15,18 +15,18 @@
 
 /* Control Center 14.5 — coerenza territoriale e mappa */
 .metrics article small{display:block;line-height:1.35;overflow-wrap:anywhere}.map-section-card{width:100%;border:0;border-bottom:1px solid #edf0f4;background:#fff;text-align:left;font:inherit}.map-section-card:focus-visible{outline:3px solid rgba(37,91,184,.28);outline-offset:-3px}.map-section-card small{display:block;line-height:1.35}.btn:disabled{opacity:.58;cursor:wait}@media(min-width:1200px) and (max-width:1550px){.metrics.six{grid-template-columns:repeat(3,minmax(0,1fr))}}
-/* Control Center 15.0 — mappa operativa definitiva */
+/* SeggioLink 14.0.0 — mappa operativa */
 .map-interactive-wrap{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:0 4px 14px rgba(26,44,75,.04)}
 .map-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:10px}.map-toolbar>div:first-child{display:grid;gap:3px}.map-toolbar small{color:var(--muted)}.map-toolbar-actions{display:flex;gap:8px;flex-wrap:wrap}.map-legend{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0 12px;color:var(--muted);font-size:12px}.legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}.legend-dot.done{background:#16803c}.legend-dot.partial{background:#d97706}.legend-dot.missing{background:#b42318}.legend-dot.user{background:#0b5fff;border:2px solid #fff;box-shadow:0 0 0 1px #0b5fff}.map-interactive-wrap #mapCanvas{height:min(68vh,720px);min-height:560px;width:100%;border-radius:10px;overflow:hidden;background:#e9ecef}.map-location-status{margin:10px 2px 0;color:var(--muted);font-size:13px;min-height:20px}.map-popup p{margin:.55rem 0}.map-popup a{display:inline-block;margin-top:2px;color:var(--blue);font-weight:800;text-decoration:none}.map-popup a:hover{text-decoration:underline}
 @media(max-width:850px){.map-toolbar{align-items:stretch;flex-direction:column}.map-toolbar-actions{width:100%}.map-toolbar-actions .btn{flex:1}.map-interactive-wrap #mapCanvas{min-height:460px;height:58vh}}
 @media(max-width:520px){.map-interactive-wrap{padding:9px}.map-legend{gap:10px}.map-interactive-wrap #mapCanvas{min-height:410px;height:55vh}}
 
 
-/* Control Center 15.1 — report sezioni stile Excel/CSV */
+/* SeggioLink 14.0.0 — report sezioni Excel/CSV */
 .report-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.detailed-report-table{overflow:auto;max-width:100%}.detailed-report-table table{min-width:1180px;font-variant-numeric:tabular-nums}.detailed-report-table th,.detailed-report-table td{text-align:right;white-space:nowrap}.detailed-report-table th:first-child,.detailed-report-table td:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:1}.detailed-report-table thead th:first-child{background:#f7f9fc;z-index:3}.detailed-report-table tfoot th{background:#edf2fa;color:var(--navy2);font-weight:800}.detailed-summary{margin-bottom:18px}@media(max-width:850px){.report-hero{align-items:flex-start;flex-direction:column}.report-actions{width:100%;justify-content:flex-start}.report-actions .btn{flex:1 1 180px}}
 @media print{.report-actions{display:none!important}.detailed-report-table{overflow:visible}.detailed-report-table table{min-width:0;font-size:9px}.detailed-report-table th,.detailed-report-table td{padding:5px 4px;font-size:9px}.detailed-report-table th:first-child,.detailed-report-table td:first-child{position:static}.detailed-summary{grid-template-columns:repeat(4,1fr)!important}.detailed-report-sheet .report-title{margin-bottom:10px}.detailed-report-sheet{zoom:.78}}
 
-/* Control Center 15.3.0 — Dati elettorali nativi */
+/* SeggioLink 14.0.0 — dati elettorali nativi */
 .data-filters{margin-left:auto}
 .data-metrics{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px}
 .data-summary-panel{min-height:auto;margin-bottom:14px}
@@ -47,7 +47,7 @@
 @media(max-width:850px){.data-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.data-filters{margin-left:0;width:100%}.data-fdi-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.data-metrics{grid-template-columns:1fr 1fr}.data-fdi-summary{grid-template-columns:1fr}}
 
-/* Control Center 15.3.1 — accesso rapido e login pulito */
+/* SeggioLink 14.0.0 — accesso coordinamento */
 body.login-only{background:#f2f5f9}
 body.login-only .shell{display:block;min-height:100vh}
 body.login-only .sidebar,
@@ -87,7 +87,7 @@ body.login-only .login-card h2{margin-top:38px}
 body.login-only #appView{display:none!important}
 
 
-/* Control Center 15.3.2 — diagnostica cartografica produzione */
+/* SeggioLink 14.0.0 — diagnostica cartografica */
 .map-diagnostics{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:10px 0 12px}
 .map-diagnostics>div{background:#f7f9fc;border:1px solid var(--border);border-radius:9px;padding:9px 10px}
 .map-diagnostics span{display:block;color:var(--muted);font-size:11px;line-height:1.2}

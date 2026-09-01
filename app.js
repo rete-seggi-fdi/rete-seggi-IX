@@ -12,8 +12,12 @@
 // Sostituire con l'URL del tuo Web App di Google Apps Script
 // (vedi ISTRUZIONI_SETUP.md, sezione "Pubblicare il backend").
 // ---------------------------------------------------------------------
-const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzSs2UcpiGNZDglnq9XM-Oz5ZAy2Lbh1uT70Wh7Ho_b80c7HOY07ETy_wYfgXFgAVnzlw/exec';
-const APP_VERSION = '13.7.6-security';
+const RUNTIME_CONFIG = window.SEGGI_CONFIG || {};
+const BACKEND_URL = String(RUNTIME_CONFIG.backendUrl || '').trim();
+const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '14.0.0');
+const REQUEST_TIMEOUT_MS = Number(RUNTIME_CONFIG.requestTimeoutMs || 20000);
+const API_CLIENT = window.SeggioAPI ? window.SeggioAPI.create({ backendUrl: BACKEND_URL, timeoutMs: REQUEST_TIMEOUT_MS }) : null;
+const QUEUE_STATUS = window.SeggioUI ? window.SeggioUI.QUEUE_STATUS : Object.freeze({ LOCAL: 'pending', SENDING: 'syncing', CONFIRMED: 'synced', ACTION_REQUIRED: 'error' });
 
 const NOMI_MUNICIPI = {
   '01':'Municipio I','02':'Municipio II','03':'Municipio III','04':'Municipio IV',
@@ -253,14 +257,15 @@ function aggiornaTokenInviiInCoda(token) {
 function aggiornaStatoConnessione() {
   const pill = $('#connStatus');
   const home = $('#homeConnStatus');
+  const pending = STATE.profile ? [...inviiCorrenti(LS.QUEUE_AFF), ...inviiCorrenti(LS.QUEUE_SCR)].filter((i) => i.status !== QUEUE_STATUS.CONFIRMED).length : contaInCoda();
   if (navigator.onLine) {
-    pill.textContent = 'Online';
+    pill.textContent = pending ? ('Online · ' + pending + (pending === 1 ? ' da verificare' : ' da verificare')) : 'Online · tutto sincronizzato';
     pill.className = 'status-pill online';
-    if (home) { home.textContent = 'Online · pronto a inviare'; home.className = 'home-status online'; }
+    if (home) { home.textContent = pending ? 'Online · sincronizzazione in corso/da verificare' : 'Online · tutto sincronizzato'; home.className = 'home-status online'; }
   } else {
-    pill.textContent = 'Offline · dati in coda';
+    pill.textContent = pending ? ('Offline · ' + pending + (pending === 1 ? ' salvato' : ' salvati')) : 'Offline · puoi continuare';
     pill.className = 'status-pill offline';
-    if (home) { home.textContent = 'Offline · i dati restano sul telefono'; home.className = 'home-status offline'; }
+    if (home) { home.textContent = pending ? 'Offline · dati al sicuro sul telefono' : 'Offline · puoi continuare a lavorare'; home.className = 'home-status offline'; }
   }
 }
 window.addEventListener('online', () => { aggiornaStatoConnessione(); provaSvuotaCode(); caricaMessaggi(true); });
@@ -327,7 +332,12 @@ function cercaPerVia(data, via, civicoStr) {
 // CONFIGURAZIONE DAL BACKEND (Google Sheet via Apps Script)
 // ---------------------------------------------------------------------
 function backendConfigurato() {
-  return BACKEND_URL && BACKEND_URL.indexOf('http') === 0;
+  return API_CLIENT ? API_CLIENT.configured() : /^https:\/\//i.test(BACKEND_URL);
+}
+
+function messaggioErroreUtente(err, fallback) {
+  if (API_CLIENT) return API_CLIENT.userMessage(err, fallback);
+  return (err && err.message) || fallback || 'Operazione non riuscita. Riprova.';
 }
 
 async function caricaConfig() {
@@ -337,9 +347,10 @@ async function caricaConfig() {
     return STATE.config;
   }
   try {
-    const res = await fetch(BACKEND_URL + '?action=config', { cache: 'no-store', redirect: 'follow' });
-    const testo = await res.text();
-    const data = JSON.parse(testo);
+    const data = API_CLIENT ? await API_CLIENT.get('config') : await (async () => {
+      const res = await fetch(BACKEND_URL + '?action=config', { cache: 'no-store', redirect: 'follow' });
+      return JSON.parse(await res.text());
+    })();
     if (!data.ok) throw new Error(data.error || 'Configurazione non valida');
     gestisciRevisioneDati(data.dataRevision);
     saveJSON(LS.CONFIG, data);
@@ -434,58 +445,13 @@ function statoScadenza(giorno, orario, completato) {
 
 
 async function backendPostSicuro(payload) {
-  if (!backendConfigurato()) throw new Error('Backend non configurato.');
-
-  const body = JSON.stringify(payload || {});
-  if (body.length > 210000) {
-    const err = new Error('Richiesta troppo grande.');
-    err.code = 'PAYLOAD_TOO_LARGE';
+  if (!backendConfigurato()) {
+    const err = new Error('Backend non configurato.');
+    err.code = 'BACKEND_NOT_CONFIGURED';
     throw err;
   }
-
-  let ultimoErrore = null;
-
-  // Due tentativi POST. Gli invii elettorali hanno ID idempotente; login e
-  // aggiornamento messaggi sono a loro volta sicuri da ripetere.
-  for (let tentativo = 0; tentativo < 2; tentativo++) {
-    try {
-      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timeout = controller ? setTimeout(() => controller.abort(), 35000) : null;
-
-      let res;
-      try {
-        res = await fetch(BACKEND_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-          body,
-          cache: 'no-store',
-          redirect: 'follow',
-          referrerPolicy: 'no-referrer',
-          credentials: 'omit',
-          signal: controller ? controller.signal : undefined,
-        });
-      } finally {
-        if (timeout) clearTimeout(timeout);
-      }
-
-      const testo = await res.text();
-      let data;
-      try { data = JSON.parse(testo); }
-      catch (e) {
-        const err = new Error('Risposta del coordinamento non valida.');
-        err.code = 'INVALID_SERVER_RESPONSE';
-        throw err;
-      }
-      return data;
-    } catch (e) {
-      ultimoErrore = e;
-      if (tentativo === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 700));
-      }
-    }
-  }
-
-  throw ultimoErrore || new Error('Nessuna risposta dal coordinamento.');
+  if (API_CLIENT) return API_CLIENT.post(payload, 2);
+  throw new Error('Client API non disponibile.');
 }
 
 // =======================================================================
@@ -512,7 +478,11 @@ async function onLogin() {
 
   try {
     const data = await backendPostSicuro({ tipo: 'login', codice, telefono });
-    if (!data.ok || !data.sessionToken) throw new Error(data.error || 'Codice o telefono non validi.');
+    if (!data.ok || !data.sessionToken) {
+      const err = new Error(messaggioErroreUtente(data.code || '', data.error || 'Codice o telefono non validi.'));
+      err.code = data.code || '';
+      throw err;
+    }
 
     const ownerId = await ownerIdDaCodice(codice);
     if (!ownerId) throw new Error('Impossibile inizializzare la sessione locale.');
@@ -993,9 +963,66 @@ function ultimoInvioAttivo(queueKey) {
 
 function statoTimelineDaInvio(item) {
   if (!item) return { classe: 'todo', etichetta: 'Da inviare' };
-  if (item.status === 'synced') return { classe: 'done', etichetta: 'Ricevuto' };
-  if (item.status === 'error') return { classe: 'error', etichetta: 'Da controllare' };
+  if (item.status === QUEUE_STATUS.CONFIRMED) return { classe: 'done', etichetta: 'Ricevuto' };
+  if (item.status === QUEUE_STATUS.ACTION_REQUIRED) return { classe: 'error', etichetta: 'Da controllare' };
   return { classe: 'queued', etichetta: 'Sul telefono' };
+}
+
+function prossimaAzioneHome() {
+  const aff = inviiCorrenti(LS.QUEUE_AFF);
+  const scr = inviiCorrenti(LS.QUEUE_SCR);
+  const conErrore = [...aff, ...scr].filter((it) => it.status === QUEUE_STATUS.ACTION_REQUIRED);
+  if (conErrore.length) {
+    return {
+      classe: 'attention',
+      titolo: conErrore.length === 1 ? '1 comunicazione richiede attenzione' : conErrore.length + ' comunicazioni richiedono attenzione',
+      testo: 'I dati sono conservati sul telefono, ma serve un controllo prima della conferma del coordinamento.',
+      tab: 'invii',
+      bottone: 'Controlla invii'
+    };
+  }
+
+  const mappaAff = invitiAffluenzaSezione();
+  const mancanti = orariAffluenza().filter((o) => !mappaAff[chiaveAffluenza(o.giorno, o.orario)]);
+  if (mancanti.length) {
+    const ordinati = mancanti.map((o, index) => ({ o, index, data: dataScadenza(o.giorno, o.orario) }))
+      .sort((a, b) => {
+        if (a.data && b.data) return a.data - b.data;
+        if (a.data) return -1;
+        if (b.data) return 1;
+        return a.index - b.index;
+      });
+    let scelta = ordinati.find((x) => x.data && x.data.getTime() >= Date.now()) || ordinati.find((x) => x.data) || ordinati[0];
+    const scadenza = scelta && statoScadenza(scelta.o.giorno, scelta.o.orario, false);
+    return {
+      classe: scadenza && scadenza.classe === 'error' ? 'attention' : 'turnout',
+      titolo: 'Affluenza ' + (scelta.o.orario || ''),
+      testo: scadenza ? (scadenza.etichetta + ' · ' + scadenza.testo) : ((scelta.o.giorno || 'Rilevazione') + ' · inserisci i votanti e conferma'),
+      tab: 'affluenza',
+      bottone: 'Comunica affluenza'
+    };
+  }
+
+  const ultimoScr = ultimoInvioAttivo(LS.QUEUE_SCR);
+  if (!ultimoScr) {
+    return { classe: 'scrutiny', titolo: 'Scrutinio della sezione', testo: 'Le affluenze previste risultano compilate. Quando inizia lo scrutinio puoi inserire i risultati.', tab: 'scrutinio', bottone: 'Apri scrutinio' };
+  }
+  if (ultimoScr.status !== QUEUE_STATUS.CONFIRMED) {
+    return { classe: 'queued', titolo: 'Scrutinio salvato sul telefono', testo: 'Il lavoro è conservato. Apri lo stato invii per verificare la ricezione del coordinamento.', tab: 'invii', bottone: 'Verifica ricezione' };
+  }
+  return { classe: 'complete', titolo: 'Comunicazioni completate', testo: 'L’ultimo scrutinio risulta ricevuto dal coordinamento. Conserva l’app installata fino alla chiusura delle operazioni.', tab: 'invii', bottone: 'Vedi ricevute' };
+}
+
+function renderProssimaAzioneHome() {
+  const card = $('#homeNextAction');
+  if (!card || !STATE.profile) return;
+  const azione = prossimaAzioneHome();
+  card.className = 'next-action-card ' + azione.classe;
+  $('#homeNextActionTitle').textContent = azione.titolo;
+  $('#homeNextActionText').textContent = azione.testo;
+  const btn = $('#homeNextActionButton');
+  btn.textContent = azione.bottone;
+  btn.dataset.targetTab = azione.tab;
 }
 
 function renderHomeDashboard() {
@@ -1010,7 +1037,7 @@ function renderHomeDashboard() {
 
   const aff = inviiCorrenti(LS.QUEUE_AFF);
   const scr = inviiCorrenti(LS.QUEUE_SCR);
-  const pending = [...aff, ...scr].filter((it) => it.status !== 'synced').length;
+  const pending = [...aff, ...scr].filter((it) => it.status !== QUEUE_STATUS.CONFIRMED).length;
   const pendingEl = $('#homePending');
   if (pendingEl) pendingEl.textContent = pending;
 
@@ -1053,6 +1080,7 @@ function renderHomeDashboard() {
       ultimoEl.innerHTML = '<div class="latest-icon ' + stato.classe + '" aria-hidden="true">' + (ultimo.tipoHome === 'Affluenza' ? '%' : '▣') + '</div><div><strong>' + ultimo.tipoHome + '</strong><span>' + escapeHtml(dettaglio) + '</span><small>' + escapeHtml(quando) + ' · ' + escapeHtml(stato.etichetta) + '</small></div>';
     }
   }
+  renderProssimaAzioneHome();
   aggiornaStatoConnessione();
 }
 
@@ -1371,8 +1399,8 @@ async function onInviaAffluenza() {
   showToast(navigator.onLine ? 'Salvato sul telefono. Verifico la ricezione…' : 'Salvato sul telefono. Sarà inviato quando torna la rete.');
   await provaSvuotaCode();
   const item = trovaItem(LS.QUEUE_AFF, id);
-  if (item && item.status === 'synced') showToast('Rilevazione ricevuta dal coordinamento.');
-  else if (item && item.status === 'error') showToast('Salvata sul telefono, ma non ancora ricevuta. Controlla “I miei invii”.', 4500);
+  if (item && item.status === QUEUE_STATUS.CONFIRMED) showToast('Rilevazione ricevuta dal coordinamento.');
+  else if (item && item.status === QUEUE_STATUS.ACTION_REQUIRED) showToast('Salvata sul telefono, ma non ancora ricevuta. Controlla “I miei invii”.', 4500);
 }
 
 function renderTabellaAffluenza() {
@@ -1421,7 +1449,7 @@ function correggiAffluenza(idInvio) {
   if (!item || !item.payload) return;
   const p = item.payload;
   apriFormAffluenza(p.giorno, p.orario);
-  const giaRicevuto = item.status === 'synced';
+  const giaRicevuto = item.status === QUEUE_STATUS.CONFIRMED;
   correzioneAffluenzaId = giaRicevuto ? idInvio : null;
   tentativoAffluenzaDaSostituireId = giaRicevuto ? null : idInvio;
   $('#affCorrezioneBox').hidden = !giaRicevuto;
@@ -1440,10 +1468,12 @@ function correggiAffluenza(idInvio) {
 }
 
 function statoPillHtml(status) {
-  if (status === 'synced') return '<span class="pill good">inviato</span>';
-  if (status === 'syncing') return '<span class="pill warn">invio…</span>';
-  if (status === 'error') return '<span class="pill bad">da riprovare</span>';
-  return '<span class="pill warn">sul telefono</span>';
+  const meta = window.SeggioUI ? window.SeggioUI.queueMeta(status) : null;
+  if (meta) return '<span class="pill ' + meta.pill + '">' + escapeHtml(meta.label) + '</span>';
+  if (status === QUEUE_STATUS.CONFIRMED) return '<span class="pill good">Ricevuto dal coordinamento</span>';
+  if (status === QUEUE_STATUS.SENDING) return '<span class="pill neutral">Invio in corso…</span>';
+  if (status === QUEUE_STATUS.ACTION_REQUIRED) return '<span class="pill bad">Richiede attenzione</span>';
+  return '<span class="pill warn">Salvato sul telefono</span>';
 }
 
 // ---------------------------- SCRUTINIO ---------------------------------
@@ -1458,17 +1488,32 @@ function renderScrutinioListeECandidati() {
 
 function renderDynList(selector, voci, prefix) {
   const cont = $(selector);
-  cont.innerHTML = '';
+  if (!cont) return;
+  if (window.SeggioUI) window.SeggioUI.clearNode(cont);
+  else cont.textContent = '';
   if (!voci.length) {
-    cont.innerHTML = '<p class="dyn-empty">Non ancora configurato dal coordinamento.</p>';
+    const empty = document.createElement('p');
+    empty.className = 'dyn-empty';
+    empty.textContent = 'Non ancora configurato dal coordinamento.';
+    cont.appendChild(empty);
     return;
   }
   voci.forEach((nome, idx) => {
     const row = document.createElement('div');
     row.className = 'dyn-row';
     const id = prefix + '_' + idx;
-    row.innerHTML = '<label for="' + id + '">' + escapeHtml(nome) + '</label>' +
-      '<input id="' + id + '" type="number" min="0" step="1" inputmode="numeric" data-nome="' + escapeHtml(nome) + '" value="0" />';
+    const label = document.createElement('label');
+    label.htmlFor = id;
+    label.textContent = nome;
+    const input = document.createElement('input');
+    input.id = id;
+    input.type = 'number';
+    input.min = '0';
+    input.step = '1';
+    input.inputMode = 'numeric';
+    input.dataset.nome = nome;
+    input.value = '0';
+    row.append(label, input);
     cont.appendChild(row);
   });
 }
@@ -1522,10 +1567,9 @@ function validaScrutinio(s) {
     const campiCandidati = $all('[id^="' + prefixCandidati + '_"]');
     const sommaCandidati = sommaVoci(leggiDynList(prefixCandidati));
 
-    if (sommaSchede > s.votanti) {
-      errori.push('Scheda ' + nomeScheda + ': valide + bianche + nulle + contestate (' + sommaSchede + ') supera i votanti (' + s.votanti + ').');
-    } else if (sommaSchede < s.votanti) {
-      avvisi.push('Scheda ' + nomeScheda + ': il totale delle schede (' + sommaSchede + ') è inferiore ai votanti (' + s.votanti + ') di ' + (s.votanti - sommaSchede) + '.');
+    if (sommaSchede !== s.votanti) {
+      const differenza = sommaSchede - s.votanti;
+      errori.push('Scheda ' + nomeScheda + ': valide + bianche + nulle + contestate (' + sommaSchede + ') deve coincidere con i votanti (' + s.votanti + '). Differenza: ' + (differenza > 0 ? '+' : '') + differenza + '.');
     }
     if (sommaListe > blocco.valide) {
       errori.push('Scheda ' + nomeScheda + ': la somma dei voti di lista (' + sommaListe + ') supera le schede valide (' + blocco.valide + ').');
@@ -1539,23 +1583,52 @@ function validaScrutinio(s) {
   return { errori, avvisi };
 }
 
-function aggiornaContatoreScheda(id, nome, blocco, votanti) {
+function aggiornaContatoreScheda(id, detailId, nome, blocco, votanti) {
   const box = $(id);
   if (!box) return;
   const totale = totaleScheda(blocco);
   const differenza = votanti - totale;
   box.className = 'count-check ' + (!votanti && !totale ? 'neutral' : differenza === 0 ? 'good' : differenza > 0 ? 'warn' : 'bad');
   if (!votanti) box.textContent = 'Totale schede ' + nome + ': ' + totale + ' · inserisci i votanti per il confronto';
-  else if (differenza === 0) box.textContent = 'Totale schede ' + nome + ': ' + totale + ' · coincide con i votanti';
-  else if (differenza > 0) box.textContent = 'Totale schede ' + nome + ': ' + totale + ' · mancano ' + differenza + ' rispetto ai votanti';
-  else box.textContent = 'Totale schede ' + nome + ': ' + totale + ' · supera i votanti di ' + Math.abs(differenza);
+  else if (differenza === 0) box.textContent = '✓ Totale schede ' + nome + ': ' + totale + ' · coincide con i votanti';
+  else if (differenza > 0) box.textContent = '⚠ Totale schede ' + nome + ': ' + totale + ' · mancano ' + differenza + ' rispetto ai votanti';
+  else box.textContent = '⚠ Totale schede ' + nome + ': ' + totale + ' · supera i votanti di ' + Math.abs(differenza);
+
+  const detail = $(detailId);
+  if (detail) {
+    detail.textContent = 'Valide ' + numOr0(blocco.valide) + ' · Bianche ' + numOr0(blocco.bianche) + ' · Nulle ' + numOr0(blocco.nulle) + ' · Contestate ' + numOr0(blocco.contestate);
+  }
+  return { totale, differenza };
 }
 
 function aggiornaRiepiloghiLive() {
   if (!STATE.profile) return;
   const s = raccogliScrutinio();
-  aggiornaContatoreScheda('#comTotaleLive', 'Comune', s.comune, s.votanti);
-  aggiornaContatoreScheda('#munTotaleLive', 'Municipio', s.municipio, s.votanti);
+  const comune = aggiornaContatoreScheda('#comTotaleLive', '#comCheckDetail', 'Comune', s.comune, s.votanti);
+  const municipio = aggiornaContatoreScheda('#munTotaleLive', '#munCheckDetail', 'Municipio', s.municipio, s.votanti);
+  const final = $('#scrutinyFinalChecks');
+  if (final) {
+    const checks = [
+      { ok: s.elettori > 0 && s.votanti >= 0 && s.votanti <= s.elettori, testo: s.elettori > 0 ? ('Elettori ' + s.elettori + ' · votanti ' + s.votanti) : 'Inserisci elettori e votanti' },
+      { ok: !!comune && s.votanti > 0 && comune.differenza === 0, testo: 'Scheda Comune: ' + (comune ? comune.totale : 0) + ' schede' },
+      { ok: !!municipio && s.votanti > 0 && municipio.differenza === 0, testo: 'Scheda Municipio: ' + (municipio ? municipio.totale : 0) + ' schede' }
+    ];
+    final.innerHTML = checks.map((c) => '<div class="final-check ' + (c.ok ? 'good' : 'warn') + '"><span aria-hidden="true">' + (c.ok ? '✓' : '!') + '</span><strong>' + escapeHtml(c.testo) + '</strong></div>').join('');
+  }
+  aggiornaStatoPassaggiScrutinio(s, comune, municipio);
+}
+
+function aggiornaStatoPassaggiScrutinio(s, comune, municipio) {
+  const states = [
+    s.elettori > 0 && haValore($('#scVotanti').value) && s.votanti <= s.elettori,
+    !!comune && s.votanti > 0 && comune.differenza === 0,
+    !!municipio && s.votanti > 0 && municipio.differenza === 0,
+    false
+  ];
+  $$('.scrutiny-step').forEach((btn, index) => {
+    btn.classList.toggle('complete', !!states[index]);
+    btn.setAttribute('aria-label', (states[index] ? 'Completato: ' : '') + btn.textContent.trim());
+  });
 }
 
 function aggiornaAvvisiScrutinio() {
@@ -1722,8 +1795,8 @@ function aggiornaBadgeScrutinio() {
   const badge = $('#scrutinioBadge');
   const ultimo = ultimoScrutinioAttivo();
   if (!ultimo) { badge.textContent = 'non inviato'; badge.className = 'pill neutral'; return; }
-  if (ultimo.status === 'synced') { badge.textContent = ultimo.payload.correzioneDi ? 'correzione sincronizzata' : 'inviato e sincronizzato'; badge.className = 'pill good'; }
-  else if (ultimo.status === 'error') { badge.textContent = 'salvato, da riprovare'; badge.className = 'pill bad'; }
+  if (ultimo.status === QUEUE_STATUS.CONFIRMED) { badge.textContent = ultimo.payload.correzioneDi ? 'correzione sincronizzata' : 'inviato e sincronizzato'; badge.className = 'pill good'; }
+  else if (ultimo.status === QUEUE_STATUS.ACTION_REQUIRED) { badge.textContent = 'salvato, da riprovare'; badge.className = 'pill bad'; }
   else { badge.textContent = 'salvato sul telefono'; badge.className = 'pill warn'; }
 }
 
@@ -1739,7 +1812,7 @@ async function onInviaScrutinio() {
   // Per modificarlo è obbligatorio entrare dal pulsante “Correggi ultimo invio”,
   // così il backend può marcare il precedente come SUPERATO.
   const ultimoRicevuto = ultimoScrutinioAttivo();
-  if (ultimoRicevuto && ultimoRicevuto.status === 'synced' && !correzioneScrutinioId) {
+  if (ultimoRicevuto && ultimoRicevuto.status === QUEUE_STATUS.CONFIRMED && !correzioneScrutinioId) {
     errBox.innerHTML = 'Esiste già uno scrutinio ricevuto per questa sezione. Usa <strong>Correggi ultimo invio</strong> per modificarlo senza creare duplicati.';
     errBox.hidden = false;
     aggiornaPulsanteCorrezioneScrutinio();
@@ -1872,8 +1945,8 @@ async function onConfermaInvioScrutinio() {
   payloadScrutinioPronto = null;
   await provaSvuotaCode();
   const item = trovaItem(LS.QUEUE_SCR, id);
-  if (item && item.status === 'synced') showToast('Scrutinio ricevuto dal coordinamento.');
-  else if (item && item.status === 'error') showToast('Scrutinio salvato, ma non ancora ricevuto. Controlla “I miei invii”.', 4500);
+  if (item && item.status === QUEUE_STATUS.CONFIRMED) showToast('Scrutinio ricevuto dal coordinamento.');
+  else if (item && item.status === QUEUE_STATUS.ACTION_REQUIRED) showToast('Scrutinio salvato, ma non ancora ricevuto. Controlla “I miei invii”.', 4500);
 }
 
 function ultimoScrutinioAttivo() {
@@ -1887,7 +1960,7 @@ function aggiornaPulsanteCorrezioneScrutinio() {
   const btn = $('#btnCorreggiScrutinio');
   const ultimo = ultimoScrutinioAttivo();
   btn.hidden = !ultimo;
-  if (ultimo) btn.textContent = ultimo.status === 'synced' ? 'Correggi ultimo invio' : 'Correggi tentativo non inviato';
+  if (ultimo) btn.textContent = ultimo.status === QUEUE_STATUS.CONFIRMED ? 'Correggi ultimo invio' : 'Correggi tentativo non inviato';
 }
 
 function impostaDynPerNome(prefix, valori, campoNome) {
@@ -1899,7 +1972,7 @@ function correggiUltimoScrutinio() {
   const item = ultimoScrutinioAttivo();
   if (!item) return;
   const p = item.payload;
-  const giaRicevuto = item.status === 'synced';
+  const giaRicevuto = item.status === QUEUE_STATUS.CONFIRMED;
   correzioneScrutinioId = giaRicevuto ? item.idInvio : null;
   tentativoScrutinioDaSostituireId = giaRicevuto ? null : item.idInvio;
   $('#scCorrezioneBox').hidden = !giaRicevuto;
@@ -1931,7 +2004,7 @@ function accodaInvio(queueKey, payload) {
   const payloadPersistito = Object.assign({}, payload || {});
   delete payloadPersistito.sessionToken;
   coda.push({
-    idInvio: payloadPersistito.idInvio, payload: payloadPersistito, status: 'pending', creato: new Date().toISOString(),
+    idInvio: payloadPersistito.idInvio, payload: payloadPersistito, status: QUEUE_STATUS.LOCAL, creato: new Date().toISOString(),
     tentativi: 0, ultimoTentativo: null, ultimoErrore: '', sincronizzatoIl: null,
   });
   return saveJSON(queueKey, coda);
@@ -1940,12 +2013,12 @@ function accodaInvio(queueKey, payload) {
 function sostituisciInvioInCoda(queueKey, idInvio, payload) {
   const coda = loadJSON(queueKey, []);
   const item = coda.find((x) => x.idInvio === idInvio);
-  if (!item || item.status === 'synced') return false;
+  if (!item || item.status === QUEUE_STATUS.CONFIRMED) return false;
   const payloadPersistito = Object.assign({}, payload || {});
   delete payloadPersistito.sessionToken;
   item.payload = payloadPersistito;
   item.idInvio = payloadPersistito.idInvio;
-  item.status = 'pending';
+  item.status = QUEUE_STATUS.LOCAL;
   item.tentativi = 0;
   item.ultimoTentativo = null;
   item.ultimoErrore = '';
@@ -1991,16 +2064,16 @@ async function provaSvuotaCode() {
       const coda = loadJSON(queueKey, []);
       let cambiato = false;
       for (const item of coda) {
-        if (item.status === 'synced') continue;
+        if (item.status === QUEUE_STATUS.CONFIRMED) continue;
         // Errori logici non cambiano da soli: evita nuovi tentativi ogni 45 secondi.
         // L'utente può correggere il tentativo oppure usare “Invia come nuovo”.
-        if (item.status === 'error' && ['CORRECTION_TARGET_NOT_FOUND', 'CORRECTION_NOT_ALLOWED', 'ALREADY_SUPERSEDED', 'ACTIVE_SCRUTINY_EXISTS', 'MULTIPLE_ACTIVE_SCRUTINIES', 'INVALID_DATA'].includes(item.codiceErrore)) continue;
-        item.status = 'syncing'; item.ultimoTentativo = new Date().toISOString(); cambiato = true;
+        if (item.status === QUEUE_STATUS.ACTION_REQUIRED && ['CORRECTION_TARGET_NOT_FOUND', 'CORRECTION_NOT_ALLOWED', 'ALREADY_SUPERSEDED', 'ACTIVE_SCRUTINY_EXISTS', 'MULTIPLE_ACTIVE_SCRUTINIES', 'INVALID_DATA'].includes(item.codiceErrore)) continue;
+        item.status = QUEUE_STATUS.SENDING; item.ultimoTentativo = new Date().toISOString(); cambiato = true;
         saveJSON(queueKey, coda);
         aggiornaBadgeInCoda();
         try {
           const risposta = await inviaAlBackend(item.payload);
-          item.status = 'synced';
+          item.status = QUEUE_STATUS.CONFIRMED;
           item.sincronizzatoIl = new Date().toISOString();
           item.ultimoErrore = '';
 
@@ -2044,7 +2117,7 @@ async function provaSvuotaCode() {
           almenoUnSuccesso = true;
         } catch (e) {
           if (e && erroreRichiedeNuovoLogin(e.code)) {
-            item.status = 'pending';
+            item.status = QUEUE_STATUS.LOCAL;
             item.ultimoErrore = 'Sessione da rinnovare prima della sincronizzazione.';
             item.codiceErrore = e.code;
             saveJSON(queueKey, coda);
@@ -2052,10 +2125,12 @@ async function provaSvuotaCode() {
             showToast('Sessione scaduta: effettua nuovamente l’accesso. Gli invii restano conservati sul telefono.', 6500);
             return false;
           }
-          item.status = 'error';
+          const codiceErrore = e && e.code ? String(e.code) : '';
+          const temporaneo = ['', 'NETWORK_ERROR', 'BUSY', 'INTERNAL_ERROR', 'INVALID_SERVER_RESPONSE'].includes(codiceErrore);
+          item.status = temporaneo ? QUEUE_STATUS.LOCAL : QUEUE_STATUS.ACTION_REQUIRED;
           item.tentativi = (item.tentativi || 0) + 1;
-          item.ultimoErrore = e && e.message ? e.message : 'Errore di rete';
-          item.codiceErrore = e && e.code ? e.code : '';
+          item.ultimoErrore = messaggioErroreUtente(e, temporaneo ? 'Invio temporaneamente non riuscito' : 'Invio da controllare');
+          item.codiceErrore = codiceErrore;
           if (queueKey === LS.QUEUE_SCR) {
             aggiornaDocumentoBozzaDaInvio(item, 'errore');
             if (STATE.profile && item.payload.municipio === STATE.profile.municipio && item.payload.sezione === STATE.profile.sezione) aggiornaStatoBozzaScrutinio('error', item.ultimoTentativo);
@@ -2077,20 +2152,58 @@ async function provaSvuotaCode() {
 }
 
 function contaInCoda() {
-  const conta = (key) => loadJSON(key, []).filter((i) => i.status !== 'synced').length;
+  const conta = (key) => loadJSON(key, []).filter((i) => i.status !== QUEUE_STATUS.CONFIRMED).length;
   return conta(LS.QUEUE_AFF) + conta(LS.QUEUE_SCR);
 }
 
 function aggiornaBadgeInCoda() {
-  const n = contaInCoda();
+  const items = [...loadJSON(LS.QUEUE_AFF, []), ...loadJSON(LS.QUEUE_SCR, [])];
+  const nonConfermati = items.filter((i) => i.status !== QUEUE_STATUS.CONFIRMED);
+  const attenzione = nonConfermati.filter((i) => i.status === QUEUE_STATUS.ACTION_REQUIRED).length;
   const badge = $('#pendingBadge');
-  if (n > 0) { badge.hidden = false; badge.textContent = n + (n === 1 ? ' invio in coda' : ' invii in coda'); }
-  else { badge.hidden = true; }
+  if (nonConfermati.length > 0) {
+    badge.hidden = false;
+    badge.className = 'status-pill ' + (attenzione ? 'attention' : 'pending');
+    badge.textContent = attenzione
+      ? (attenzione === 1 ? '1 invio da controllare' : attenzione + ' invii da controllare')
+      : (nonConfermati.length === 1 ? '1 salvato sul telefono' : nonConfermati.length + ' salvati sul telefono');
+  } else {
+    badge.hidden = true;
+    badge.className = 'status-pill pending';
+  }
   renderHomeDashboard();
   renderNotificheHome();
+  aggiornaRiepilogoSincronizzazione();
+}
+
+function aggiornaRiepilogoSincronizzazione() {
+  const box = $('#syncSummary');
+  if (!box || !STATE.profile) return;
+  const items = [...inviiCorrenti(LS.QUEUE_AFF), ...inviiCorrenti(LS.QUEUE_SCR)];
+  const confermati = items.filter((i) => i.status === QUEUE_STATUS.CONFIRMED).length;
+  const attenzione = items.filter((i) => i.status === QUEUE_STATUS.ACTION_REQUIRED).length;
+  const locali = items.filter((i) => i.status !== QUEUE_STATUS.CONFIRMED && i.status !== QUEUE_STATUS.ACTION_REQUIRED).length;
+  box.className = 'sync-summary ' + (attenzione ? 'attention' : locali ? 'pending' : 'good');
+  const strong = document.createElement('strong');
+  const span = document.createElement('span');
+  if (attenzione) {
+    strong.textContent = attenzione === 1 ? '1 comunicazione richiede attenzione' : attenzione + ' comunicazioni richiedono attenzione';
+    span.textContent = 'I dati restano conservati sul telefono. Controlla il dettaglio prima di considerare concluso l’invio.';
+  } else if (locali) {
+    strong.textContent = locali === 1 ? '1 comunicazione salvata sul telefono' : locali + ' comunicazioni salvate sul telefono';
+    span.textContent = navigator.onLine ? 'La sincronizzazione è automatica. Attendi la dicitura “Ricevuto dal coordinamento”.' : 'Sei offline: puoi continuare a lavorare e l’app invierà i dati appena torna la connessione.';
+  } else if (confermati) {
+    strong.textContent = 'Tutte le comunicazioni risultano ricevute';
+    span.textContent = confermati + (confermati === 1 ? ' invio confermato dal coordinamento.' : ' invii confermati dal coordinamento.');
+  } else {
+    strong.textContent = 'Nessuna comunicazione ancora registrata';
+    span.textContent = 'Quando salvi un dato, resta sul telefono finché il coordinamento non ne conferma la ricezione.';
+  }
+  box.replaceChildren(strong, span);
 }
 
 function renderTabellaInvii() {
+  aggiornaRiepilogoSincronizzazione();
   const tbody = $('#tabellaInvii tbody');
   tbody.innerHTML = '';
   const sostAff = idsSostituiti(LS.QUEUE_AFF), sostScr = idsSostituiti(LS.QUEUE_SCR);
@@ -2158,7 +2271,7 @@ function recuperaCorrezioneComeNuovo(queueKey, idInvio) {
         motivoCorrezione: '',
         versioneApp: APP_VERSION,
       });
-      corrente.status = 'pending';
+      corrente.status = QUEUE_STATUS.LOCAL;
       corrente.creato = new Date().toISOString();
       corrente.tentativi = 0;
       corrente.ultimoTentativo = null;
@@ -2185,7 +2298,7 @@ function recuperaCorrezioneComeNuovo(queueKey, idInvio) {
       showToast('Preparato come nuovo invio. Verifico la ricezione…');
       await provaSvuotaCode();
       const aggiornato = trovaItem(queueKey, nuovoId);
-      showToast(aggiornato && aggiornato.status === 'synced'
+      showToast(aggiornato && aggiornato.status === QUEUE_STATUS.CONFIRMED
         ? 'Dato ricevuto dal coordinamento.'
         : 'Dato salvato sul telefono. Controlla “I miei invii”.', 4500);
     },
@@ -2715,6 +2828,7 @@ async function avvia() {
   $('#btnVaiAffluenza').addEventListener('click', () => attivaTabPerNome('affluenza'));
   $('#btnVaiScrutinio').addEventListener('click', () => attivaTabPerNome('scrutinio'));
   $('#btnVaiInvii').addEventListener('click', () => attivaTabPerNome('invii'));
+  $('#homeNextActionButton').addEventListener('click', (e) => attivaTabPerNome(e.currentTarget.dataset.targetTab || 'home'));
   $('#btnHomeModificaElettori').addEventListener('click', onModificaElettori);
   $('#btnHomeCondividi').addEventListener('click', onCondividi);
   $('#btnAssistenza').addEventListener('click', apriAssistenza);

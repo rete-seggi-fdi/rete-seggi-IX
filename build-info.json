@@ -1,9 +1,11 @@
 {
-  "version": "13.6.3",
-  "latestVersion": "13.6.3",
-  "minimumVersion": "13.6.3",
-  "buildDate": "2026-08-12",
+  "version": "14.0.0",
+  "latestVersion": "14.0.0",
+  "minimumVersion": "14.0.0",
+  "buildDate": "2026-09-01",
   "name": "SeggioLink Roma",
-  "controlCenterVersion": "15.3.2",
-  "notes": "Fix sincronizzazione storico cross-device 13.6.3: rimosso blocco errato da storico_invii, riallineata cache PWA iOS/Android e cache-busting risorse."
+  "controlCenterVersion": "14.0.0",
+  "backendVersion": "14.0.0-security-production",
+  "channel": "production",
+  "notes": "Release definitiva di produzione: hardening sessioni, configurazione app completa, validazioni elettorali coerenti, PWA/versioning allineati e pacchetto runtime ripulito."
 }

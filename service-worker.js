@@ -7,7 +7,7 @@
    Le richieste verso il backend (Apps Script, altro dominio) non vengono
    mai intercettate: passano sempre direttamente alla rete. */
 
-const VERSIONE = 'seggiolink-v13.7.6-security';
+const VERSIONE = 'seggiolink-v14.0.0-prod1';
 const CACHE_SHELL = 'shell-' + VERSIONE;
 const CACHE_DATI = 'dati-' + VERSIONE;
 
@@ -15,6 +15,9 @@ const FILE_APP = [
   './',
   './index.html',
   './styles.css',
+  './config.js',
+  './js/api-client.js',
+  './js/ui-core.js',
   './app.js',
   './manifest.json',
   './data/indice-sezioni.json',
@@ -55,10 +58,12 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.indexOf('/data/') !== -1) {
     event.respondWith(
       fetch(event.request).then((res) => {
-        const copia = res.clone();
-        caches.open(CACHE_DATI).then((cache) => cache.put(event.request, copia));
+        if (res && res.ok) {
+          const copia = res.clone();
+          caches.open(CACHE_DATI).then((cache) => cache.put(event.request, copia));
+        }
         return res;
-      }).catch(() => caches.match(event.request))
+      }).catch(() => caches.match(event.request, { ignoreSearch: true }))
     );
     return;
   }
@@ -74,9 +79,9 @@ self.addEventListener('fetch', (event) => {
       }
       return res;
     }).catch(async () => {
-      const cached = await caches.match(event.request);
+      const cached = await caches.match(event.request, { ignoreSearch: true });
       if (cached) return cached;
-      if (event.request.mode === 'navigate') return caches.match('./index.html');
+      if (event.request.mode === 'navigate') return caches.match('./index.html', { ignoreSearch: true });
       return new Response('Contenuto non disponibile offline.', {
         status: 503,
         headers: { 'Content-Type': 'text/plain; charset=utf-8' },
