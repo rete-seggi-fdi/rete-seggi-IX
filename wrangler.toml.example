@@ -1,6 +1,9 @@
 name = "seggiolink-roma-api"
-main = "src/worker.js"
+main = "../worker.js"
 compatibility_date = "2026-07-01"
+
+[vars]
+APP_ORIGIN = "https://rete-seggi-fdi.github.io"
 
 [[d1_databases]]
 binding = "DB"

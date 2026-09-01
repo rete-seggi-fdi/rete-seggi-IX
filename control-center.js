@@ -1,10 +1,10 @@
 'use strict';
 const CFG=window.SEGGI_CONFIG||{};
 const BACKEND=String(CFG.backendUrl||'').trim();
-const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1400';
+const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1407';
 // Token e dati live restano soltanto nella sessione della scheda/browser.
 // Rimuoviamo anche eventuali residui persistenti delle versioni precedenti.
-try{localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);localStorage.removeItem('seggi_control_center_live_1532');localStorage.removeItem(LIVE_CACHE_KEY)}catch(e){}
+try{localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);localStorage.removeItem('seggi_control_center_live_1532');localStorage.removeItem('seggi_control_center_live_1400');localStorage.removeItem(LIVE_CACHE_KEY)}catch(e){}
 let dashboardToken=sessionStorage.getItem(TOKEN_KEY)||'',live=null;
 let registry={schemaVersion:0,sezioniTotali:0,plessiTotali:0,sezioni:[]};
 let geoPlessi={schemaVersion:0,plessiTotali:0,plessiGeocodificati:0,plessi:[]};
@@ -82,7 +82,7 @@ function showAppShell(){
 }
 function clearSession(){
   dashboardToken='';
-  try{localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);localStorage.removeItem(LIVE_CACHE_KEY)}catch(e){}
+  try{localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);localStorage.removeItem('seggi_control_center_live_1400');localStorage.removeItem(LIVE_CACHE_KEY)}catch(e){}
   sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY);sessionStorage.removeItem(LIVE_CACHE_KEY);
   live=null;
 }
@@ -102,8 +102,8 @@ async function login(password){
   return x;
 }
 function validateRegistry(data){if(!data||typeof data!=='object'||!Array.isArray(data.sezioni))throw new Error('Archivio sezioni non valido.');const rows=data.sezioni.filter(x=>x&&x.sezione&&x.indirizzo).map(x=>({...x,sezione:normSection(x.sezione),numeroVie:Number(x.numeroVie||((x.vieAssegnate||[]).length)),vieAssegnate:Array.isArray(x.vieAssegnate)?x.vieAssegnate:[]}));if(!rows.length)throw new Error('Archivio sezioni vuoto.');const plessi=new Set(rows.map(x=>String(x.indirizzo).trim()+'|'+String(x.cap||'').trim()));return {...data,sezioni:rows,sezioniTotali:rows.length,plessiTotali:Number(data.plessiTotali||plessi.size)}}
-async function loadRegistry(){const url='data/sezioni-ix-control.json?v=1400';const r=await fetch(url,{cache:'force-cache'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
-async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=1400';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
+async function loadRegistry(){const url='data/sezioni-ix-control.json?v=1407';const r=await fetch(url,{cache:'force-cache'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
+async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=1407';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
 
 function rebuildRegistryIndex(){
   registryBySection=new Map();
@@ -183,7 +183,7 @@ function prepareMapLayout(){
     list.style.padding='2px 4px 8px 2px';
   }
   const version=[...document.querySelectorAll('small,.brand-subtitle')].find(x=>/CONTROL CENTER/i.test(x.textContent||''));
-  if(version)version.textContent='CONTROL CENTER 14.0.5';
+  if(version)version.textContent='CONTROL CENTER 14.0.7';
   return {layout,aside,list,staticPanel};
 }
 function ensureMapContainer(){

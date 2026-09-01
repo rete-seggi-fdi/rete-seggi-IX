@@ -1,11 +1,11 @@
 {
-  "version": "14.0.6",
-  "latestVersion": "14.0.6",
-  "minimumVersion": "14.0.5",
+  "version": "14.0.7",
+  "latestVersion": "14.0.7",
+  "minimumVersion": "14.0.6",
   "buildDate": "2026-09-01",
   "name": "SeggioLink Roma",
-  "controlCenterVersion": "14.0.5",
-  "backendVersion": "14.0.0-security-production",
+  "controlCenterVersion": "14.0.7",
+  "backendVersion": "14.0.7-security-production",
   "channel": "production",
-  "notes": "Mantiene integralmente storico, login rapido e hotfix iPhone della 14.0.5; aggiunge guida browser/rete solo dopo errori di connessione al login, senza preflight o chiamate aggiuntive nel percorso normale."
+  "notes": "Security hardening R6/R9/R10/R11/R12/R13/R14/R15: token coordinamento solo in sessionStorage, CSP uniforme, slot affluenza validati server-side, rate limit senza lockout dei login validi, ricevute messaggi per destinatario, telefono registrato obbligatorio, Worker CORS ristretto e backend duplicato sincronizzato."
 }

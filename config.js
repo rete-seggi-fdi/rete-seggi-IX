@@ -8,7 +8,7 @@ if (window.top !== window.self) {
 }
 
 window.SEGGI_CONFIG = Object.freeze({
-  appVersion: '14.0.6',
+  appVersion: '14.0.7',
   buildDate: '2026-09-01',
   environment: 'production',
   latestVersionUrl: 'build-info.json',

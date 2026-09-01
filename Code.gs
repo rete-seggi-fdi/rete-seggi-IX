@@ -16,7 +16,7 @@
  * ------------------------------------------------------------------
  */
 
-const CODICE_BACKEND_VERSIONE = '14.0.0-security-production';
+const CODICE_BACKEND_VERSIONE = '14.0.7-security-production';
 const APP_ENVIRONMENT = 'production';
 const TIMEOUT_LOCK_INVII_MS = 90000;
 const MAX_POST_BODY_BYTES = 220 * 1024;
@@ -45,6 +45,7 @@ const FOGLI = {
   VOTI_SINDACI: 'Invii Voti Sindaci',
   VOTI_PRESIDENTI: 'Invii Voti Presidenti',
   MESSAGGI: 'Messaggi',
+  MESSAGGI_RICEVUTE: 'Messaggi Ricevute',
   LOG: 'Log Errori',
   LOG_TECNICO: 'Log Tecnico',
   DASHBOARD_AFFLUENZA: 'Dashboard Affluenza',
@@ -131,23 +132,38 @@ function incrementaRateLimitCache_(chiave, ttlSecondi) {
   return prossimo;
 }
 
+const LOGIN_GLOBAL_FAIL_KEY = 'login_global_fail_v1407';
+
+function rispostaRateLimitLogin_() {
+  return {
+    ok: false,
+    code: 'RATE_LIMITED',
+    error: 'Troppi tentativi di accesso. Attendi alcuni minuti e riprova.'
+  };
+}
+
 function controlloRateLimitLogin_(chiaveCredenziale) {
-  const perCredenziale = contaRateLimitCache_('login_cred_' + chiaveCredenziale);
-  const globale = contaRateLimitCache_('login_global_fail_v1400');
-  if (perCredenziale >= 8 || globale >= 200) {
-    return {
-      ok: false,
-      code: 'RATE_LIMITED',
-      error: 'Troppi tentativi di accesso. Attendi alcuni minuti e riprova.'
-    };
-  }
-  return { ok: true, perCredenziale: perCredenziale, globale: globale };
+  return {
+    ok: true,
+    perCredenziale: contaRateLimitCache_('login_cred_' + chiaveCredenziale),
+    globale: contaRateLimitCache_(LOGIN_GLOBAL_FAIL_KEY)
+  };
 }
 
 function registraLoginFallito_(chiaveCredenziale) {
   const n = incrementaRateLimitCache_('login_cred_' + chiaveCredenziale, 600);
-  incrementaRateLimitCache_('login_global_fail_v1400', 600);
+  incrementaRateLimitCache_(LOGIN_GLOBAL_FAIL_KEY, 600);
   Utilities.sleep(Math.min(1000, 250 + n * 100));
+}
+
+function limitaLoginDopoCredenzialiErrate_(limiteAccesso) {
+  const perCredenziale = Number(limiteAccesso && limiteAccesso.perCredenziale || 0);
+  const globale = Number(limiteAccesso && limiteAccesso.globale || 0);
+  if (perCredenziale < 8 && globale < 200) return null;
+  // I limiti vengono applicati soltanto DOPO aver escluso credenziali valide.
+  // Così un abuso del rate limit non può bloccare l'accesso di un utente legittimo.
+  Utilities.sleep(800);
+  return rispostaRateLimitLogin_();
 }
 
 function resetLoginCredenziale_(chiaveCredenziale) {
@@ -221,12 +237,12 @@ function gestisciInvio(body, tipoSuggerito) {
     if (!sessione.ok) return sessione;
     const autorizzazione = autorizzaSezioneSessione_(sessione.codice, body.municipio, body.sezione);
     if (!autorizzazione.ok) return autorizzazione;
-    return leggiMessaggi(autorizzazione.municipio, autorizzazione.sezione);
+    return leggiMessaggi(sessione.codice, autorizzazione.municipio, autorizzazione.sezione);
   }
   if (tipo === 'messaggio_ack') {
     const sessione = richiedeSessione(body.sessionToken);
     if (!sessione.ok) return sessione;
-    return aggiornaStatoMessaggioAutorizzato_(sessione.codice, body.id || '', body.stato || '');
+    return aggiornaStatoMessaggioAutorizzato_(sessione.codice, body.id || '', body.stato || '', body.municipio, body.sezione);
   }
   return { ok: false, code: 'UNKNOWN_TYPE', error: 'Tipo richiesta non riconosciuto: ' + tipo };
 }
@@ -525,17 +541,18 @@ function verificaCodice(codice, telefono, richiediTelefono) {
 
     const telefonoRiga = normalizzaTelefono(telefonoCella);
 
-    // Il codice personale attivo resta la credenziale principale. Il numero
-    // inserito dall'utente serve come controllo aggiuntivo, ma differenze di
-    // formato, compilazione automatica o cache del browser non devono impedire
-    // l'accesso. Quando il foglio contiene un telefono, viene sempre usato il
-    // valore registrato dal coordinamento.
-    if (richiediTelefono && telefonoRiga && telefonoNormalizzato &&
-        !telefoniCorrispondono(telefonoRiga, telefonoNormalizzato)) {
+    // In produzione il telefono registrato è un secondo fattore di conoscenza
+    // obbligatorio insieme al codice personale. Una riga attiva senza telefono
+    // non può autenticarsi finché il coordinamento non completa l'anagrafica.
+    if (richiediTelefono && !telefonoRiga) {
       telefonoErrato = true;
       continue;
     }
-    if (!richiediTelefono || !telefonoRiga || telefoniCorrispondono(telefonoRiga, telefonoNormalizzato)) {
+    if (richiediTelefono && !telefoniCorrispondono(telefonoRiga, telefonoNormalizzato)) {
+      telefonoErrato = true;
+      continue;
+    }
+    if (!richiediTelefono || telefoniCorrispondono(telefonoRiga, telefonoNormalizzato)) {
       telefonoCorrispondente = true;
     }
 
@@ -550,14 +567,18 @@ function verificaCodice(codice, telefono, richiediTelefono) {
   }
 
   if (richiediTelefono && codiceTrovato && !telefonoCorrispondente) {
+    const bloccoGlobale = limitaLoginDopoCredenzialiErrate_(limiteAccesso);
+    if (bloccoGlobale) return bloccoGlobale;
     registraLoginFallito_(chiaveCredenziale);
     return { ok: false, code: 'INVALID_CREDENTIALS', error: 'Codice o telefono non validi.' };
   }
 
   if (!nome && !sezioni.length) {
+    const bloccoGlobale = limitaLoginDopoCredenzialiErrate_(limiteAccesso);
+    if (bloccoGlobale) return bloccoGlobale;
     registraLoginFallito_(chiaveCredenziale);
-    // Risposta uniforme: non rivela se il codice esiste, è disattivato o ha
-    // un telefono differente.
+    // Risposta uniforme: non rivela se il codice esiste, è disattivato, manca
+    // il telefono registrato o il numero fornito non corrisponde.
     return { ok: false, code: 'INVALID_CREDENTIALS', error: 'Codice o telefono non validi.' };
   }
 
@@ -571,7 +592,7 @@ function buildConfig() {
   const cache = CacheService.getScriptCache();
   const props = PropertiesService.getScriptProperties();
   const revision = props.getProperty('CONFIG_REVISION') || props.getProperty('DATA_REVISION') || '0';
-  const cacheKey = 'config_v1400_' + String(revision).replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 40);
+  const cacheKey = 'config_v1407_' + String(revision).replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 40);
   const cached = cache.get(cacheKey);
   if (cached) {
     try { return JSON.parse(cached); } catch (e) {}
@@ -675,7 +696,7 @@ function buildConfigFresh_() {
   const orari = [];
   const fOrari = ss.getSheetByName(FOGLI.ORARI);
   if (fOrari) {
-    const rows = fOrari.getDataRange().getValues();
+    const rows = fOrari.getDataRange().getDisplayValues();
     for (let i = 1; i < rows.length; i++) {
       const [giorno, orario] = rows[i];
       if (!orario) continue;
@@ -830,7 +851,7 @@ function leggiStoricoFoglio_(sheet, tipo, codice, sezioniAutorizzate, limite) {
         municipio: municipio,
         sezione: sezione,
         giorno: tipo === 'affluenza' ? String(valoreColonna(r, idx, ['Giorno']) || '') : '',
-        orario: tipo === 'affluenza' ? String(valoreColonna(r, idx, ['Orario']) || '') : '',
+        orario: tipo === 'affluenza' ? orarioTesto_(valoreColonna(r, idx, ['Orario'])) : '',
         elettori: numOrVuoto(valoreColonna(r, idx, ['Elettori'])),
         maschi: tipo === 'affluenza'
           ? numOrVuoto(valoreColonna(r, idx, ['Maschi']))
@@ -965,7 +986,7 @@ function leggiStoricoInvii(body) {
   }
 
   const cache = CacheService.getScriptCache();
-  const cacheKey = 'storico_invii_1400_scrutinio_completo_' + codice + '_' + limite;
+  const cacheKey = 'storico_invii_1407_scrutinio_completo_' + codice + '_' + limite;
   const cached = cache.get(cacheKey);
   if (cached) {
     try { return JSON.parse(cached); } catch (e) {}
@@ -1589,6 +1610,28 @@ function validaVociNumeriche_(voci, campoNome, campoVoti, etichetta) {
   return '';
 }
 
+function orarioTesto_(valore) {
+  if (valore instanceof Date && !isNaN(valore.getTime())) {
+    return Utilities.formatDate(valore, Session.getScriptTimeZone(), 'HH:mm');
+  }
+  return String(valore === undefined || valore === null ? '' : valore).trim();
+}
+
+function chiaveSlotAffluenza_(giorno, orario) {
+  const g = String(giorno || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const o = orarioTesto_(orario).replace(/\s+/g, '');
+  return g + '|' + o;
+}
+
+function slotAffluenzaConfigurato_(giorno, orario) {
+  const chiave = chiaveSlotAffluenza_(giorno, orario);
+  if (!chiave || chiave === '|') return false;
+  const cfg = buildConfig();
+  return (cfg.orari || []).some(function(slot) {
+    return chiaveSlotAffluenza_(slot.giorno, slot.orario) === chiave;
+  });
+}
+
 function validaDatiAffluenza(body) {
   const elettori = interoNonNegativo_(body.elettori, false);
   const totale = interoNonNegativo_(body.totale, true);
@@ -1612,6 +1655,9 @@ function validaDatiAffluenza(body) {
   if (!testoLimitato_(body.giorno, 40) || !testoLimitato_(body.orario, 20) ||
       !testoLimitato_(body.note, 500) || !testoLimitato_(body.motivoCorrezione, 300)) {
     return 'Uno o più campi testuali superano la lunghezza consentita.';
+  }
+  if (!slotAffluenzaConfigurato_(body.giorno, body.orario)) {
+    return 'Giorno e orario non corrispondono a una rilevazione configurata dal coordinamento.';
   }
   return '';
 }
@@ -1816,9 +1862,11 @@ function validaTargetCorrezione_(sheet, idTarget, body, tipo) {
     const stessaSezione = normalizzaSezione_(valoreColonna(r, idx, ['Sezione'])) === normalizzaSezione_(body.sezione);
     if (!stessoCodice || !stessoMunicipio || !stessaSezione) return { ok: false, code: 'CORRECTION_NOT_ALLOWED' };
     if (tipo === 'affluenza') {
-      const stessoGiorno = String(valoreColonna(r, idx, ['Giorno']) || '').trim() === String(body.giorno || '').trim();
-      const stessoOrario = String(valoreColonna(r, idx, ['Orario']) || '').trim() === String(body.orario || '').trim();
-      if (!stessoGiorno || !stessoOrario) return { ok: false, code: 'CORRECTION_NOT_ALLOWED' };
+      const stessoSlot = chiaveSlotAffluenza_(
+        valoreColonna(r, idx, ['Giorno']),
+        valoreColonna(r, idx, ['Orario'])
+      ) === chiaveSlotAffluenza_(body.giorno, body.orario);
+      if (!stessoSlot) return { ok: false, code: 'CORRECTION_NOT_ALLOWED' };
     }
     return { ok: true, row: i + 1 };
   }
@@ -1862,10 +1910,10 @@ function contaInviiAttivi_(sheet, body, tipo) {
         normalizzaSezione_(body.sezione)) continue;
 
     if (tipo === 'affluenza') {
-      if (String(valoreColonna(r, idx, ['Giorno']) || '').trim() !==
-          String(body.giorno || '').trim()) continue;
-      if (String(valoreColonna(r, idx, ['Orario']) || '').trim() !==
-          String(body.orario || '').trim()) continue;
+      if (chiaveSlotAffluenza_(
+            valoreColonna(r, idx, ['Giorno']),
+            valoreColonna(r, idx, ['Orario'])
+          ) !== chiaveSlotAffluenza_(body.giorno, body.orario)) continue;
     }
     n++;
   }
@@ -1906,27 +1954,79 @@ function autorizzaSezioneSessione_(codice, municipio, sezione) {
   return { ok: true, municipio: anagrafica.municipio, sezione: anagrafica.sezione };
 }
 
-function aggiornaStatoMessaggioAutorizzato_(codice, id, stato) {
+function foglioRicevuteMessaggi_() {
+  return getOrCreateSheet(FOGLI.MESSAGGI_RICEVUTE, [
+    'ID Messaggio', 'Identità', 'Municipio', 'Sezione', 'Stato', 'Aggiornato Il'
+  ]);
+}
+
+function statiMessaggiDestinatario_(codice, municipio, sezione) {
+  const sh = foglioRicevuteMessaggi_();
+  if (sh.getLastRow() < 2) return {};
+  const rows = sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues();
+  const out = {};
+  const identita = String(codice || '').trim();
+  const mu = normalizzaMunicipioStorico_(municipio);
+  const sez = normalizzaSezione_(sezione);
+  rows.forEach(function(r) {
+    if (String(r[1] || '').trim() !== identita) return;
+    if (normalizzaMunicipioStorico_(r[2]) !== mu) return;
+    if (normalizzaSezione_(r[3]) !== sez) return;
+    out[String(r[0] || '')] = String(r[4] || 'NUOVO').toUpperCase();
+  });
+  return out;
+}
+
+function salvaRicevutaMessaggio_(codice, id, municipio, sezione, stato) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sh = foglioRicevuteMessaggi_();
+    const identita = String(codice || '').trim();
+    const mu = normalizzaMunicipioStorico_(municipio);
+    const sez = normalizzaSezione_(sezione);
+    const rows = sh.getLastRow() >= 2
+      ? sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues()
+      : [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      if (String(r[0] || '') !== String(id)) continue;
+      if (String(r[1] || '').trim() !== identita) continue;
+      if (normalizzaMunicipioStorico_(r[2]) !== mu) continue;
+      if (normalizzaSezione_(r[3]) !== sez) continue;
+      sh.getRange(i + 2, 5, 1, 2).setValues([[stato, new Date()]]);
+      return;
+    }
+    sh.appendRow([String(id), identita, mu, sez, stato, new Date()]);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function aggiornaStatoMessaggioAutorizzato_(codice, id, stato, municipioRichiesto, sezioneRichiesta) {
   if (!id) return { ok: false, error: 'ID messaggio mancante.' };
   const statiValidi = ['NUOVO', 'LETTO', 'RISOLTO'];
   if (statiValidi.indexOf(stato) === -1) return { ok: false, error: 'Stato non valido.' };
+
+  const autorizzazione = autorizzaSezioneSessione_(codice, municipioRichiesto, sezioneRichiesta);
+  if (!autorizzazione.ok) return autorizzazione;
+
   const sh = getOrCreateSheet(FOGLI.MESSAGGI, ['ID', 'Municipio', 'Sezione', 'Testo', 'Stato', 'Timestamp', 'Aggiornato Il']);
   if (sh.getLastRow() < 2) return { ok: false, error: 'Messaggio non trovato.' };
   const righe = sh.getRange(2, 1, sh.getLastRow() - 1, 7).getValues();
   for (let i = 0; i < righe.length; i++) {
     if (String(righe[i][0]) !== String(id)) continue;
     const municipio = normalizzaMunicipioStorico_(righe[i][1]);
-    const sezioneMessaggio = String(righe[i][2] || '').trim();
-    const sezioni = sezioniAutorizzateDaCodice_(codice).filter(function(s) {
-      if (s.municipio !== municipio) return false;
-      return !sezioneMessaggio || normalizzaSezione_(s.sezione) === normalizzaSezione_(sezioneMessaggio);
-    });
-    if (!sezioni.length || municipio !== MUNICIPIO_ABILITATO) {
+    const sezioneMessaggio = normalizzaSezione_(righe[i][2]);
+    const sezioneAutorizzata = normalizzaSezione_(autorizzazione.sezione);
+    if (municipio !== normalizzaMunicipioStorico_(autorizzazione.municipio) ||
+        (sezioneMessaggio && sezioneMessaggio !== sezioneAutorizzata)) {
       return { ok: false, code: 'MESSAGE_NOT_AUTHORIZED', error: 'Messaggio non autorizzato.' };
     }
-    const riga = i + 2;
-    sh.getRange(riga, 5).setValue(stato);
-    sh.getRange(riga, 7).setValue(new Date());
+    // Non alteriamo lo stato globale della riga Messaggi: ogni destinatario
+    // mantiene la propria ricevuta, evitando che un rappresentante marchi come
+    // letto/risolto un avviso broadcast anche per tutti gli altri.
+    salvaRicevutaMessaggio_(codice, id, autorizzazione.municipio, autorizzazione.sezione, stato);
     return { ok: true };
   }
   return { ok: false, error: 'Messaggio non trovato.' };
@@ -1934,22 +2034,29 @@ function aggiornaStatoMessaggioAutorizzato_(codice, id, stato) {
 
 // ===================== MESSAGGI (coordinamento <-> rappresentante) =========
 
-function leggiMessaggi(municipio, sezione) {
+function leggiMessaggi(codice, municipio, sezione) {
   const sh = getOrCreateSheet(FOGLI.MESSAGGI, ['ID', 'Municipio', 'Sezione', 'Testo', 'Stato', 'Timestamp', 'Aggiornato Il']);
   const ultimaRiga = sh.getLastRow();
   if (ultimaRiga < 2) return { ok: true, items: [] };
 
-  const muCercato = String(municipio || '').trim().padStart(2, '0');
-  const sezCercata = String(sezione || '').trim();
+  const muCercato = normalizzaMunicipioStorico_(municipio);
+  const sezCercata = normalizzaSezione_(sezione);
+  const statiDestinatario = statiMessaggiDestinatario_(codice, muCercato, sezCercata);
   const dati = sh.getRange(2, 1, ultimaRiga - 1, 7).getValues();
   const items = [];
   dati.forEach(function (r) {
-    const mu = String(r[1]).trim().padStart(2, '0');
-    const se = String(r[2]).trim();
+    const mu = normalizzaMunicipioStorico_(r[1]);
+    const se = normalizzaSezione_(r[2]);
     // Messaggi con sezione vuota valgono per tutto il municipio (avviso generale).
     if (mu !== muCercato) return;
     if (se && se !== sezCercata) return;
-    items.push({ id: r[0], testo: r[3], stato: r[4] || 'NUOVO', timestamp: r[5] instanceof Date ? r[5].toISOString() : String(r[5]) });
+    const idMessaggio = String(r[0] || '');
+    items.push({
+      id: r[0],
+      testo: r[3],
+      stato: statiDestinatario[idMessaggio] || r[4] || 'NUOVO',
+      timestamp: r[5] instanceof Date ? r[5].toISOString() : String(r[5])
+    });
   });
   return { ok: true, items: items };
 }
@@ -2513,6 +2620,7 @@ function verificaProduzionePronta() {
 
   const shRapp = ss.getSheetByName(FOGLI.RAPPRESENTANTI);
   let rappresentantiAttivi = 0;
+  const identitaAttive = {};
   if (!shRapp || shRapp.getLastRow() < 2) {
     errori.push('Nessun rappresentante configurato.');
   } else {
@@ -2524,8 +2632,25 @@ function verificaProduzionePronta() {
       rappresentantiAttivi++;
       const mu = normalizzaMunicipioStorico_(valoreColonna(righe[i], idx, ['Municipio']));
       const sez = normalizzaSezione_(valoreColonna(righe[i], idx, ['Sezione']));
+      const telefono = normalizzaTelefono(valoreColonna(righe[i], idx, ['Telefono', 'Cellulare']));
+      const nome = String(valoreColonna(righe[i], idx, ['Nome e Cognome', 'Nome', 'Rappresentante']) || '').trim();
+      const identita = identitaCodiceRiga_(righe[i], idx);
       if (mu !== '09') errori.push('Rappresentante attivo fuori dal Municipio IX alla riga ' + (i + 1) + '.');
       if (!sez) errori.push('Rappresentante attivo senza sezione alla riga ' + (i + 1) + '.');
+      if (telefono.length < 8) errori.push('Rappresentante attivo senza telefono valido alla riga ' + (i + 1) + '.');
+      if (identita) {
+        const precedente = identitaAttive[identita];
+        if (!precedente) {
+          identitaAttive[identita] = { telefono: telefono, nome: nome, riga: i + 1 };
+        } else {
+          if (precedente.telefono && telefono && precedente.telefono !== telefono) {
+            errori.push('La stessa identità di accesso è associata a telefoni diversi alle righe ' + precedente.riga + ' e ' + (i + 1) + '.');
+          }
+          if (precedente.nome && nome && precedente.nome.toLowerCase() !== nome.toLowerCase()) {
+            errori.push('La stessa identità di accesso è associata a nominativi diversi alle righe ' + precedente.riga + ' e ' + (i + 1) + '.');
+          }
+        }
+      }
     }
   }
   if (!rappresentantiAttivi) errori.push('Nessun rappresentante attivo configurato.');
@@ -2617,6 +2742,7 @@ function inizializza() {
     'Note',
   ].concat(COLONNE_STATO));
   getOrCreateSheet(FOGLI.MESSAGGI, ['ID', 'Municipio', 'Sezione', 'Testo', 'Stato', 'Timestamp', 'Aggiornato Il']);
+  getOrCreateSheet(FOGLI.MESSAGGI_RICEVUTE, ['ID Messaggio', 'Identità', 'Municipio', 'Sezione', 'Stato', 'Aggiornato Il']);
   getOrCreateSheet(FOGLI.VOTI_LISTE, ['Timestamp', 'ID Invio', 'Municipio', 'Sezione', 'Livello', 'Lista', 'Voti']);
   getOrCreateSheet(FOGLI.PREFERENZE, ['Timestamp', 'ID Invio', 'Municipio', 'Sezione', 'Livello', 'Candidato', 'Preferenze']);
   // Candidati e rappresentanti: solo intestazioni, senza anagrafiche fittizie.
@@ -2633,7 +2759,7 @@ function inizializza() {
 
   // Riordino i fogli: configurazione prima, dati raccolti dopo
   const ordine = [FOGLI.RAPPRESENTANTI, FOGLI.MUNICIPI, FOGLI.LISTE, FOGLI.CANDIDATI, FOGLI.SINDACI, FOGLI.PRESIDENTI, FOGLI.ORARI, FOGLI.IMPOSTAZIONI,
-    FOGLI.SCRUTINIO, FOGLI.VOTI_LISTE, FOGLI.VOTI_SINDACI, FOGLI.VOTI_PRESIDENTI, FOGLI.PREFERENZE, FOGLI.AFFLUENZA, FOGLI.DASHBOARD_AFFLUENZA, FOGLI.MESSAGGI, FOGLI.LOG];
+    FOGLI.SCRUTINIO, FOGLI.VOTI_LISTE, FOGLI.VOTI_SINDACI, FOGLI.VOTI_PRESIDENTI, FOGLI.PREFERENZE, FOGLI.AFFLUENZA, FOGLI.DASHBOARD_AFFLUENZA, FOGLI.MESSAGGI, FOGLI.MESSAGGI_RICEVUTE, FOGLI.LOG];
   ordine.forEach(function (nome, idx) {
     const sh = ss.getSheetByName(nome);
     if (sh) { ss.setActiveSheet(sh); ss.moveActiveSheet(idx + 1); }
@@ -3435,7 +3561,7 @@ function svuotaDatiTest() {
   const ss = getDatabaseSpreadsheet_();
   const fogli_dati = [
     FOGLI.AFFLUENZA, FOGLI.SCRUTINIO, FOGLI.VOTI_LISTE,
-    FOGLI.VOTI_SINDACI, FOGLI.VOTI_PRESIDENTI, FOGLI.PREFERENZE, FOGLI.MESSAGGI, FOGLI.LOG,
+    FOGLI.VOTI_SINDACI, FOGLI.VOTI_PRESIDENTI, FOGLI.PREFERENZE, FOGLI.MESSAGGI, FOGLI.MESSAGGI_RICEVUTE, FOGLI.LOG,
   ];
 
   let cancellate = 0;
@@ -3649,7 +3775,7 @@ function aggiornaDashboardAffluenzaInterno() {
       normalizzaMunicipioDashboard_(riga[colonne.municipio]),
       String(riga[colonne.sezione] || '').trim(),
       String(riga[colonne.giorno] || '').trim().toLowerCase(),
-      String(riga[colonne.orario] || '').trim()
+      orarioTesto_(riga[colonne.orario])
     ].join('|');
 
     const precedente = ultimoPerRilevazione.get(chiave);
@@ -3948,19 +4074,23 @@ function loginDashboard_(password) {
   const cache = CacheService.getScriptCache();
   const candidato = hashPasswordDashboard_(password).slice(0, 18);
   const tentativiCandidato = Number(cache.get('dashboard_candidate_' + candidato) || '0');
-  const tentativiGlobali = Number(cache.get('dashboard_login_global_v1400') || '0');
-  if (tentativiCandidato >= 6 || tentativiGlobali >= 60) {
-    return {
-      ok: false,
-      code: 'DASHBOARD_RATE_LIMITED',
-      error: 'Troppi tentativi. Attendi alcuni minuti prima di riprovare.'
-    };
-  }
+  const dashboardGlobalKey = 'dashboard_login_global_v1407';
+  const tentativiGlobali = Number(cache.get(dashboardGlobalKey) || '0');
 
   const hashRicevuto = hashPasswordDashboard_(password);
   if (!password || !confrontoCostanteDashboard_(hashRicevuto, hashAtteso)) {
+    // I limiti per candidato e globali vengono applicati solo dopo aver escluso
+    // la password corretta: un flood non può bloccare una sessione legittima.
+    if (tentativiCandidato >= 6 || tentativiGlobali >= 60) {
+      Utilities.sleep(800);
+      return {
+        ok: false,
+        code: 'DASHBOARD_RATE_LIMITED',
+        error: 'Troppi tentativi. Attendi alcuni minuti prima di riprovare.'
+      };
+    }
     cache.put('dashboard_candidate_' + candidato, String(tentativiCandidato + 1), 600);
-    cache.put('dashboard_login_global_v1400', String(tentativiGlobali + 1), 600);
+    cache.put(dashboardGlobalKey, String(tentativiGlobali + 1), 600);
     Utilities.sleep(Math.min(1200, 300 + tentativiCandidato * 120));
     return {
       ok: false,
@@ -4038,7 +4168,7 @@ function leggiDashboardAffluenzaWeb_(dashboardToken) {
   if (!accesso.ok) return accesso;
 
   const cache = CacheService.getScriptCache();
-  const cacheKey = 'dashboard_web_affluenza_1400_fdi';
+  const cacheKey = 'dashboard_web_affluenza_1407_fdi';
   const cached = cache.get(cacheKey);
   if (cached) {
     try { return JSON.parse(cached); } catch (e) {}
@@ -4119,7 +4249,7 @@ function leggiDashboardAffluenzaWeb_(dashboardToken) {
         municipioNome: NOMI_MUNICIPI[municipio] || ('Municipio ' + municipio),
         sezione: sezione,
         giorno: String(valoreColonna(r, idx, ['Giorno']) || ''),
-        orario: String(valoreColonna(r, idx, ['Orario']) || ''),
+        orario: orarioTesto_(valoreColonna(r, idx, ['Orario'])),
         elettori: elettori,
         maschi: maschi,
         femmine: femmine,

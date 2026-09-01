@@ -1,8 +1,8 @@
 {
   "name": "SeggioLink · Coordinamento Fratelli d’Italia · Municipio IX Roma",
   "short_name": "SeggioLink",
-  "description": "SeggioLink 14.0.5, app operativa offline-first del Coordinamento Fratelli d’Italia del Municipio IX Roma",
-  "start_url": "./index.html?v=1405",
+  "description": "SeggioLink 14.0.7, app operativa offline-first del Coordinamento Fratelli d’Italia del Municipio IX Roma",
+  "start_url": "./index.html?v=1407",
   "scope": "./",
   "id": "./index.html",
   "display": "standalone",
@@ -44,7 +44,7 @@
     {
       "name": "Apri SeggioLink",
       "short_name": "SeggioLink",
-      "url": "./index.html?v=1405",
+      "url": "./index.html?v=1407",
       "icons": [
         {
           "src": "icons/icon-192.png",

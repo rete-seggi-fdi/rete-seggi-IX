@@ -16,7 +16,8 @@ Tutto il codice, i dati elettorali, le icone e i testi sono già pronti in quest
 index.html, app.js, styles.css, manifest.json, service-worker.js   → l'app vera e propria
 icons/                                                              → icone dell'app
 data/municipio-01.json ... municipio-15.json                       → indirizzi seggi e vie, tutti i municipi
-apps-script/Code.gs                                                 → il "backend": va incollato in Google
+Code.gs                                                             → backend AUTOREVOLE da incollare in Google
+apps-script/Code.gs                                                 → copia sincronizzata di compatibilità (deve essere identica a Code.gs)
 ISTRUZIONI_SETUP.md                                                 → questo file
 ```
 
@@ -28,7 +29,7 @@ ISTRUZIONI_SETUP.md                                                 → questo f
 2. Rinominalo, ad esempio **"Rete Seggi FdI – Coordinamento"**.
 3. Dal menu in alto: **Estensioni → Apps Script**. Si apre un editor di codice in un'altra schermata.
 4. Nell'editor trovi un file `Code.gs` con scritto qualcosa come `function myFunction() {}`. **Seleziona tutto il contenuto e cancellalo.**
-5. Apri il file `apps-script/Code.gs` del pacchetto che hai scaricato, copia **tutto** il contenuto, e incollalo nell'editor Apps Script al posto del codice cancellato.
+5. Apri il file **`Code.gs` nella radice del pacchetto**: è la fonte autorevole del backend. Copia **tutto** il contenuto e incollalo nell'editor Apps Script al posto del codice cancellato. La copia `apps-script/Code.gs` è mantenuta identica solo per compatibilità e non deve essere considerata una versione diversa.
 6. In alto, clicca sul nome del progetto ("Progetto senza titolo") e rinominalo, ad esempio **"Backend Rete Seggi"**. Poi salva (icona del dischetto, o Ctrl+S / Cmd+S).
 
 ### Esegui l'inizializzazione (una sola volta)
@@ -52,18 +53,18 @@ ISTRUZIONI_SETUP.md                                                 → questo f
 
 ---
 
-## Passo 3 — Collega l'app al backend
+## Passo 3 — Verifica il collegamento dell'app al backend
 
-1. Apri il file `app.js` (quello scaricato sul tuo computer) con un editor di testo semplice: su Windows va benissimo il **Blocco Note**, su Mac **TextEdit** (assicurati sia in modalità "Testo semplice" dal menu Formato). Niente Word.
-2. Vicino all'inizio del file trovi questa riga:
-   ```
-   const BACKEND_URL = 'INSERISCI_QUI_URL_GOOGLE_APPS_SCRIPT';
-   ```
-3. Sostituisci il testo tra apici con l'URL copiato al passo 2, mantenendo gli apici:
-   ```
-   const BACKEND_URL = 'https://script.google.com/macros/s/AKfycb.../exec';
-   ```
-4. Salva il file (sovrascrivendo l'originale, stesso nome `app.js`, stesso posto).
+Il backend di produzione è configurato in `config.js`, non in `app.js`. Prima della pubblicazione controlla che `backendUrl` punti al deployment Apps Script corretto e che termini con `/exec`. **Non inserire password, token o altre credenziali in `config.js`**.
+
+Dopo ogni aggiornamento di `Code.gs`, salva e crea una **nuova versione del deployment Web App** mantenendo lo stesso URL pubblico. Verifica poi:
+
+```text
+TUO_URL/exec?action=ping
+TUO_URL/exec?action=config
+```
+
+`ping` deve restituire `ok: true`; `config` deve mostrare esclusivamente la configurazione pubblica prevista.
 
 ---
 
@@ -135,6 +136,6 @@ Puoi copiare e adattare questo messaggio:
 
 ## Da sapere: limiti e attenzioni
 
-- **Nessun login**: chiunque abbia il link può aprire l'app e inviare dati. Per un gruppo di rappresentanti di fiducia va bene, ma non condividere il link pubblicamente fuori da quel gruppo.
+- **Accesso autenticato**: il link dell'app può essere pubblico, ma gli invii richiedono codice personale + telefono registrato e una sessione firmata. Non condividere codici personali o credenziali del Control Center.
 - **Il Google Sheet è il database reale**: chiunque abbia accesso al foglio vede tutti i dati raccolti. Condividilo solo con le persone del coordinamento centrale (Condividi → inserisci solo le email delle persone autorizzate), non con i rappresentanti di lista.
 - **Niente dati sensibili nei nomi/numeri di telefono oltre il necessario**: servono solo per poter ricontattare chi ha inviato un dato in caso di dubbi.
