@@ -8,14 +8,14 @@ if (window.top !== window.self) {
 }
 
 window.SEGGI_CONFIG = Object.freeze({
-  appVersion: '14.0.1',
+  appVersion: '14.0.2',
   buildDate: '2026-09-01',
   environment: 'production',
   latestVersionUrl: 'build-info.json',
   appName: 'SeggioLink Roma',
   backendProvider: 'apps-script',
   backendUrl: 'https://script.google.com/macros/s/AKfycbzmCq7kgjqIK7eCDD_rq1JuCJ9qr0b4HP7JPZrt9Is8neON1GH27dxJMtsPH5-T0o1L_w/exec',
-  requestTimeoutMs: 20000,
+  requestTimeoutMs: 60000,
   enabledMunicipalities: ['09'],
   allowAllMunicipalitiesData: false
 });

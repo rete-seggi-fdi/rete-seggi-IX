@@ -19,7 +19,7 @@ async function post(payload,tentativo=1){
   if(!BACKEND)throw new Error('URL backend assente: config.js non caricato.');
 
   const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),Number(CFG.requestTimeoutMs||20000));
+  const timeout=setTimeout(()=>{if(!controller.signal.aborted){try{controller.abort(new DOMException('Tempo massimo di risposta superato.','TimeoutError'))}catch(e){controller.abort()}}},Number(CFG.requestTimeoutMs||60000));
   let response;
 
   try{
@@ -39,7 +39,7 @@ async function post(payload,tentativo=1){
       await new Promise(resolve=>setTimeout(resolve,650));
       return post(payload,2);
     }
-    if(error?.name==='AbortError')throw new Error('Il backend sta impiegando troppo tempo. Riprova.');
+    if(controller.signal.aborted||error?.name==='AbortError'||error?.name==='TimeoutError')throw new Error('Il backend sta impiegando più del previsto. Riprova.');
     throw new Error('Connessione al backend non riuscita: '+error.message);
   }
 
@@ -183,7 +183,7 @@ function prepareMapLayout(){
     list.style.padding='2px 4px 8px 2px';
   }
   const version=[...document.querySelectorAll('small,.brand-subtitle')].find(x=>/CONTROL CENTER/i.test(x.textContent||''));
-  if(version)version.textContent='CONTROL CENTER 14.0.1';
+  if(version)version.textContent='CONTROL CENTER 14.0.2';
   return {layout,aside,list,staticPanel};
 }
 function ensureMapContainer(){

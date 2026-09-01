@@ -1,11 +1,11 @@
 {
-  "version": "14.0.1",
-  "latestVersion": "14.0.1",
-  "minimumVersion": "14.0.1",
+  "version": "14.0.2",
+  "latestVersion": "14.0.2",
+  "minimumVersion": "14.0.2",
   "buildDate": "2026-09-01",
   "name": "SeggioLink Roma",
-  "controlCenterVersion": "14.0.1",
+  "controlCenterVersion": "14.0.2",
   "backendVersion": "14.0.0-security-production",
   "channel": "production",
-  "notes": "Hotfix produzione: client API e utility UI incorporati nel bundle principale per eliminare dipendenze da asset JS secondari e rendere il caricamento più robusto sugli hosting statici."
+  "notes": "Hotfix rete: timeout Apps Script portato a 60 secondi e gestione AbortController resa esplicita e compatibile, senza esporre al rappresentante errori tecnici del browser."
 }

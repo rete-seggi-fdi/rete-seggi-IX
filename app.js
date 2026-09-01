@@ -1,7 +1,7 @@
 'use strict';
 
 (function () {
-  const DEFAULT_TIMEOUT_MS = 20000;
+  const DEFAULT_TIMEOUT_MS = 60000;
   const MAX_BODY_CHARS = 210000;
 
   const PUBLIC_ERROR_MESSAGES = Object.freeze({
@@ -17,6 +17,7 @@
     PAYLOAD_TOO_LARGE: 'La comunicazione contiene troppi dati. Riduci le note e riprova.',
     INVALID_SERVER_RESPONSE: 'La risposta del coordinamento non è leggibile. Il dato resta conservato sul telefono.',
     NETWORK_ERROR: 'Connessione non disponibile. Il dato resta conservato sul telefono.',
+    NETWORK_TIMEOUT: 'Il coordinamento sta impiegando più del previsto a rispondere. Riprova: gli eventuali dati restano conservati sul telefono.',
     ACTIVE_TURNOUT_EXISTS: 'Esiste già una rilevazione attiva per questo orario. Usa la funzione di correzione.',
     ACTIVE_SCRUTINY_EXISTS: 'Esiste già uno scrutinio attivo per questa sezione. Usa la funzione di correzione.',
     MULTIPLE_ACTIVE_SCRUTINIES: 'Sono presenti più scrutini attivi: serve un controllo del coordinamento.',
@@ -39,6 +40,31 @@
     return fallback || 'Operazione non riuscita. Riprova.';
   }
 
+  function abortPerTimeout(controller) {
+    if (!controller || !controller.signal || controller.signal.aborted) return;
+    try {
+      const reason = typeof DOMException === 'function'
+        ? new DOMException('Tempo massimo di risposta superato.', 'TimeoutError')
+        : new Error('Tempo massimo di risposta superato.');
+      controller.abort(reason);
+    } catch (e) {
+      try { controller.abort(); } catch (ignored) {}
+    }
+  }
+
+  function interruzioneDaTimeout(error, controller) {
+    return !!(
+      (controller && controller.signal && controller.signal.aborted) ||
+      (error && (error.name === 'AbortError' || error.name === 'TimeoutError'))
+    );
+  }
+
+  function erroreApplicativo(error) {
+    // DOMException espone storicamente un `code` numerico (es. 20/23):
+    // non va confuso con i codici applicativi SeggioLink, che sono stringhe.
+    return !!(error && typeof error.code === 'string' && error.code);
+  }
+
   function create(options) {
     const opts = options || {};
     const backendUrl = String(opts.backendUrl || '').trim();
@@ -51,7 +77,7 @@
     async function get(action) {
       if (!configured()) throw appError('Backend non configurato.', 'BACKEND_NOT_CONFIGURED');
       const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+      const timer = controller ? setTimeout(() => abortPerTimeout(controller), timeoutMs) : null;
       try {
         const sep = backendUrl.indexOf('?') === -1 ? '?' : '&';
         const res = await fetch(backendUrl + sep + 'action=' + encodeURIComponent(action), {
@@ -68,8 +94,8 @@
         if (!data || typeof data !== 'object') throw appError('Risposta del coordinamento non valida.', 'INVALID_SERVER_RESPONSE');
         return data;
       } catch (e) {
-        if (e && e.code) throw e;
-        if (e && e.name === 'AbortError') throw appError('Il coordinamento non ha risposto in tempo.', 'NETWORK_ERROR', e);
+        if (erroreApplicativo(e)) throw e;
+        if (interruzioneDaTimeout(e, controller)) throw appError('Il coordinamento non ha risposto entro il tempo massimo.', 'NETWORK_TIMEOUT', e);
         throw appError('Connessione al coordinamento non disponibile.', 'NETWORK_ERROR', e);
       } finally {
         if (timer) clearTimeout(timer);
@@ -85,7 +111,7 @@
 
       for (let attempt = 0; attempt < attempts; attempt++) {
         const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+        const timer = controller ? setTimeout(() => abortPerTimeout(controller), timeoutMs) : null;
         try {
           const res = await fetch(backendUrl, {
             method: 'POST',
@@ -104,8 +130,8 @@
           if (!data || typeof data !== 'object') throw appError('Risposta del coordinamento non valida.', 'INVALID_SERVER_RESPONSE');
           return data;
         } catch (e) {
-          lastError = e && e.code ? e : (e && e.name === 'AbortError'
-            ? appError('Il coordinamento non ha risposto in tempo.', 'NETWORK_ERROR', e)
+          lastError = erroreApplicativo(e) ? e : (interruzioneDaTimeout(e, controller)
+            ? appError('Il coordinamento non ha risposto entro il tempo massimo.', 'NETWORK_TIMEOUT', e)
             : appError('Connessione al coordinamento non disponibile.', 'NETWORK_ERROR', e));
           if (attempt + 1 < attempts) await new Promise((resolve) => setTimeout(resolve, 700 * (attempt + 1)));
         } finally {
@@ -167,8 +193,8 @@
 // ---------------------------------------------------------------------
 const RUNTIME_CONFIG = window.SEGGI_CONFIG || {};
 const BACKEND_URL = String(RUNTIME_CONFIG.backendUrl || '').trim();
-const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '14.0.0');
-const REQUEST_TIMEOUT_MS = Number(RUNTIME_CONFIG.requestTimeoutMs || 20000);
+const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '14.0.2');
+const REQUEST_TIMEOUT_MS = Number(RUNTIME_CONFIG.requestTimeoutMs || 60000);
 const API_CLIENT = window.SeggioAPI ? window.SeggioAPI.create({ backendUrl: BACKEND_URL, timeoutMs: REQUEST_TIMEOUT_MS }) : null;
 const QUEUE_STATUS = window.SeggioUI ? window.SeggioUI.QUEUE_STATUS : Object.freeze({ LOCAL: 'pending', SENDING: 'syncing', CONFIRMED: 'synced', ACTION_REQUIRED: 'error' });
 
@@ -672,9 +698,10 @@ async function onLogin() {
       vaiAlSetupPrecompilato(data);
     }
   } catch (e) {
-    errBox.textContent = e.message === 'Failed to fetch'
-      ? 'Connessione non disponibile. Il primo accesso richiede la rete.'
-      : (e.message || 'Impossibile verificare il codice.');
+    errBox.textContent = messaggioErroreUtente(
+      e,
+      'Impossibile verificare il codice. Controlla la connessione e riprova.'
+    );
     errBox.hidden = false;
   } finally {
     btn.textContent = 'Accedi';
@@ -2279,7 +2306,7 @@ async function provaSvuotaCode() {
             return false;
           }
           const codiceErrore = e && e.code ? String(e.code) : '';
-          const temporaneo = ['', 'NETWORK_ERROR', 'BUSY', 'INTERNAL_ERROR', 'INVALID_SERVER_RESPONSE'].includes(codiceErrore);
+          const temporaneo = ['', 'NETWORK_ERROR', 'NETWORK_TIMEOUT', 'BUSY', 'INTERNAL_ERROR', 'INVALID_SERVER_RESPONSE'].includes(codiceErrore);
           item.status = temporaneo ? QUEUE_STATUS.LOCAL : QUEUE_STATUS.ACTION_REQUIRED;
           item.tentativi = (item.tentativi || 0) + 1;
           item.ultimoErrore = messaggioErroreUtente(e, temporaneo ? 'Invio temporaneamente non riuscito' : 'Invio da controllare');
