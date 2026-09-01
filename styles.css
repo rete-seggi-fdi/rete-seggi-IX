@@ -798,3 +798,32 @@ body.accessible-mode :focus-visible { outline: 4px solid #f6b800 !important; out
 
 /* v11.1 SECURITY: sostituisce l’unico stile inline per consentire CSP strict. */
 .muted-text-tight{margin-top:-6px}
+
+
+/* 14.0.5 hotfix iPhone: evita sovrapposizioni tra brand, stato Online e pulsante Esci. */
+@media (max-width: 520px) {
+  .topbar-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 10px;
+  }
+  .brand {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .brand-copy {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .brand-copy .eyebrow {
+    max-width: 100%;
+    white-space: normal;
+    line-height: 1.15;
+    overflow: hidden;
+  }
+  .status-cluster {
+    min-width: max-content;
+    flex: none;
+  }
+}
