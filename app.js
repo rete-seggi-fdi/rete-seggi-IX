@@ -193,7 +193,7 @@
 // ---------------------------------------------------------------------
 const RUNTIME_CONFIG = window.SEGGI_CONFIG || {};
 const BACKEND_URL = String(RUNTIME_CONFIG.backendUrl || '').trim();
-const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '14.0.2');
+const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '14.0.5');
 const REQUEST_TIMEOUT_MS = Number(RUNTIME_CONFIG.requestTimeoutMs || 60000);
 const API_CLIENT = window.SeggioAPI ? window.SeggioAPI.create({ backendUrl: BACKEND_URL, timeoutMs: REQUEST_TIMEOUT_MS }) : null;
 const QUEUE_STATUS = window.SeggioUI ? window.SeggioUI.QUEUE_STATUS : Object.freeze({ LOCAL: 'pending', SENDING: 'syncing', CONFIRMED: 'synced', ACTION_REQUIRED: 'error' });
@@ -444,8 +444,9 @@ function aggiornaStatoConnessione() {
   const home = $('#homeConnStatus');
   const pending = STATE.profile ? [...inviiCorrenti(LS.QUEUE_AFF), ...inviiCorrenti(LS.QUEUE_SCR)].filter((i) => i.status !== QUEUE_STATUS.CONFIRMED).length : contaInCoda();
   if (navigator.onLine) {
-    // La GUI mostra solo lo stato di connettività. Lo stato degli invii resta
-    // visibile nella sezione dedicata e nei badge, senza sovraccaricare il pill.
+    // La GUI espone qui solo lo stato della rete. Lo stato degli invii resta
+    // visibile nella scheda Invii e nei relativi badge, senza sovraccaricare
+    // l'intestazione con messaggi di sincronizzazione.
     pill.textContent = 'Online';
     pill.className = 'status-pill online';
     if (home) { home.textContent = 'Online'; home.className = 'home-status online'; }
@@ -631,14 +632,81 @@ function statoScadenza(giorno, orario, completato) {
 }
 
 
-async function backendPostSicuro(payload) {
+async function backendPostSicuro(payload, retryCount) {
   if (!backendConfigurato()) {
     const err = new Error('Backend non configurato.');
     err.code = 'BACKEND_NOT_CONFIGURED';
     throw err;
   }
-  if (API_CLIENT) return API_CLIENT.post(payload, 2);
+  const tentativi = retryCount === undefined ? 2 : Math.max(1, Number(retryCount) || 1);
+  if (API_CLIENT) return API_CLIENT.post(payload, tentativi);
   throw new Error('Client API non disponibile.');
+}
+
+// Costruisce immediatamente i seggi assegnati usando, quando disponibile,
+// il dataset territoriale già presente nella cache locale. Il login non resta
+// bloccato in attesa del download delle vie/sezioni: gli indirizzi vengono
+// arricchiti in background subito dopo l'accesso.
+function seggiDaAssegnazioniRapide(assegnazioni) {
+  const cacheMunicipi = new Map();
+  const risultato = [];
+  (assegnazioni || []).forEach((assegnazione) => {
+    const mu = String(assegnazione && assegnazione.municipio || '').padStart(2, '0');
+    const numero = String(assegnazione && assegnazione.sezione || '').trim();
+    if (!mu || !numero) return;
+    if (!cacheMunicipi.has(mu)) cacheMunicipi.set(mu, loadJSON(LS.MUN_DATA(mu), null));
+    const info = trovaSezione(cacheMunicipi.get(mu), numero) || { s: numero, addr: '', cap: '' };
+    const id = idSeggio(mu, info.s);
+    if (!risultato.some((seg) => seg.id === id)) {
+      risultato.push({ id, municipio: mu, sezione: info.s, addr: info.addr || '', cap: info.cap || '', elettori: null });
+    }
+  });
+  return risultato;
+}
+
+async function arricchisciSeggiDopoLogin(assegnazioni, ownerAtteso) {
+  try {
+    const municipi = [...new Set((assegnazioni || []).map((a) => String(a && a.municipio || '').padStart(2, '0')).filter(Boolean))];
+    const dati = new Map();
+    await Promise.all(municipi.map(async (mu) => {
+      try { dati.set(mu, await caricaDatiMunicipio(mu)); } catch (e) { /* cache/fallback già gestiti */ }
+    }));
+    if (!STATE.persona || ownerStorageId() !== ownerAtteso) return;
+
+    let cambiato = false;
+    STATE.seggi = STATE.seggi.map((seg) => {
+      const info = trovaSezione(dati.get(seg.municipio), seg.sezione);
+      if (!info) return seg;
+      const addr = info.addr || '';
+      const cap = info.cap || '';
+      if (addr === (seg.addr || '') && cap === (seg.cap || '')) return seg;
+      cambiato = true;
+      return Object.assign({}, seg, { sezione: info.s || seg.sezione, addr, cap });
+    });
+    if (!cambiato) return;
+    saveJSON(LS.SEGGI, STATE.seggi);
+    ricostruisciProfileDaSeggioAttivo();
+    popolaSelectSeggioAttivo();
+    if (STATE.profile) {
+      const indirizzo = [STATE.profile.addr, STATE.profile.cap ? 'CAP ' + STATE.profile.cap : ''].filter(Boolean).join(' · ');
+      $('#seggioIndirizzo').textContent = indirizzo || 'Municipio IX Roma';
+    }
+  } catch (e) {
+    // L'arricchimento territoriale non deve mai impedire l'uso dell'app.
+  }
+}
+
+function sincronizzazioniPostLoginInBackground() {
+  // Login e dashboard non attendono storico/code/messaggi: questi vengono
+  // aggiornati subito dopo, in background, mantenendo tutte le funzionalità
+  // introdotte nella 14.0.3.
+  Promise.resolve()
+    // Prima ricostruiamo lo storico ufficiale: gli invii già presenti sul
+    // coordinamento compaiono rapidamente anche su un telefono nuovo.
+    .then(() => sincronizzaStoricoDaServer(true))
+    // Poi tentiamo gli eventuali invii locali rimasti in coda.
+    .then(() => provaSvuotaCode())
+    .catch(() => {});
 }
 
 // =======================================================================
@@ -664,7 +732,7 @@ async function onLogin() {
   btn.disabled = true;
 
   try {
-    const data = await backendPostSicuro({ tipo: 'login', codice, telefono });
+    const data = await backendPostSicuro({ tipo: 'login', codice, telefono }, 1);
     if (!data.ok || !data.sessionToken) {
       const err = new Error(messaggioErroreUtente(data.code || '', data.error || 'Codice o telefono non validi.'));
       err.code = data.code || '';
@@ -684,25 +752,20 @@ async function onLogin() {
     STATE.seggi = [];
 
     if (data.sezioni && data.sezioni.length > 0) {
-      for (const assegnazione of data.sezioni) {
-        try {
-          const munData = await caricaDatiMunicipio(assegnazione.municipio);
-          const sezInfo = trovaSezione(munData, assegnazione.sezione) || { s: assegnazione.sezione, addr: '', cap: '' };
-          const id = idSeggio(assegnazione.municipio, sezInfo.s);
-          if (!STATE.seggi.some((seg) => seg.id === id)) STATE.seggi.push({ id, municipio: assegnazione.municipio, sezione: sezInfo.s, addr: sezInfo.addr, cap: sezInfo.cap, elettori: null });
-        } catch (e) {
-          const id = idSeggio(assegnazione.municipio, assegnazione.sezione);
-          if (!STATE.seggi.some((seg) => seg.id === id)) STATE.seggi.push({ id, municipio: assegnazione.municipio, sezione: assegnazione.sezione, addr: '', cap: '', elettori: null });
-        }
-      }
+      STATE.seggi = seggiDaAssegnazioniRapide(data.sezioni);
+      if (!STATE.seggi.length) throw new Error('Nessuna sezione valida associata alla sessione.');
       saveJSON(LS.SEGGI, STATE.seggi);
       STATE.seggioAttivoId = STATE.seggi[0].id;
       saveJSON(LS.SEGGIO_ATTIVO, STATE.seggioAttivoId);
       ricostruisciProfileDaSeggioAttivo();
+
+      // La dashboard viene mostrata immediatamente dopo l'autenticazione.
+      // Dataset territoriale, code e storico ufficiale continuano in background.
       mostraDashboard();
       showToast('Accesso effettuato come ' + STATE.persona.nome + '.');
-      await provaSvuotaCode();
-      await sincronizzaStoricoDaServer(true);
+      const ownerAtteso = ownerId;
+      arricchisciSeggiDopoLogin(data.sezioni, ownerAtteso);
+      sincronizzazioniPostLoginInBackground();
     } else {
       vaiAlSetupPrecompilato(data);
     }
