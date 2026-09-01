@@ -80,7 +80,10 @@
       const timer = controller ? setTimeout(() => abortPerTimeout(controller), timeoutMs) : null;
       try {
         const sep = backendUrl.indexOf('?') === -1 ? '?' : '&';
-        const res = await fetch(backendUrl + sep + 'action=' + encodeURIComponent(action), {
+        // Cache-buster esplicito: evita il riuso di vecchie risposte GET da
+        // cache HTTP/PWA aggressive. Il backend ignora il parametro `_cb`.
+        const urlGet = backendUrl + sep + 'action=' + encodeURIComponent(action) + '&_cb=' + Date.now();
+        const res = await fetch(urlGet, {
           cache: 'no-store',
           redirect: 'follow',
           referrerPolicy: 'no-referrer',
@@ -618,7 +621,13 @@ function mostraAiutoConnessioneLogin(errBox) {
   errBox.hidden = false;
 }
 
+let configRefreshPromise = null;
+let ultimoRefreshConfigOkMs = 0;
+let ultimoErroreConfig = null;
+let ultimaConfigDaRete = false;
+
 async function caricaConfig() {
+  ultimaConfigDaRete = false;
   if (!backendConfigurato()) {
     const cached = loadJSON(LS.CONFIG, null);
     STATE.config = cached || configVuota();
@@ -626,15 +635,23 @@ async function caricaConfig() {
   }
   try {
     const data = API_CLIENT ? await API_CLIENT.get('config') : await (async () => {
-      const res = await fetch(BACKEND_URL + '?action=config', { cache: 'no-store', redirect: 'follow' });
+      const sep = BACKEND_URL.indexOf('?') === -1 ? '?' : '&';
+      const res = await fetch(BACKEND_URL + sep + 'action=config&_cb=' + Date.now(), {
+        cache: 'no-store',
+        redirect: 'follow',
+        referrerPolicy: 'no-referrer',
+        credentials: 'omit'
+      });
       return JSON.parse(await res.text());
     })();
     if (!data.ok) throw new Error(data.error || 'Configurazione non valida');
     gestisciRevisioneDati(data.dataRevision);
     saveJSON(LS.CONFIG, data);
     STATE.config = data;
+    ultimaConfigDaRete = true;
     return data;
   } catch (e) {
+    ultimoErroreConfig = e || new Error('Configurazione non disponibile.');
     const cached = loadJSON(LS.CONFIG, null);
     STATE.config = cached || configVuota();
     return STATE.config;
@@ -657,13 +674,36 @@ function applicaConfigAggiornataAllaUI() {
   if (backendLabel) backendLabel.textContent = (STATE.config && STATE.config.app && STATE.config.app.backendVersion) || '—';
 }
 
-let configRefreshPromise = null;
 function aggiornaConfigInBackground() {
   if (configRefreshPromise) return configRefreshPromise;
   configRefreshPromise = caricaConfig()
-    .then((data) => { applicaConfigAggiornataAllaUI(); return data; })
-    .finally(() => { configRefreshPromise = null; });
+    .then((data) => {
+      if (ultimaConfigDaRete) {
+        ultimoRefreshConfigOkMs = Date.now();
+        ultimoErroreConfig = null;
+      }
+      applicaConfigAggiornataAllaUI();
+      return data;
+    })
+    .finally(() => {
+      configRefreshPromise = null;
+      // Se il refresh è terminato mentre Affluenza era già aperta, ridisegna
+      // una volta la schermata così sparisce lo stato “Aggiorno…” e compare
+      // l'eventuale pulsante di retry oppure gli orari appena ricevuti.
+      if (STATE.profile) renderAffluenza();
+    });
   return configRefreshPromise;
+}
+
+function aggiornaConfigPerAffluenzaSeServe(forza) {
+  if (!backendConfigurato() || !STATE.profile) return Promise.resolve(STATE.config);
+  // Mai nel percorso critico del login: il refresh parte solo entrando nella
+  // schermata Affluenza o su richiesta esplicita dell'utente.
+  if (configRefreshPromise) return configRefreshPromise;
+  if (!forza && ultimoRefreshConfigOkMs && Date.now() - ultimoRefreshConfigOkMs < 30000) {
+    return Promise.resolve(STATE.config);
+  }
+  return aggiornaConfigInBackground();
 }
 
 function renderModalitaDemo() {
@@ -1306,7 +1346,9 @@ function mostraDashboard() {
   if (appLabel) appLabel.textContent = APP_VERSION;
   if (backendLabel) backendLabel.textContent = (STATE.config && STATE.config.app && STATE.config.app.backendVersion) || '—';
   caricaMessaggi(true);
-  setTimeout(() => eseguiControlloDispositivo(false), 300);
+  // Non eseguire automaticamente un secondo test di rete dopo il login:
+  // l'accesso appena riuscito dimostra già che il backend è raggiungibile.
+  // Il controllo dispositivo resta disponibile su richiesta dell'utente.
 }
 
 function renderElettoriBanner() {
@@ -1545,6 +1587,12 @@ function initTabs() {
       renderTabellaInvii();
       aggiornaBadgeInCoda();
     }
+    if (tab.dataset.tab === 'affluenza' && STATE.profile) {
+      // Mostra subito gli orari disponibili e riallinea in background la
+      // configurazione ufficiale (utile su Edge/PWA con cache locale vecchia).
+      renderAffluenza();
+      aggiornaConfigPerAffluenzaSeServe(false).catch(() => {});
+    }
     if (spostaFocus) tab.focus();
   }
   tabs.forEach((tab, index) => {
@@ -1574,7 +1622,38 @@ function renderAffluenza() {
   const orari = orariAffluenza();
   const inviati = invitiAffluenzaSezione();
   if (!orari.length) {
-    cont.innerHTML = '<p class="muted-text">Il coordinamento non ha ancora configurato gli orari di rilevazione. Puoi comunque inviare una rilevazione libera più sotto.</p>';
+    const box = document.createElement('div');
+    box.className = 'muted-text';
+    const p = document.createElement('p');
+    p.textContent = configRefreshPromise
+      ? 'Aggiorno gli orari ufficiali dal coordinamento…'
+      : 'Gli orari ufficiali non sono ancora disponibili su questo dispositivo.';
+    box.appendChild(p);
+
+    if (!configRefreshPromise) {
+      const retry = document.createElement('button');
+      retry.type = 'button';
+      retry.className = 'btn ghost compact';
+      retry.textContent = 'Riprova caricamento orari';
+      retry.addEventListener('click', () => {
+        retry.disabled = true;
+        retry.textContent = 'Aggiorno…';
+        aggiornaConfigPerAffluenzaSeServe(true)
+          .then(() => {
+            if (!orariAffluenza().length) {
+              showToast('Il coordinamento non ha restituito gli orari di affluenza. Riprova tra poco.', 4500);
+            }
+          })
+          .catch(() => showToast('Non riesco ad aggiornare gli orari. Controlla la connessione e riprova.', 5000));
+      });
+      box.appendChild(retry);
+    }
+    cont.appendChild(box);
+  } else if (ultimoErroreConfig) {
+    const warning = document.createElement('p');
+    warning.className = 'muted-text';
+    warning.textContent = 'Sto mostrando gli ultimi orari disponibili sul dispositivo; l’aggiornamento online non è riuscito.';
+    cont.appendChild(warning);
   }
   orari.forEach((o) => {
     const key = chiaveAffluenza(o.giorno, o.orario);
@@ -3166,7 +3245,9 @@ function renderDeviceResults(results, openModal) {
   const readiness = $('#deviceReadinessText');
   if (readiness) readiness.textContent = failures ? failures + ' problema/i da risolvere.' : (warnings ? 'Pronto, con ' + warnings + ' avviso/i.' : 'Tutti i controlli sono superati.');
   saveJSON(LS.DEVICE_CHECK_VERSION, APP_VERSION);
-  if (openModal || failures) $('#modalDeviceCheck').hidden = false;
+  // I controlli automatici non devono interrompere l'operatività con popup:
+  // la finestra si apre soltanto quando il rappresentante preme "Controlla".
+  if (openModal) $('#modalDeviceCheck').hidden = false;
 }
 
 async function eseguiControlloDispositivo(openModal) {
@@ -3233,8 +3314,17 @@ async function eseguiControlloDispositivo(openModal) {
 
   if (navigator.onLine && backendConfigurato()) {
     try {
-      const r = await fetch(BACKEND_URL + '?action=health', { cache: 'no-store' });
-      const d = JSON.parse(await r.text());
+      const d = API_CLIENT
+        ? await API_CLIENT.get('health')
+        : await (async () => {
+            const r = await fetch(BACKEND_URL + '?action=health', {
+              cache: 'no-store',
+              redirect: 'follow',
+              referrerPolicy: 'no-referrer',
+              credentials: 'omit'
+            });
+            return JSON.parse(await r.text());
+          })();
       results.push({ title: 'Collegamento al coordinamento', detail: d.ok ? 'Backend raggiungibile.' : 'Risposta non valida.', level: d.ok ? 'ok' : 'error' });
     } catch (e) {
       const browser = browserCorrente();
