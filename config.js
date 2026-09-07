@@ -8,8 +8,8 @@ if (window.top !== window.self) {
 }
 
 window.SEGGI_CONFIG = Object.freeze({
-  appVersion: '14.0.7',
-  buildDate: '2026-09-01',
+  appVersion: '14.1.3',
+  buildDate: '2026-09-07',
   environment: 'production',
   latestVersionUrl: 'build-info.json',
   appName: 'SeggioLink Roma',

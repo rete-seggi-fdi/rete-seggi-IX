@@ -1,0 +1,19 @@
+SEGGIOLINK 14.1.3 — SOLO FILE DA SOSTITUIRE SU GITHUB
+
+index.html
+app.js
+config.js
+frame-guard.js
+control-center.html
+control-center.js
+control-center.css
+dashboard.html
+report-finale.html
+manifest.json
+service-worker.js
+build-info.json
+data/indice-sezioni.json
+data/municipio-04.json
+data/municipio-12.json
+
+NON caricare Code.gs su GitHub per questo passaggio.

@@ -196,7 +196,7 @@
 // ---------------------------------------------------------------------
 const RUNTIME_CONFIG = window.SEGGI_CONFIG || {};
 const BACKEND_URL = String(RUNTIME_CONFIG.backendUrl || '').trim();
-const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '14.0.7');
+const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '14.1.3');
 const REQUEST_TIMEOUT_MS = Number(RUNTIME_CONFIG.requestTimeoutMs || 60000);
 const LOGIN_TIMEOUT_MS = Math.min(12000, Math.max(6000, REQUEST_TIMEOUT_MS));
 const API_CLIENT = window.SeggioAPI ? window.SeggioAPI.create({ backendUrl: BACKEND_URL, timeoutMs: REQUEST_TIMEOUT_MS }) : null;

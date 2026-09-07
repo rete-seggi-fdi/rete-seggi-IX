@@ -8,14 +8,16 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https://unpkg.com https://*.tile.openstreetmap.org; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://services-eu1.arcgis.com; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
   <meta name="theme-color" content="#0a1833">
   <title>SeggioLink Control Center - Municipio IX</title>
-  <link rel="stylesheet" href="control-center.css?v=1407p1">
+  <link rel="stylesheet" href="control-center.css?v=1413p1">
+  <script src="frame-guard.js?v=1413p1"></script>
 </head>
 <body>
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 14.0.7</small></div></div>
+      <div class="brand"><span class="brand-mark">✦</span><div><strong>SeggioLink</strong><small>CONTROL CENTER 14.1.3</small></div></div>
       <nav aria-label="Navigazione Control Center">
         <button type="button" class="nav-item active" data-view="overview"><span class="nav-icon" aria-hidden="true">▦</span><span>Riepilogo</span></button>
+        <button type="button" class="nav-item" data-view="system"><span class="nav-icon" aria-hidden="true">●</span><span>Stato sistema</span></button>
         <button type="button" class="nav-item" data-view="data"><span class="nav-icon" aria-hidden="true">◫</span><span>Dati elettorali</span></button>
         <button type="button" class="nav-item" data-view="map"><span class="nav-icon" aria-hidden="true">⌖</span><span>Mappa Municipio IX</span></button>
         <button type="button" class="nav-item" data-view="sections"><span class="nav-icon" aria-hidden="true">▤</span><span>Sezioni e plessi</span></button>
@@ -50,6 +52,26 @@
             <section class="panel"><div class="panel-head"><h2>Ultimi invii</h2><button type="button" class="text-button" data-view-link="sections">Vedi tutte</button></div><div id="recentList" class="recent-list"></div></section>
             <section class="panel"><div class="panel-head"><h2>Top sezioni FdI</h2><select id="rankLevel"><option value="Comune">Comune</option><option value="Municipio">Municipio</option></select></div><div id="topList" class="ranking-list"></div></section>
             <section class="panel"><div class="panel-head"><h2>Sezioni mancanti</h2><span id="missingBadge" class="badge">0</span></div><div id="missingList" class="chips"></div></section>
+          </div>
+        </section>
+
+        <section id="view-system" class="view system-view">
+          <div class="view-head system-head">
+            <div><p class="eyebrow">OPERATIVITÀ PRODUZIONE</p><h2>Stato sistema</h2><p>Controllo sintetico di backend, invii, dashboard, backup, integrità e simulatore.</p></div>
+            <div class="system-actions"><button type="button" id="systemRefreshBtn" class="btn secondary">Aggiorna stato</button><button type="button" id="systemSnapshotBtn" class="btn primary">Crea snapshot ora</button></div>
+          </div>
+          <section id="systemHero" class="system-hero is-loading"><div><span class="system-dot"></span><div><small>STATO COMPLESSIVO</small><strong id="systemStateLabel">Caricamento…</strong><p id="systemStateDetail">Verifica dei servizi in corso.</p></div></div><span id="systemCheckedAt" class="system-checked">—</span></section>
+          <div class="metrics system-metrics">
+            <article><span>Frontend</span><strong id="systemFrontendVersion">14.1.3</strong><small>GitHub Pages / PWA</small></article>
+            <article><span>Backend</span><strong id="systemBackendVersion">—</strong><small id="systemBackendEnv">—</small></article>
+            <article><span>Sezioni attive</span><strong id="systemSections">—</strong><small>presidiate</small></article>
+            <article><span>Errori 15 min</span><strong id="systemErrors">—</strong><small>log applicativo</small></article>
+          </div>
+          <div class="two-columns system-grid">
+            <section class="panel system-panel"><div class="panel-head"><h2>Servizi</h2><span id="systemServicesBadge" class="badge">—</span></div><div id="systemServices" class="system-list"></div></section>
+            <section class="panel system-panel"><div class="panel-head"><h2>Backup e recovery</h2><span id="systemBackupBadge" class="badge">—</span></div><div id="systemBackup" class="system-list"></div></section>
+            <section class="panel system-panel"><div class="panel-head"><h2>Ultima attività</h2></div><div id="systemActivity" class="system-list"></div></section>
+            <section class="panel system-panel"><div class="panel-head"><h2>Controlli e anomalie</h2></div><div id="systemWarnings" class="system-alerts"></div></section>
           </div>
         </section>
 
@@ -95,7 +117,7 @@
     </main>
   </div>
   <dialog id="sectionDialog"><div class="dialog-card"><button type="button" id="closeDialog" class="dialog-close">×</button><div id="sectionDialogContent"></div></div></dialog>
-  <script src="config.js?v=1407p1"></script>
-  <script src="control-center.js?v=1407p1"></script>
+  <script src="config.js?v=1413p1"></script>
+  <script src="control-center.js?v=1413p1"></script>
 </body>
 </html>

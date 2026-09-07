@@ -1,11 +1,11 @@
 'use strict';
 const CFG=window.SEGGI_CONFIG||{};
 const BACKEND=String(CFG.backendUrl||'').trim();
-const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1407';
+const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1412';
 // Token e dati live restano soltanto nella sessione della scheda/browser.
 // Rimuoviamo anche eventuali residui persistenti delle versioni precedenti.
 try{localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);localStorage.removeItem('seggi_control_center_live_1532');localStorage.removeItem('seggi_control_center_live_1400');localStorage.removeItem(LIVE_CACHE_KEY)}catch(e){}
-let dashboardToken=sessionStorage.getItem(TOKEN_KEY)||'',live=null;
+let dashboardToken=sessionStorage.getItem(TOKEN_KEY)||'',live=null,systemStatus=null;
 let registry={schemaVersion:0,sezioniTotali:0,plessiTotali:0,sezioni:[]};
 let geoPlessi={schemaVersion:0,plessiTotali:0,plessiGeocodificati:0,plessi:[]};
 let registryBySection=new Map();
@@ -102,8 +102,8 @@ async function login(password){
   return x;
 }
 function validateRegistry(data){if(!data||typeof data!=='object'||!Array.isArray(data.sezioni))throw new Error('Archivio sezioni non valido.');const rows=data.sezioni.filter(x=>x&&x.sezione&&x.indirizzo).map(x=>({...x,sezione:normSection(x.sezione),numeroVie:Number(x.numeroVie||((x.vieAssegnate||[]).length)),vieAssegnate:Array.isArray(x.vieAssegnate)?x.vieAssegnate:[]}));if(!rows.length)throw new Error('Archivio sezioni vuoto.');const plessi=new Set(rows.map(x=>String(x.indirizzo).trim()+'|'+String(x.cap||'').trim()));return {...data,sezioni:rows,sezioniTotali:rows.length,plessiTotali:Number(data.plessiTotali||plessi.size)}}
-async function loadRegistry(){const url='data/sezioni-ix-control.json?v=1407';const r=await fetch(url,{cache:'force-cache'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
-async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=1407';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
+async function loadRegistry(){const url='data/sezioni-ix-control.json?v=1413';const r=await fetch(url,{cache:'force-cache'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
+async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=1413';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
 
 function rebuildRegistryIndex(){
   registryBySection=new Map();
@@ -183,7 +183,7 @@ function prepareMapLayout(){
     list.style.padding='2px 4px 8px 2px';
   }
   const version=[...document.querySelectorAll('small,.brand-subtitle')].find(x=>/CONTROL CENTER/i.test(x.textContent||''));
-  if(version)version.textContent='CONTROL CENTER 14.0.7';
+  if(version)version.textContent='CONTROL CENTER 14.1.3';
   return {layout,aside,list,staticPanel};
 }
 function ensureMapContainer(){
@@ -696,7 +696,71 @@ function downloadDetailedCsv(){
   return false;
 }
 
-function switchView(name){$$('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+name));$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===name));if(name==='data')renderDataView();if(name==='rankings'){renderRankings($('#rankingLevel').value,'#bestRankings',15,false);renderRankings($('#rankingLevel').value,'#worstRankings',15,true)}if(name==='sections')renderRegistry();if(name==='map'){renderMapList();renderGeoMap().catch(e=>{console.error(e);const info=$('#mapGeoSummary');if(info)info.textContent=e.message})}if(name==='report'){const p=$('#reportPreview');if(p&&!p.querySelector('.report-sheet'))p.innerHTML='<p class="empty-state">Scegli “Dossier riepilogo” oppure “Report sezioni”.</p>';}window.scrollTo({top:0,behavior:'smooth'})}
+
+function systemDate(value){if(!value)return'—';const d=new Date(value);return Number.isFinite(d.getTime())?d.toLocaleString('it-IT',{hour12:false}):'—'}
+function systemBool(ok,yes='ATTIVO',no='NON ATTIVO'){return `<span class="state ${ok?'done':'missing'}">${ok?yes:no}</span>`}
+function renderSystemStatus(){
+  const s=systemStatus;if(!s)return;
+  const hero=$('#systemHero'),label=$('#systemStateLabel'),detail=$('#systemStateDetail');
+  const state=String(s.stato||'warning');hero.className='system-hero is-'+state;
+  label.textContent=state==='ok'?'SISTEMA OPERATIVO':state==='critical'?'INTERVENTO NECESSARIO':'ATTENZIONE';
+  detail.textContent=state==='ok'?'Tutti i controlli operativi principali risultano regolari.':state==='critical'?'È presente almeno una criticità che richiede verifica.':'Il sistema è operativo con uno o più avvisi da controllare.';
+  $('#systemCheckedAt').textContent='Verificato '+systemDate(s.serverTime);
+  $('#systemFrontendVersion').textContent=String(CFG.appVersion||'14.1.3');
+  $('#systemBackendVersion').textContent=String(s.versioneBackend||'—').replace('-security-production','');
+  $('#systemBackendEnv').textContent=String(s.ambiente||'—');
+  $('#systemSections').textContent=fmt(s.sezioniAttive||0);
+  $('#systemErrors').textContent=fmt(s.log?.errori15m||0);
+  $('#systemServicesBadge').textContent=s.dashboard?.triggerAttivo?'OPERATIVI':'VERIFICA';
+  $('#systemServices').innerHTML=[
+    ['Backend/API',systemBool(true,'ONLINE','OFFLINE')],
+    ['Database',systemBool(Boolean(s.database?.ok),'OK','ERRORE')],
+    ['Dashboard automatica',systemBool(Boolean(s.dashboard?.triggerAttivo))],
+    ['Cache login',systemBool(Boolean(s.login?.cacheIndicizzata),'CALDA','DA PREPARARE')],
+    ['Simulatore isolato',systemBool(Boolean(s.simulator?.isolato),'ISOLATO','NON ISOLATO')]
+  ].map(x=>`<div class="system-row"><span>${esc(x[0])}</span><strong>${x[1]}</strong></div>`).join('');
+  const backupOk=Boolean(s.backup?.automaticoAttivo&&s.backup?.ultimoSnapshot);
+  $('#systemBackupBadge').textContent=backupOk?'PROTETTO':'DA VERIFICARE';
+  $('#systemBackup').innerHTML=[
+    ['Snapshot automatici',systemBool(Boolean(s.backup?.automaticoAttivo))],
+    ['Ultimo snapshot',`<span>${esc(systemDate(s.backup?.ultimoSnapshot))}</span>`],
+    ['Nome',`<span>${esc(s.backup?.ultimoNome||'—')}</span>`],
+    ['Stato backup',`<span>${esc(s.backup?.statoUltimo||'—')}</span>`],
+    ['In lavorazione',`<span>${esc(s.backup?.pending?.nome||'—')}</span>`],
+    ['Retention',`<span>ultimi ${fmt(s.backup?.retention||0)}</span>`]
+  ].map(x=>`<div class="system-row"><span>${esc(x[0])}</span><strong>${x[1]}</strong></div>`).join('');
+  $('#systemActivity').innerHTML=[
+    ['Ultima affluenza',systemDate(s.ultimoInvioAffluenza)],
+    ['Ultimo scrutinio',systemDate(s.ultimoScrutinio)],
+    ['Dashboard generale',systemDate(s.dashboard?.ultimoAggiornamentoGenerale)],
+    ['Dashboard affluenza',systemDate(s.dashboard?.ultimoAggiornamentoAffluenza)],
+    ['Cache login riscaldata',systemDate(s.login?.cacheRiscaldataIl)]
+  ].map(x=>`<div class="system-row"><span>${esc(x[0])}</span><strong>${esc(x[1])}</strong></div>`).join('');
+  const alerts=[...(s.criticita||[]).map(t=>({kind:'critical',text:t})),...(s.avvisi||[]).map(t=>({kind:'warning',text:t}))];
+  $('#systemWarnings').innerHTML=alerts.length?alerts.map(a=>`<div class="system-alert ${a.kind}">${esc(a.text)}</div>`).join(''):'<div class="system-alert ok">Nessuna criticità o avviso operativo.</div>';
+}
+async function loadSystemStatus(force=false){
+  if(!dashboardToken)return showLogin('',false);
+  const btn=$('#systemRefreshBtn');if(btn)btn.disabled=true;
+  try{
+    const x=await post({tipo:'dashboard_system_status',dashboardToken,force:!!force});
+    if(!x.ok){if(String(x.code||'').includes('SESSION'))return showLogin(x.error,true);throw new Error(x.error||'Errore stato sistema')}
+    systemStatus=x;renderSystemStatus();
+  }catch(e){console.error(e);const w=$('#systemWarnings');if(w)w.innerHTML=`<div class="system-alert critical">${esc(e.message||e)}</div>`}
+  finally{if(btn)btn.disabled=false}
+}
+async function createSystemSnapshot(){
+  const btn=$('#systemSnapshotBtn');if(btn){btn.disabled=true;btn.textContent='Programmazione…'}
+  try{
+    const x=await post({tipo:'dashboard_snapshot',dashboardToken});
+    if(!x.ok){const extra=x.code==='SNAPSHOT_RATE_LIMITED'&&x.retryAfterSeconds?' Riprova tra '+Math.ceil(Number(x.retryAfterSeconds)/60)+' min.':'';throw new Error((x.error||'Snapshot non riuscito')+extra)}
+    await loadSystemStatus(true);
+    alert('Snapshot programmato in background: '+(x.nome||'in coda')+'\n\nControlla Stato Sistema tra alcuni minuti.');
+  }catch(e){alert('Impossibile programmare lo snapshot: '+(e.message||e))}
+  finally{if(btn){btn.disabled=false;btn.textContent='Crea snapshot ora'}}
+}
+
+function switchView(name){$$('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+name));$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===name));if(name==='system')loadSystemStatus();if(name==='data')renderDataView();if(name==='rankings'){renderRankings($('#rankingLevel').value,'#bestRankings',15,false);renderRankings($('#rankingLevel').value,'#worstRankings',15,true)}if(name==='sections')renderRegistry();if(name==='map'){renderMapList();renderGeoMap().catch(e=>{console.error(e);const info=$('#mapGeoSummary');if(info)info.textContent=e.message})}if(name==='report'){const p=$('#reportPreview');if(p&&!p.querySelector('.report-sheet'))p.innerHTML='<p class="empty-state">Scegli “Dossier riepilogo” oppure “Report sezioni”.</p>';}window.scrollTo({top:0,behavior:'smooth'})}
 window.SeggioLinkGenerateReport=generateReport;
 
 function bindControlCenterEvents(){
@@ -747,6 +811,8 @@ function bindControlCenterEvents(){
   }
 
   if(refreshBtn)refreshBtn.addEventListener('click',load);
+  $('#systemRefreshBtn')?.addEventListener('click',()=>loadSystemStatus(true));
+  $('#systemSnapshotBtn')?.addEventListener('click',createSystemSnapshot);
   if(logoutBtn)logoutBtn.addEventListener('click',()=>showLogin('',true));
   if(printBtn)printBtn.addEventListener('click',()=>{
     switchView('report');
@@ -817,4 +883,4 @@ document.addEventListener('click',e=>{const b=e.target.closest?.('#generateRepor
     load();
   }
 })();
-window.addEventListener('hashchange',()=>{const v=location.hash.replace('#','');if(['overview','data','map','sections','rankings','report'].includes(v))switchView(v)});
+window.addEventListener('hashchange',()=>{const v=location.hash.replace('#','');if(['overview','system','data','map','sections','rankings','report'].includes(v))switchView(v)});
