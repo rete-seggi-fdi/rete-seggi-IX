@@ -1,11 +1,11 @@
 {
-  "version": "14.1.3",
-  "latestVersion": "14.1.3",
+  "version": "14.1.4",
+  "latestVersion": "14.1.4",
   "minimumVersion": "14.0.7",
-  "buildDate": "2026-09-07",
+  "buildDate": "2026-09-09",
   "name": "SeggioLink Roma",
-  "controlCenterVersion": "14.1.3",
-  "backendVersion": "14.1.3-security-reviewed-production",
-  "channel": "production-candidate-security-reviewed",
-  "notes": "Security reviewed: cache login a bucket, cartella backup dedicata non riusata per nome, rate limit snapshot Control Center, frame guard anticipato, Worker Cloudflare unificato/hardened e disabilitato di default."
+  "controlCenterVersion": "14.1.4",
+  "backendVersion": "14.1.4-security-hotfix-production",
+  "channel": "production-candidate-security-hotfix",
+  "notes": "Hotfix sicurezza logout: revoca server-side della singola sessione, compatibilità token 14.1.3, cache A/R per evitare letture ripetute delle Script Properties, logout frontend confermato dal server."
 }

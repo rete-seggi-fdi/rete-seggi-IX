@@ -8,6 +8,7 @@
     SESSION_EXPIRED: 'La sessione è scaduta. Accedi nuovamente: gli invii salvati sul telefono non andranno persi.',
     SESSION_INVALID: 'La sessione non è più valida. Accedi nuovamente: gli invii salvati sul telefono non andranno persi.',
     SESSION_REVOKED: 'Il coordinamento ha revocato questa sessione. Accedi nuovamente o contatta l’assistenza.',
+    SESSION_REVOKE_FAILED: 'Non riesco a chiudere la sessione sul server. Riprova con una connessione attiva.',
     REPRESENTATIVE_DISABLED: 'Questo accesso non è più abilitato. Contatta il coordinamento.',
     RATE_LIMITED: 'Troppi tentativi di accesso. Attendi alcuni minuti prima di riprovare.',
     INVALID_CREDENTIALS: 'Codice o numero di telefono non validi.',
@@ -196,7 +197,7 @@
 // ---------------------------------------------------------------------
 const RUNTIME_CONFIG = window.SEGGI_CONFIG || {};
 const BACKEND_URL = String(RUNTIME_CONFIG.backendUrl || '').trim();
-const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '14.1.3');
+const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '14.1.4');
 const REQUEST_TIMEOUT_MS = Number(RUNTIME_CONFIG.requestTimeoutMs || 60000);
 const LOGIN_TIMEOUT_MS = Math.min(12000, Math.max(6000, REQUEST_TIMEOUT_MS));
 const API_CLIENT = window.SeggioAPI ? window.SeggioAPI.create({ backendUrl: BACKEND_URL, timeoutMs: REQUEST_TIMEOUT_MS }) : null;
@@ -963,6 +964,8 @@ let focusPrimaLogout = null;
 function onLogout() {
   const modal = $('#modalLogout');
   if (!modal) return;
+  const stato = $('#logoutStato');
+  if (stato) { stato.textContent = ''; stato.hidden = true; }
   focusPrimaLogout = document.activeElement;
   modal.hidden = false;
   requestAnimationFrame(() => {
@@ -980,7 +983,7 @@ function chiudiModalLogout() {
   focusPrimaLogout = null;
 }
 
-function confermaLogout() {
+function finalizzaLogoutLocale_() {
   if (STATE.profile && timerBozzaScrutinio) salvaBozzaScrutinio(false, 'bozza');
   clearTimeout(timerBozzaScrutinio);
   timerBozzaScrutinio = null;
@@ -1006,7 +1009,69 @@ function confermaLogout() {
   $('#loginErrore').hidden = true;
   window.scrollTo({ top: 0, behavior: 'auto' });
   requestAnimationFrame(() => $('#loginTelefono').focus());
-  showToast('Sessione chiusa. Eventuali dati offline restano isolati e saranno visibili solo allo stesso codice dopo un nuovo accesso.');
+  showToast('Sessione chiusa e revocata sul coordinamento. Eventuali dati offline restano isolati sul dispositivo.');
+}
+
+async function confermaLogout() {
+  const token = sessionToken();
+  const btn = $('#btnConfermaLogout');
+  const stato = $('#logoutStato');
+
+  if (!token) {
+    finalizzaLogoutLocale_();
+    return;
+  }
+
+  // Un logout dichiarato completato deve essere una revoca server-side reale.
+  // Se siamo offline o il backend non conferma, non cancelliamo il token locale:
+  // così l'utente può riprovare e non riceve una falsa conferma di sicurezza.
+  if (!navigator.onLine) {
+    if (stato) {
+      stato.textContent = 'Per uscire in sicurezza serve una connessione. Ricollegati e premi di nuovo “Esci dall’app”.';
+      stato.hidden = false;
+    }
+    return;
+  }
+
+  const testoOriginale = btn ? btn.textContent : 'Esci dall’app';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Chiusura sicura…';
+  }
+  if (stato) {
+    stato.textContent = 'Revoco la sessione sul coordinamento…';
+    stato.hidden = false;
+  }
+
+  try {
+    const data = LOGIN_API_CLIENT
+      ? await LOGIN_API_CLIENT.post({ tipo: 'logout', sessionToken: token }, 1)
+      : await backendPostSicuro({ tipo: 'logout', sessionToken: token }, 1);
+
+    // SESSION_INVALID qui è sicuro da trattare come logout concluso: significa
+    // che il token non è già più utilizzabile dal backend (es. scaduto).
+    if (data && (data.ok === true || data.code === 'SESSION_INVALID')) {
+      finalizzaLogoutLocale_();
+      return;
+    }
+
+    const err = new Error((data && data.error) || 'Il coordinamento non ha confermato la chiusura della sessione.');
+    err.code = (data && data.code) || 'SESSION_REVOKE_FAILED';
+    throw err;
+  } catch (e) {
+    if (stato) {
+      stato.textContent = 'Sessione non chiusa: ' + messaggioErroreUtente(
+        e,
+        'Controlla la connessione e riprova. Finché non compare la conferma, la sessione resta attiva.'
+      );
+      stato.hidden = false;
+    }
+  } finally {
+    if (btn && document.body.contains(btn)) {
+      btn.disabled = false;
+      btn.textContent = testoOriginale;
+    }
+  }
 }
 
 // =======================================================================
