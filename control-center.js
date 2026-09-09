@@ -102,8 +102,8 @@ async function login(password){
   return x;
 }
 function validateRegistry(data){if(!data||typeof data!=='object'||!Array.isArray(data.sezioni))throw new Error('Archivio sezioni non valido.');const rows=data.sezioni.filter(x=>x&&x.sezione&&x.indirizzo).map(x=>({...x,sezione:normSection(x.sezione),numeroVie:Number(x.numeroVie||((x.vieAssegnate||[]).length)),vieAssegnate:Array.isArray(x.vieAssegnate)?x.vieAssegnate:[]}));if(!rows.length)throw new Error('Archivio sezioni vuoto.');const plessi=new Set(rows.map(x=>String(x.indirizzo).trim()+'|'+String(x.cap||'').trim()));return {...data,sezioni:rows,sezioniTotali:rows.length,plessiTotali:Number(data.plessiTotali||plessi.size)}}
-async function loadRegistry(){const url='data/sezioni-ix-control.json?v=1414';const r=await fetch(url,{cache:'force-cache'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
-async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=1414';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
+async function loadRegistry(){const url='data/sezioni-ix-control.json?v=1416';const r=await fetch(url,{cache:'force-cache'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
+async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=1416';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
 
 function rebuildRegistryIndex(){
   registryBySection=new Map();
@@ -183,7 +183,7 @@ function prepareMapLayout(){
     list.style.padding='2px 4px 8px 2px';
   }
   const version=[...document.querySelectorAll('small,.brand-subtitle')].find(x=>/CONTROL CENTER/i.test(x.textContent||''));
-  if(version)version.textContent='CONTROL CENTER 14.1.4';
+  if(version)version.textContent='CONTROL CENTER 14.1.6';
   return {layout,aside,list,staticPanel};
 }
 function ensureMapContainer(){
@@ -706,7 +706,7 @@ function renderSystemStatus(){
   label.textContent=state==='ok'?'SISTEMA OPERATIVO':state==='critical'?'INTERVENTO NECESSARIO':'ATTENZIONE';
   detail.textContent=state==='ok'?'Tutti i controlli operativi principali risultano regolari.':state==='critical'?'È presente almeno una criticità che richiede verifica.':'Il sistema è operativo con uno o più avvisi da controllare.';
   $('#systemCheckedAt').textContent='Verificato '+systemDate(s.serverTime);
-  $('#systemFrontendVersion').textContent=String(CFG.appVersion||'14.1.4');
+  $('#systemFrontendVersion').textContent=String(CFG.appVersion||'14.1.6');
   $('#systemBackendVersion').textContent=String(s.versioneBackend||'—').replace('-security-production','');
   $('#systemBackendEnv').textContent=String(s.ambiente||'—');
   $('#systemSections').textContent=fmt(s.sezioniAttive||0);

@@ -197,7 +197,7 @@
 // ---------------------------------------------------------------------
 const RUNTIME_CONFIG = window.SEGGI_CONFIG || {};
 const BACKEND_URL = String(RUNTIME_CONFIG.backendUrl || '').trim();
-const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '14.1.4');
+const APP_VERSION = String(RUNTIME_CONFIG.appVersion || '14.1.6');
 const REQUEST_TIMEOUT_MS = Number(RUNTIME_CONFIG.requestTimeoutMs || 60000);
 const LOGIN_TIMEOUT_MS = Math.min(12000, Math.max(6000, REQUEST_TIMEOUT_MS));
 const API_CLIENT = window.SeggioAPI ? window.SeggioAPI.create({ backendUrl: BACKEND_URL, timeoutMs: REQUEST_TIMEOUT_MS }) : null;
@@ -2657,7 +2657,11 @@ async function sincronizzaStoricoDaServer(silenzioso) {
   } catch (e) {
     if (e && erroreRichiedeNuovoLogin(e.code)) {
       clearSessionCredentials();
-      if (!silenzioso) showToast('Sessione scaduta: accedi nuovamente per aggiornare lo storico.', 5500);
+      showToast(
+        'Accesso effettuato, ma il coordinamento non ha accettato la sessione per recuperare lo storico. ' +
+        'Nessun invio è stato cancellato: effettua nuovamente l’accesso.',
+        7500
+      );
       return false;
     }
     if (!silenzioso) showToast(messaggioErroreUtente(e, 'Non riesco ad aggiornare lo storico dal coordinamento.'), 5500);

@@ -1,19 +1,23 @@
-SEGGIOLINK 14.1.3 — SOLO FILE DA SOSTITUIRE SU GITHUB
+SEGGIOLINK 14.1.6 — FILE GITHUB
 
-index.html
 app.js
 config.js
-frame-guard.js
+index.html
+styles.css
 control-center.html
 control-center.js
 control-center.css
 dashboard.html
+dashboard.js
+dashboard.css
 report-finale.html
-manifest.json
+report-finale.js
+report-finale.css
 service-worker.js
+manifest.json
 build-info.json
-data/indice-sezioni.json
-data/municipio-04.json
-data/municipio-12.json
+frame-guard.js
+worker.js
+cloudflare/src/worker.js
 
-NON caricare Code.gs su GitHub per questo passaggio.
+PUBBLICARE SOLO DOPO continuitaStorico.ok=true E TEST DINAMICO POSITIVO.

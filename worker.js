@@ -40,9 +40,9 @@ export default {
 
     const url = new URL(request.url);
     if (url.pathname === '/health') {
-      if (!env.DB) return json({ ok: false, backend: 'cloudflare-d1', version: '14.1.4', code: 'DB_NOT_BOUND' }, 503, origin);
+      if (!env.DB) return json({ ok: false, backend: 'cloudflare-d1', version: '14.1.6', code: 'DB_NOT_BOUND' }, 503, origin);
       const row = await env.DB.prepare('SELECT COUNT(*) AS n FROM municipalities').first();
-      return json({ ok: true, backend: 'cloudflare-d1', version: '14.1.4', municipalities: row?.n || 0 }, 200, origin);
+      return json({ ok: true, backend: 'cloudflare-d1', version: '14.1.6', municipalities: row?.n || 0 }, 200, origin);
     }
 
     return json({
