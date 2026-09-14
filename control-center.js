@@ -356,7 +356,7 @@ async function renderGeoMap(){
   const staticPanel=$('#view-map .map-panel');
   if(!mapInstance){
     mapInstance=L.map(el,{zoomControl:true,scrollWheelZoom:true,preferCanvas:true}).setView([41.805,12.47],12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
       maxZoom:19,
       attribution:'&copy; OpenStreetMap contributors'
     }).addTo(mapInstance);
