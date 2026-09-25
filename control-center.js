@@ -1,11 +1,18 @@
 'use strict';
 const CFG=window.SEGGI_CONFIG||{};
 const BACKEND=String(CFG.backendUrl||'').trim();
-const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1412';
+const TOKEN_KEY='seggi_dashboard_token',EXP_KEY='seggi_dashboard_token_expiry',LIVE_CACHE_KEY='seggi_control_center_live_1417';
 // Token e dati live restano soltanto nella sessione della scheda/browser.
 // Rimuoviamo anche eventuali residui persistenti delle versioni precedenti.
-try{localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);localStorage.removeItem('seggi_control_center_live_1532');localStorage.removeItem('seggi_control_center_live_1400');localStorage.removeItem(LIVE_CACHE_KEY)}catch(e){}
+try{
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(EXP_KEY);
+  ['seggi_control_center_live_1532','seggi_control_center_live_1400','seggi_control_center_live_1412','seggi_control_center_live_1417']
+    .forEach(k=>localStorage.removeItem(k));
+}catch(e){}
 let dashboardToken=sessionStorage.getItem(TOKEN_KEY)||'',live=null,systemStatus=null;
+let resultsLoaded=false,resultsPromise=null,quickRequestPromise=null,revisionRequestPromise=null,quickPollTimer=null;
+const DASHBOARD_POLL_MS=Math.max(8000,Number(CFG.dashboardRefreshMs||12000));
 let registry={schemaVersion:0,sezioniTotali:0,plessiTotali:0,sezioni:[]};
 let geoPlessi={schemaVersion:0,plessiTotali:0,plessiGeocodificati:0,plessi:[]};
 let registryBySection=new Map();
@@ -82,6 +89,11 @@ function showAppShell(){
 }
 function clearSession(){
   dashboardToken='';
+  stopDashboardPolling1417();
+  resultsLoaded=false;
+  resultsPromise=null;
+  quickRequestPromise=null;
+  revisionRequestPromise=null;
   try{localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(EXP_KEY);localStorage.removeItem('seggi_control_center_live_1400');localStorage.removeItem(LIVE_CACHE_KEY)}catch(e){}
   sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem(EXP_KEY);sessionStorage.removeItem(LIVE_CACHE_KEY);
   live=null;
@@ -102,8 +114,8 @@ async function login(password){
   return x;
 }
 function validateRegistry(data){if(!data||typeof data!=='object'||!Array.isArray(data.sezioni))throw new Error('Archivio sezioni non valido.');const rows=data.sezioni.filter(x=>x&&x.sezione&&x.indirizzo).map(x=>({...x,sezione:normSection(x.sezione),numeroVie:Number(x.numeroVie||((x.vieAssegnate||[]).length)),vieAssegnate:Array.isArray(x.vieAssegnate)?x.vieAssegnate:[]}));if(!rows.length)throw new Error('Archivio sezioni vuoto.');const plessi=new Set(rows.map(x=>String(x.indirizzo).trim()+'|'+String(x.cap||'').trim()));return {...data,sezioni:rows,sezioniTotali:rows.length,plessiTotali:Number(data.plessiTotali||plessi.size)}}
-async function loadRegistry(){const url='data/sezioni-ix-control.json?v=1416';const r=await fetch(url,{cache:'force-cache'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
-async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=1416';const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
+async function loadRegistry(){const url='data/sezioni-ix-control.json?v=1417';const r=await fetch(url,{cache:'force-cache'});if(!r.ok)throw new Error('Archivio sezioni non raggiungibile ('+r.status+').');registry=validateRegistry(await r.json())}
+async function loadGeoPlessi(){const url='data/plessi-ix-geocodificati.json?v=1417';const r=await fetch(url,{cache:'force-cache'});if(!r.ok)throw new Error('Archivio geografico non raggiungibile ('+r.status+').');const data=await r.json();if(!data||!Array.isArray(data.plessi))throw new Error('Archivio geografico non valido.');const validi=data.plessi.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)!==0&&Number(p.lng)!==0);if(!validi.length)throw new Error('Nessun plesso geocodificato disponibile.');geoPlessi={...data,plessi:validi,plessiGeocodificati:validi.length}}
 
 function rebuildRegistryIndex(){
   registryBySection=new Map();
@@ -183,7 +195,7 @@ function prepareMapLayout(){
     list.style.padding='2px 4px 8px 2px';
   }
   const version=[...document.querySelectorAll('small,.brand-subtitle')].find(x=>/CONTROL CENTER/i.test(x.textContent||''));
-  if(version)version.textContent='CONTROL CENTER 14.1.6';
+  if(version)version.textContent='CONTROL CENTER 14.1.7';
   return {layout,aside,list,staticPanel};
 }
 function ensureMapContainer(){
@@ -376,48 +388,245 @@ async function renderGeoMap(){
     mapMarkers.push(marker);
     bounds.push([Number(p.lat),Number(p.lng)]);
   });
-  let confineOk=false;
-  try{await loadMunicipioBoundary(L);confineOk=true}catch(e){console.warn(e)}
-  updateMapDiagnostics();
-  const info=$('#mapGeoSummary');
-  if(info)info.textContent=`${fmt(geoPlessi.plessiGeocodificati)} plessi geocodificati · ${fmt(geoSectionsTotal())} sezioni associate${confineOk?' · confine Municipio IX attivo':' · confine non disponibile'}`;
+  // La mappa dinamica deve comparire subito: il confine ArcGIS è un livello
+  // accessorio e viene caricato in background, senza tenere visibile il fallback.
   if(staticPanel)staticPanel.hidden=true;
-  setTimeout(()=>{mapInstance.invalidateSize();fitMapToPlessi();},100);
+  setTimeout(()=>{mapInstance.invalidateSize();fitMapToPlessi();},60);
+
+  const info=$('#mapGeoSummary');
+  if(info)info.textContent=`${fmt(geoPlessi.plessiGeocodificati)} plessi geocodificati · ${fmt(geoSectionsTotal())} sezioni associate · caricamento confine…`;
+  updateMapDiagnostics();
+
+  loadMunicipioBoundary(L).then(()=>{
+    updateMapDiagnostics();
+    if(info)info.textContent=`${fmt(geoPlessi.plessiGeocodificati)} plessi geocodificati · ${fmt(geoSectionsTotal())} sezioni associate · confine Municipio IX attivo`;
+  }).catch(e=>{
+    console.warn(e);
+    updateMapDiagnostics();
+    if(info)info.textContent=`${fmt(geoPlessi.plessiGeocodificati)} plessi geocodificati · ${fmt(geoSectionsTotal())} sezioni associate · confine non disponibile`;
+  });
 }
 async function focusSectionOnMap(section){const sec=normSection(section);if(!mapInstance||!mapMarkers.length){try{await renderGeoMap()}catch(e){console.error(e)}}const marker=mapMarkers.find(m=>m._seggiSections?.has(sec));if(marker&&mapInstance){mapInstance.setView(marker.getLatLng(),16,{animate:true});marker.openPopup();return true}openSection(sec);return false}
+function emptyLive1417(){
+  return {
+    ok:true,
+    serverTime:'',
+    versioneBackend:'',
+    dataRevision:0,
+    resultsRevision:0,
+    resultsLoaded:false,
+    totali:{elettori:0,maschi:0,femmine:0,totale:0,percentuale:''},
+    sezioniAttese:0,sezioniRicevute:0,sezioniMancanti:0,
+    perMunicipio:[],sezioni:[],mancanti:[],ultimiInvii:[],
+    scrutiniDettaglio:[],risultatiListe:[],riepilogoFdi:{}
+  };
+}
+function normalizeLive1417(data){
+  const base=emptyLive1417(),x=(data&&typeof data==='object')?data:{};
+  return {
+    ...base,...x,
+    totali:{...base.totali,...(x.totali||{})},
+    perMunicipio:Array.isArray(x.perMunicipio)?x.perMunicipio:[],
+    sezioni:Array.isArray(x.sezioni)?x.sezioni:[],
+    mancanti:Array.isArray(x.mancanti)?x.mancanti:[],
+    ultimiInvii:Array.isArray(x.ultimiInvii)?x.ultimiInvii:[],
+    scrutiniDettaglio:Array.isArray(x.scrutiniDettaglio)?x.scrutiniDettaglio:[],
+    risultatiListe:Array.isArray(x.risultatiListe)?x.risultatiListe:[],
+    riepilogoFdi:(x.riepilogoFdi&&typeof x.riepilogoFdi==='object')?x.riepilogoFdi:{}
+  };
+}
+function saveLiveCache1417(){
+  if(!live)return;
+  try{sessionStorage.setItem(LIVE_CACHE_KEY,JSON.stringify({savedAt:Date.now(),data:live}))}catch(e){}
+}
 function restoreLiveCache(){
   if(live)return false;
   try{
     const cached=JSON.parse(sessionStorage.getItem(LIVE_CACHE_KEY)||'null');
     if(!cached?.data)return false;
-    live=cached.data;
+    live=normalizeLive1417(cached.data);
+    resultsLoaded=Boolean(live.resultsLoaded&&Array.isArray(live.risultatiListe));
     renderAll();
     showAppShell();
     $('#lastUpdate').textContent='Dati memorizzati · aggiornamento in corso…';
     return true;
   }catch(e){return false}
 }
-async function load(){
-  if(!dashboardToken)return showLogin('',false);
-  const restored=restoreLiveCache();
-  setOnline(false,restored?'Aggiornamento…':'Caricamento…');
-  const refreshBtn=$('#refreshBtn');
-  if(refreshBtn)refreshBtn.disabled=true;
-  try{
-    const x=await post({tipo:'dashboard_affluenza',dashboardToken});
-    if(!x.ok){if(String(x.code).includes('SESSION'))return showLogin(x.error,true);throw new Error(x.error||'Errore backend')}
-    live=x;
-    try{sessionStorage.setItem(LIVE_CACHE_KEY,JSON.stringify({savedAt:Date.now(),data:x}))}catch(e){}
+function activeViewName1417(){
+  return $('.nav-item.active')?.dataset?.view||'overview';
+}
+function renderActiveView1417(){
+  const name=activeViewName1417();
+  if(name==='data')renderDataView();
+  if(name==='rankings'){
+    renderRankings($('#rankingLevel').value,'#bestRankings',15,false);
+    renderRankings($('#rankingLevel').value,'#worstRankings',15,true);
+  }
+  if(name==='sections')renderRegistry();
+  if(name==='map'){
+    try{renderMapList()}catch(e){console.error(e)}
+    if(mapInstance){
+      mapMarkers.forEach(m=>m.setIcon(markerIcon(statusForPlesso(m._seggiPlesso))));
+    }
+  }
+}
+function stopDashboardPolling1417(){
+  if(quickPollTimer){clearInterval(quickPollTimer);quickPollTimer=null}
+}
+async function checkDashboardRevision1417(){
+  if(!dashboardToken||tokenScaduto())return false;
+  if(revisionRequestPromise)return revisionRequestPromise;
+
+  revisionRequestPromise=(async()=>{
+    try{
+      const x=await post({tipo:'dashboard_revision',dashboardToken});
+      if(!x.ok){
+        if(String(x.code||'').includes('SESSION')){showLogin(x.error||'Sessione scaduta.',true);return false}
+        throw new Error(x.error||'Errore controllo aggiornamenti');
+      }
+
+      const current=String(live?.dataRevision??'');
+      const incoming=String(x.dataRevision??'');
+      if(x.liveDirty||!x.liveReady||!live?.serverTime||current!==incoming){
+        await load({silent:true});
+      }else if(!resultsLoaded){
+        ensureResultsLoaded1417(false).catch(e=>console.error(e));
+      }
+      return true;
+    }catch(e){
+      console.error(e);
+      return false;
+    }
+  })();
+
+  try{return await revisionRequestPromise}
+  finally{revisionRequestPromise=null}
+}
+function startDashboardPolling1417(){
+  if(quickPollTimer||!dashboardToken)return;
+  quickPollTimer=setInterval(()=>{
+    if(document.visibilityState!=='visible'||!dashboardToken||tokenScaduto())return;
+    checkDashboardRevision1417().catch(e=>console.error(e));
+  },DASHBOARD_POLL_MS);
+}
+async function ensureResultsLoaded1417(force=false){
+  if(!dashboardToken)return false;
+  if(resultsLoaded&&!force)return true;
+  if(resultsPromise)return resultsPromise;
+
+  resultsPromise=(async()=>{
+    const x=await post({tipo:'dashboard_results',dashboardToken});
+    if(!x.ok){
+      if(String(x.code||'').includes('SESSION')){showLogin(x.error||'Sessione scaduta.',true);return false}
+      throw new Error(x.error||'Errore caricamento risultati');
+    }
+
+    const currentRevision=String(live?.resultsRevision??'');
+    const responseRevision=String(x.resultsRevision??'');
+    if(currentRevision&&responseRevision&&currentRevision!==responseRevision){
+      resultsLoaded=false;
+      window.setTimeout(()=>ensureResultsLoaded1417(false).catch(e=>console.error(e)),350);
+      return false;
+    }
+
+    live=normalizeLive1417({
+      ...(live||emptyLive1417()),
+      risultatiListe:Array.isArray(x.risultatiListe)?x.risultatiListe:[],
+      scrutiniDettaglio:Array.isArray(x.scrutiniDettaglio)?x.scrutiniDettaglio:(live?.scrutiniDettaglio||[]),
+      riepilogoFdi:x.riepilogoFdi||{},
+      configurazioneFdi:x.configurazioneFdi||live?.configurazioneFdi||{},
+      resultsRevision:x.resultsRevision??live?.resultsRevision??0,
+      resultsLoaded:true,
+      versioneBackend:x.versioneBackend||live?.versioneBackend||''
+    });
+    resultsLoaded=true;
+    saveLiveCache1417();
     renderAll();
-    showAppShell();
-    setOnline(true,'Online');
-    $('#backendVersion').textContent='Backend '+(x.versioneBackend||'-');
-    $('#lastUpdate').textContent='Aggiornato '+new Date(x.serverTime).toLocaleString('it-IT');
-  }catch(e){
-    setOnline(false,live?'Dati memorizzati':'Errore');
-    if(!live)showLogin(e.message,false);
-    console.error(e)
-  }finally{if(refreshBtn)refreshBtn.disabled=false}
+    renderActiveView1417();
+    return true;
+  })();
+
+  try{return await resultsPromise}
+  finally{resultsPromise=null}
+}
+async function load(options={}){
+  if(!dashboardToken)return showLogin('',false);
+  if(quickRequestPromise)return quickRequestPromise;
+
+  const silent=Boolean(options.silent);
+  const restored=!live&&restoreLiveCache();
+  if(!live)live=emptyLive1417();
+
+  if(!silent)setOnline(false,restored?'Aggiornamento…':'Caricamento dati…');
+  const refreshBtn=$('#refreshBtn');
+  if(refreshBtn&&!silent)refreshBtn.disabled=true;
+
+  quickRequestPromise=(async()=>{
+    try{
+      const x=await post({tipo:'dashboard_quick',dashboardToken});
+      if(!x.ok){
+        if(String(x.code||'').includes('SESSION'))return showLogin(x.error||'Sessione scaduta.',true);
+        if(x.code==='DASHBOARD_UPDATING'){
+          showAppShell();
+          setOnline(false,'Aggiornamento…');
+          $('#lastUpdate').textContent='Sincronizzazione dati in corso…';
+          window.setTimeout(()=>load({silent:true}).catch(e=>console.error(e)),1200);
+          return false;
+        }
+        throw new Error(x.error||'Errore backend');
+      }
+
+      const previous=normalizeLive1417(live);
+      const sameResultsRevision=
+        resultsLoaded &&
+        String(previous.resultsRevision??'')===String(x.resultsRevision??'');
+
+      live=normalizeLive1417({
+        ...previous,
+        ...x,
+        risultatiListe:sameResultsRevision?previous.risultatiListe:[],
+        riepilogoFdi:sameResultsRevision?previous.riepilogoFdi:{},
+        // La risposta quick contiene TUTTI gli scrutini ricevuti, quindi mappa e
+        // stato sezioni sono corretti senza attendere i risultati di lista.
+        scrutiniDettaglio:Array.isArray(x.scrutiniDettaglio)?x.scrutiniDettaglio:[],
+        resultsLoaded:sameResultsRevision
+      });
+      resultsLoaded=sameResultsRevision;
+
+      saveLiveCache1417();
+      renderAll();
+      showAppShell();
+      setOnline(true,resultsLoaded?'Online':'Online · risultati in aggiornamento');
+      $('#backendVersion').textContent='Backend '+(x.versioneBackend||'-');
+      $('#lastUpdate').textContent='Aggiornato '+new Date(x.serverTime||Date.now()).toLocaleString('it-IT');
+
+      startDashboardPolling1417();
+
+      // Precarica cartografia e risultati senza bloccare l'interfaccia.
+      ensureGeoReady().catch(e=>console.warn('Precaricamento mappa:',e));
+      ensureLeaflet().catch(e=>console.warn('Precaricamento Leaflet:',e));
+      if(!resultsLoaded){
+        window.setTimeout(()=>{
+          ensureResultsLoaded1417(false).catch(e=>{
+            console.error(e);
+            if(live)setOnline(true,'Online · risultati da aggiornare');
+          });
+        },180);
+      }
+      return true;
+    }catch(e){
+      const hasData=Boolean(live?.serverTime||live?.sezioni?.length||live?.scrutiniDettaglio?.length);
+      setOnline(false,hasData?'Dati memorizzati':'Errore');
+      if(!hasData)showLogin(e.message,false);
+      console.error(e);
+      return false;
+    }finally{
+      if(refreshBtn&&!silent)refreshBtn.disabled=false;
+    }
+  })();
+
+  try{return await quickRequestPromise}
+  finally{quickRequestPromise=null}
 }
 function summary(level){return (live.riepilogoFdi||{})[level]||{}}
 function geoSectionsTotal(){const set=new Set();(geoPlessi.plessi||[]).forEach(p=>(p.sezioni||[]).forEach(s=>{const n=normSection(s);if(n)set.add(n)}));return set.size}
@@ -450,8 +659,8 @@ function renderMissingTerritorial(){
 function renderRecent(){const rows=(live.ultimiInvii||[]).slice(0,7);$('#recentList').innerHTML=rows.map(r=>`<div class="recent-row"><i class="status-dot"></i><div><strong>Sezione ${esc(normSection(r.sezione)||r.sezione)}</strong><small>${esc(r.giorno)} ${esc(r.orario)}</small></div><span>${r.percentuale===''?'—':pct(r.percentuale)}</span></div>`).join('')||'<p class="empty-state">Nessun invio disponibile.</p>'}
 function renderMissing(){const rows=live.mancanti||[];$('#missingList').innerHTML=rows.slice(0,40).map(r=>`<button class="chip" data-section="${esc(r.sezione)}">${esc(normSection(r.sezione)||r.sezione)}</button>`).join('')||'<span class="state done">Tutte le sezioni presidiate hanno inviato</span>';$$('#missingList [data-section]').forEach(b=>b.onclick=()=>openSection(b.dataset.section))}
 function rankingRows(level){return (live.risultatiListe||[]).filter(x=>x.livello===level&&x.municipio==='09'&&Number(x.fdiVoti||0)>0).sort((a,b)=>Number(b.fdiSuValidi||0)-Number(a.fdiSuValidi||0))}
-function renderRankings(level,target,count=10,reverse=false){let rows=rankingRows(level);if(reverse)rows=rows.slice().reverse();rows=rows.slice(0,count);$(target).innerHTML=rows.map((r,i)=>`<div class="ranking-row" data-section="${esc(r.sezione)}"><span class="ranking-index">${i+1}</span><div><strong>Sezione ${esc(normSection(r.sezione)||r.sezione)}</strong><small>${fmt(r.fdiVoti)} voti FdI</small></div><span class="ranking-value">${pct(r.fdiSuValidi)}</span></div>`).join('')||'<p class="empty-state">Nessun risultato FdI valorizzato per questo livello.</p>';$$(`${target} [data-section]`).forEach(x=>x.onclick=()=>openSection(x.dataset.section))}
-function statusFor(section){const sec=normSection(section);const scr=(live.scrutiniDettaglio||[]).some(x=>normSection(x.sezione)===sec)||(live.risultatiListe||[]).some(x=>normSection(x.sezione)===sec);if(scr)return{label:'Scrutinio ricevuto',cls:'done'};const aff=(live.sezioni||[]).some(x=>normSection(x.sezione)===sec);return aff?{label:'Affluenza ricevuta',cls:'partial'}:{label:'Nessun dato',cls:'missing'}}
+function renderRankings(level,target,count=10,reverse=false){let rows=rankingRows(level);if(reverse)rows=rows.slice().reverse();rows=rows.slice(0,count);$(target).innerHTML=rows.map((r,i)=>`<div class="ranking-row" data-section="${esc(r.sezione)}"><span class="ranking-index">${i+1}</span><div><strong>Sezione ${esc(normSection(r.sezione)||r.sezione)}</strong><small>${fmt(r.fdiVoti)} voti FdI</small></div><span class="ranking-value">${pct(r.fdiSuValidi)}</span></div>`).join('')||`<p class="empty-state">${resultsLoaded?'Nessun risultato FdI valorizzato per questo livello.':'Risultati elettorali in aggiornamento…'}</p>`;$$(`${target} [data-section]`).forEach(x=>x.onclick=()=>openSection(x.dataset.section))}
+function statusFor(section){const data=live||emptyLive1417();const sec=normSection(section);const scr=(data.scrutiniDettaglio||[]).some(x=>normSection(x.sezione)===sec)||(data.risultatiListe||[]).some(x=>normSection(x.sezione)===sec);if(scr)return{label:'Scrutinio ricevuto',cls:'done'};const aff=(data.sezioni||[]).some(x=>normSection(x.sezione)===sec);return aff?{label:'Affluenza ricevuta',cls:'partial'}:{label:'Nessun dato',cls:'missing'}}
 function filteredRegistry(q,status='all'){q=String(q||'').trim().toLowerCase();return registry.sezioni.filter(x=>{const matchesText=!q||String(x.sezione).includes(q)||String(x.indirizzo).toLowerCase().includes(q)||String(x.cap||'').includes(q);const st=statusFor(x.sezione);return matchesText&&(status==='all'||st.cls===status)})}
 function renderRegistry(){const rows=filteredRegistry($('#sectionSearch')?.value,$('#sectionStatus')?.value||'all');$('#registrySummary').textContent=`${fmt(registry.sezioniTotali)} sezioni in ${fmt(registry.plessiTotali)} plessi elettorali`;$('#sectionsBody').innerHTML=rows.map(r=>{const st=statusFor(r.sezione);return`<tr data-section="${esc(r.sezione)}"><td><strong>${esc(r.sezione)}</strong></td><td>${esc(r.indirizzo)}</td><td>${esc(r.cap)}</td><td>${fmt(r.numeroVie)}</td><td><span class="state ${st.cls}">${st.label}</span></td></tr>`}).join('')||'<tr><td colspan="5" class="empty-cell">Nessuna sezione corrisponde al filtro.</td></tr>';$$('#sectionsBody tr[data-section]').forEach(x=>x.onclick=()=>openSection(x.dataset.section))}
 function renderMapList(){const q=$('#mapSearch')?.value||'';const rows=filteredRegistry(q);$('#mapSectionList').innerHTML=rows.map(r=>{const st=statusFor(r.sezione);return`<button type="button" class="map-section-card" data-section="${esc(r.sezione)}"><strong>Sezione ${esc(r.sezione)}</strong><small>${esc(r.indirizzo)}${r.cap?' · '+esc(r.cap):''}</small><span class="state ${st.cls}">${st.label}</span></button>`}).join('')||'<p class="empty-state">Nessuna sezione corrisponde alla ricerca.</p>';$$('.map-section-card').forEach(x=>x.onclick=()=>focusSectionOnMap(x.dataset.section));const exact=rows.length===1&&normSection(q)===normSection(rows[0].sezione);if(exact)setTimeout(()=>focusSectionOnMap(rows[0].sezione),50)}
@@ -481,7 +690,7 @@ function renderDataView(){
   const t=live.totali||{},received=territorialReceived(),expected=territorialExpected();
   $('#dataKpiTurnout').textContent=pct(t.percentuale);$('#dataKpiVoters').textContent=fmt(t.totale);$('#dataKpiMF').textContent=fmt(t.maschi)+' / '+fmt(t.femmine);$('#dataKpiSections').textContent=fmt(received)+' / '+fmt(expected);
   const rows=dataResultRows();$('#dataResultCount').textContent=fmt(rows.length)+' sezioni';renderDataSummary(rows);
-  $('#dataResultsBody').innerHTML=rows.map(r=>{const reg=registryForSection(r.sezione),positive=Number(r.distaccoPrimoAltro||0)>=0,confronto=r.primoAltroPartito?`${positive?'+':''}${fmt(r.distaccoPrimoAltro)} su ${esc(r.primoAltroPartito)}`:'—';return `<tr data-section="${esc(r.sezione)}"><td><strong>${esc(normSection(r.sezione)||r.sezione)}</strong></td><td>${esc(reg?.indirizzo||'—')}</td><td>${fmt(r.iscritti)}</td><td>${fmt(r.votanti)}</td><td>${fmt(r.validi)}</td><td><strong>${fmt(r.fdi)}</strong></td><td>${fmt(r.altri)}</td><td><strong>${pct(r.pctValidi)}</strong></td><td>${pct(r.pctVotanti)}</td><td>${pct(r.pctIscritti)}</td><td>${r.posizioneFdi?esc(r.posizioneFdi)+'°':'—'}</td><td class="${positive?'positive':'negative'}">${confronto}</td></tr>`}).join('')||'<tr><td colspan="12" class="empty-cell">Nessun risultato disponibile con questo filtro.</td></tr>';
+  $('#dataResultsBody').innerHTML=rows.map(r=>{const reg=registryForSection(r.sezione),positive=Number(r.distaccoPrimoAltro||0)>=0,confronto=r.primoAltroPartito?`${positive?'+':''}${fmt(r.distaccoPrimoAltro)} su ${esc(r.primoAltroPartito)}`:'—';return `<tr data-section="${esc(r.sezione)}"><td><strong>${esc(normSection(r.sezione)||r.sezione)}</strong></td><td>${esc(reg?.indirizzo||'—')}</td><td>${fmt(r.iscritti)}</td><td>${fmt(r.votanti)}</td><td>${fmt(r.validi)}</td><td><strong>${fmt(r.fdi)}</strong></td><td>${fmt(r.altri)}</td><td><strong>${pct(r.pctValidi)}</strong></td><td>${pct(r.pctVotanti)}</td><td>${pct(r.pctIscritti)}</td><td>${r.posizioneFdi?esc(r.posizioneFdi)+'°':'—'}</td><td class="${positive?'positive':'negative'}">${confronto}</td></tr>`}).join('')||`<tr><td colspan="12" class="empty-cell">${resultsLoaded?'Nessun risultato disponibile con questo filtro.':'Risultati elettorali in aggiornamento…'}</td></tr>`;
   $$('#dataResultsBody tr[data-section]').forEach(tr=>tr.onclick=()=>openSection(tr.dataset.section));
   const q=normSection($('#dataSectionSearch')?.value||'');
   const aff=(live.sezioni||[]).filter(r=>registryBySection.has(normSection(r.sezione))).filter(r=>!q||normSection(r.sezione).includes(q)).sort((a,b)=>Number(a.sezione)-Number(b.sezione));
@@ -496,6 +705,7 @@ function renderDataView(){
 }
 
 function openSection(section){
+  if(!resultsLoaded)ensureResultsLoaded1417(false).catch(e=>console.error(e));
   const sec=normSection(section);
   const reg=registryForSection(sec);
   const aff=(live.sezioni||[]).find(x=>normSection(x.sezione)===sec);
@@ -706,8 +916,8 @@ function renderSystemStatus(){
   label.textContent=state==='ok'?'SISTEMA OPERATIVO':state==='critical'?'INTERVENTO NECESSARIO':'ATTENZIONE';
   detail.textContent=state==='ok'?'Tutti i controlli operativi principali risultano regolari.':state==='critical'?'È presente almeno una criticità che richiede verifica.':'Il sistema è operativo con uno o più avvisi da controllare.';
   $('#systemCheckedAt').textContent='Verificato '+systemDate(s.serverTime);
-  $('#systemFrontendVersion').textContent=String(CFG.appVersion||'14.1.6');
-  $('#systemBackendVersion').textContent=String(s.versioneBackend||'—').replace('-security-production','');
+  $('#systemFrontendVersion').textContent='14.1.7';
+  $('#systemBackendVersion').textContent=String(s.versioneBackend||'—').replace('-security-session-registry-production','').replace('-performance-production','');
   $('#systemBackendEnv').textContent=String(s.ambiente||'—');
   $('#systemSections').textContent=fmt(s.sezioniAttive||0);
   $('#systemErrors').textContent=fmt(s.log?.errori15m||0);
@@ -715,6 +925,7 @@ function renderSystemStatus(){
   $('#systemServices').innerHTML=[
     ['Backend/API',systemBool(true,'ONLINE','OFFLINE')],
     ['Database',systemBool(Boolean(s.database?.ok),'OK','ERRORE')],
+    ['Control Center live',systemBool(Boolean(s.dashboard?.liveReady&&!s.dashboard?.liveDirty),'PRONTO','DA SINCRONIZZARE')],
     ['Dashboard automatica',systemBool(Boolean(s.dashboard?.triggerAttivo))],
     ['Cache login',systemBool(Boolean(s.login?.cacheIndicizzata),'CALDA','DA PREPARARE')],
     ['Simulatore isolato',systemBool(Boolean(s.simulator?.isolato),'ISOLATO','NON ISOLATO')]
@@ -734,6 +945,7 @@ function renderSystemStatus(){
     ['Ultimo scrutinio',systemDate(s.ultimoScrutinio)],
     ['Dashboard generale',systemDate(s.dashboard?.ultimoAggiornamentoGenerale)],
     ['Dashboard affluenza',systemDate(s.dashboard?.ultimoAggiornamentoAffluenza)],
+    ['Control Center live',systemDate(s.dashboard?.liveBuiltAt)],
     ['Cache login riscaldata',systemDate(s.login?.cacheRiscaldataIl)]
   ].map(x=>`<div class="system-row"><span>${esc(x[0])}</span><strong>${esc(x[1])}</strong></div>`).join('');
   const alerts=[...(s.criticita||[]).map(t=>({kind:'critical',text:t})),...(s.avvisi||[]).map(t=>({kind:'warning',text:t}))];
@@ -760,7 +972,47 @@ async function createSystemSnapshot(){
   finally{if(btn){btn.disabled=false;btn.textContent='Crea snapshot ora'}}
 }
 
-function switchView(name){$$('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+name));$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===name));if(name==='system')loadSystemStatus();if(name==='data')renderDataView();if(name==='rankings'){renderRankings($('#rankingLevel').value,'#bestRankings',15,false);renderRankings($('#rankingLevel').value,'#worstRankings',15,true)}if(name==='sections')renderRegistry();if(name==='map'){renderMapList();renderGeoMap().catch(e=>{console.error(e);const info=$('#mapGeoSummary');if(info)info.textContent=e.message})}if(name==='report'){const p=$('#reportPreview');if(p&&!p.querySelector('.report-sheet'))p.innerHTML='<p class="empty-state">Scegli “Dossier riepilogo” oppure “Report sezioni”.</p>';}window.scrollTo({top:0,behavior:'smooth'})}
+function switchView(name){
+  $$('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+name));
+  $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===name));
+
+  if(name==='system')loadSystemStatus();
+
+  if(name==='data'){
+    renderDataView();
+    ensureResultsLoaded1417(false).then(()=>renderDataView()).catch(e=>console.error(e));
+  }
+
+  if(name==='rankings'){
+    renderRankings($('#rankingLevel').value,'#bestRankings',15,false);
+    renderRankings($('#rankingLevel').value,'#worstRankings',15,true);
+    ensureResultsLoaded1417(false).then(()=>{
+      renderRankings($('#rankingLevel').value,'#bestRankings',15,false);
+      renderRankings($('#rankingLevel').value,'#worstRankings',15,true);
+    }).catch(e=>console.error(e));
+  }
+
+  if(name==='sections')renderRegistry();
+
+  if(name==='map'){
+    // L'elenco e la cartografia sono indipendenti: un errore nel primo non deve
+    // mai impedire a Leaflet di inizializzarsi.
+    try{renderMapList()}catch(e){console.error('Errore elenco mappa:',e)}
+    renderGeoMap().catch(e=>{
+      console.error(e);
+      const info=$('#mapGeoSummary');
+      if(info)info.textContent='Mappa interattiva non disponibile: '+e.message;
+    });
+  }
+
+  if(name==='report'){
+    const p=$('#reportPreview');
+    if(p&&!p.querySelector('.report-sheet'))p.innerHTML='<p class="empty-state">Scegli “Dossier riepilogo” oppure “Report sezioni”.</p>';
+    ensureResultsLoaded1417(false).catch(e=>console.error(e));
+  }
+
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 window.SeggioLinkGenerateReport=generateReport;
 
 function bindControlCenterEvents(){
@@ -810,19 +1062,26 @@ function bindControlCenterEvents(){
     });
   }
 
-  if(refreshBtn)refreshBtn.addEventListener('click',load);
+  if(refreshBtn)refreshBtn.addEventListener('click',async()=>{
+    await load({silent:false});
+    try{await ensureResultsLoaded1417(true)}catch(e){console.error(e)}
+  });
   $('#systemRefreshBtn')?.addEventListener('click',()=>loadSystemStatus(true));
   $('#systemSnapshotBtn')?.addEventListener('click',createSystemSnapshot);
   if(logoutBtn)logoutBtn.addEventListener('click',()=>showLogin('',true));
-  if(printBtn)printBtn.addEventListener('click',()=>{
+  if(printBtn)printBtn.addEventListener('click',async()=>{
     switchView('report');
+    try{await ensureResultsLoaded1417(false)}catch(e){console.error(e)}
     const preview=$('#reportPreview');
     if(!preview?.querySelector('.report-sheet'))generateReport();
     setTimeout(()=>window.print(),220);
   });
 
   if(!generateReportBtn)console.error('Pulsante #generateReportBtn non trovato.');
-  if(generateDetailedReportBtn)generateDetailedReportBtn.addEventListener('click',generateDetailedReport);
+  if(generateDetailedReportBtn)generateDetailedReportBtn.addEventListener('click',async()=>{
+    try{await ensureResultsLoaded1417(false);generateDetailedReport()}
+    catch(e){alert('Impossibile aggiornare i risultati: '+(e.message||e))}
+  });
   if(downloadDetailedCsvBtn)downloadDetailedCsvBtn.addEventListener('click',downloadDetailedCsv);
 
   if(closeDialog)closeDialog.addEventListener('click',()=>$('#sectionDialog').close());
@@ -855,7 +1114,13 @@ function bindControlCenterEvents(){
 }
 
 bindControlCenterEvents();
-document.addEventListener('click',e=>{const b=e.target.closest?.('#generateReportBtn');if(b){e.preventDefault();generateReport();}},{capture:true});
+document.addEventListener('click',async e=>{
+  const b=e.target.closest?.('#generateReportBtn');
+  if(!b)return;
+  e.preventDefault();
+  try{await ensureResultsLoaded1417(false);generateReport()}
+  catch(err){alert('Impossibile aggiornare i risultati: '+(err.message||err))}
+},{capture:true});
 (async()=>{
   if(tokenScaduto()){clearSession();dashboardToken='';}
   if(!dashboardToken)showLogin('',false);
@@ -866,6 +1131,11 @@ document.addEventListener('click',e=>{const b=e.target.closest?.('#generateRepor
     $('#mapSearch').value='';
     await loadRegistry();
     rebuildRegistryIndex();
+    if(live)renderAll();
+    // Precaricamento non bloccante: quando l'utente apre la mappa, dati
+    // geografici e Leaflet sono normalmente già disponibili.
+    ensureGeoReady().catch(err=>console.warn('Precaricamento geografia:',err));
+    ensureLeaflet().catch(err=>console.warn('Precaricamento Leaflet:',err));
   }catch(e){
     console.error(e);
     $('#registrySummary').textContent=e.message;
@@ -883,4 +1153,10 @@ document.addEventListener('click',e=>{const b=e.target.closest?.('#generateRepor
     load();
   }
 })();
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&dashboardToken&&!tokenScaduto()){
+    checkDashboardRevision1417().catch(e=>console.error(e));
+  }
+});
+window.addEventListener('pagehide',stopDashboardPolling1417);
 window.addEventListener('hashchange',()=>{const v=location.hash.replace('#','');if(['overview','system','data','map','sections','rankings','report'].includes(v))switchView(v)});
