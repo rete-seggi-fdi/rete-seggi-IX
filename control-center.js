@@ -25,8 +25,9 @@ const normSection=v=>String(Number(String(v??'').replace(/\D/g,''))||'');
 async function post(payload,tentativo=1){
   if(!BACKEND)throw new Error('URL backend assente: config.js non caricato.');
 
+  const maxTentativi=3;
   const controller=new AbortController();
-  const timeout=setTimeout(()=>{if(!controller.signal.aborted){try{controller.abort(new DOMException('Tempo massimo di risposta superato.','TimeoutError'))}catch(e){controller.abort()}}},Number(CFG.requestTimeoutMs||60000));
+  const timeout=setTimeout(()=>{if(!controller.signal.aborted){try{controller.abort(new DOMException('Tempo massimo di risposta superato.','TimeoutError'))}catch(e){controller.abort()}}},Number(CFG.requestTimeoutMs||20000));
   let response;
 
   try{
@@ -42,11 +43,12 @@ async function post(payload,tentativo=1){
     });
   }catch(error){
     clearTimeout(timeout);
-    if(tentativo===1){
-      await new Promise(resolve=>setTimeout(resolve,650));
-      return post(payload,2);
+    if(tentativo<maxTentativi){
+      const attesa=tentativo===1?700:1800;
+      await new Promise(resolve=>setTimeout(resolve,attesa));
+      return post(payload,tentativo+1);
     }
-    if(controller.signal.aborted||error?.name==='AbortError'||error?.name==='TimeoutError')throw new Error('Il backend sta impiegando più del previsto. Riprova.');
+    if(controller.signal.aborted||error?.name==='AbortError'||error?.name==='TimeoutError')throw new Error('Il backend sta impiegando più del previsto. I dati restano visualizzati e il collegamento verrà riprovato.');
     throw new Error('Connessione al backend non riuscita: '+error.message);
   }
 
@@ -54,12 +56,15 @@ async function post(payload,tentativo=1){
   const testo=await response.text();
 
   if(!response.ok){
-    if(response.status===404&&tentativo===1){
-      await new Promise(resolve=>setTimeout(resolve,650));
-      return post(payload,2);
+    // Apps Script può restituire temporaneamente 404/5xx durante propagazione o redirect.
+    // Non consideriamo questi codici come revoca della sessione.
+    if((response.status===404||response.status>=500)&&tentativo<maxTentativi){
+      const attesa=tentativo===1?700:1800;
+      await new Promise(resolve=>setTimeout(resolve,attesa));
+      return post(payload,tentativo+1);
     }
-    console.error('Errore backend',{status:response.status,urlFinale:response.url,risposta:testo});
-    throw new Error('Backend HTTP '+response.status+'. Riprova tra qualche secondo.');
+    console.error('Errore backend',{status:response.status,urlFinale:response.url,risposta:testo,tipo:payload?.tipo||''});
+    throw new Error('Backend HTTP '+response.status+'. Collegamento temporaneamente non disponibile.');
   }
 
   try{return JSON.parse(testo)}
@@ -616,8 +621,15 @@ async function load(options={}){
       return true;
     }catch(e){
       const hasData=Boolean(live?.serverTime||live?.sezioni?.length||live?.scrutiniDettaglio?.length);
-      setOnline(false,hasData?'Dati memorizzati':'Errore');
-      if(!hasData)showLogin(e.message,false);
+      // Un errore HTTP/rete NON deve mai riportare al login: la sessione viene
+      // chiusa soltanto quando il backend restituisce esplicitamente un errore SESSION.
+      showAppShell();
+      setOnline(false,hasData?'Dati memorizzati':'Backend temporaneamente non disponibile');
+      if($('#lastUpdate')){
+        $('#lastUpdate').textContent=hasData
+          ? 'Dati memorizzati · collegamento in ripristino…'
+          : (e.message||'Backend temporaneamente non disponibile.');
+      }
       console.error(e);
       return false;
     }finally{
