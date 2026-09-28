@@ -1,0 +1,52 @@
+AUDIT PATCH CONSERVATIVA C2
+
+Base: app.js dello ZIP originale dell'utente.
+Modifiche funzionali in app.js: esattamente 3 aree.
+1. INVALID_DATA mostra il motivo restituito dal backend.
+2. UNKNOWN_ACTION è classificato temporaneo e resta nella stessa coda.
+3. Se esiste uno scrutinio non confermato, il normale pulsante Invio non può creare un nuovo UUID; si deve usare 'Correggi tentativo non inviato', che riusa lo stesso idInvio.
+
+Non modificate: logout, bozze, storico, accodamento, sostituzione in coda, correzioni già esistenti.
+
+--- original/app.js
++++ c2/app.js
+@@ -36,6 +36,9 @@
+ 
+   function userMessage(errorOrCode, fallback) {
+     const code = typeof errorOrCode === 'string' ? errorOrCode : (errorOrCode && errorOrCode.code) || '';
++    // Per INVALID_DATA il backend restituisce il motivo concreto del rifiuto:
++    // mostralo, invece di nasconderlo dietro il messaggio generico.
++    if (code === 'INVALID_DATA' && errorOrCode && errorOrCode.message) return errorOrCode.message;
+     if (PUBLIC_ERROR_MESSAGES[code]) return PUBLIC_ERROR_MESSAGES[code];
+     if (errorOrCode && errorOrCode.message) return errorOrCode.message;
+     return fallback || 'Operazione non riuscita. Riprova.';
+@@ -2336,6 +2339,20 @@
+     aggiornaPulsanteCorrezioneScrutinio();
+     const btnCorreggi = $('#btnCorreggiScrutinio');
+     if (btnCorreggi && !btnCorreggi.hidden) btnCorreggi.focus();
++    return;
++  }
++
++  // Se esiste già un tentativo NON confermato (es. risposta 302/404/HTML,
++  // timeout, UNKNOWN_ACTION), non consentire un nuovo invio con un nuovo UUID.
++  // L'utente deve riaprire quel tentativo: così il reinvio mantiene lo stesso idInvio.
++  if (ultimoRicevuto &&
++      ultimoRicevuto.status !== QUEUE_STATUS.CONFIRMED &&
++      !tentativoScrutinioDaSostituireId) {
++    errBox.innerHTML = 'Esiste già un tentativo di scrutinio salvato sul telefono e non ancora confermato. Usa <strong>Correggi tentativo non inviato</strong>: il reinvio manterrà lo stesso ID.';
++    errBox.hidden = false;
++    aggiornaPulsanteCorrezioneScrutinio();
++    const btnCorreggiTentativo = $('#btnCorreggiScrutinio');
++    if (btnCorreggiTentativo && !btnCorreggiTentativo.hidden) btnCorreggiTentativo.focus();
+     return;
+   }
+ 
+@@ -2803,7 +2820,7 @@
+             return false;
+           }
+           const codiceErrore = e && e.code ? String(e.code) : '';
+-          const temporaneo = ['', 'NETWORK_ERROR', 'NETWORK_TIMEOUT', 'BUSY', 'INTERNAL_ERROR', 'INVALID_SERVER_RESPONSE'].includes(codiceErrore);
++          const temporaneo = ['', 'NETWORK_ERROR', 'NETWORK_TIMEOUT', 'BUSY', 'INTERNAL_ERROR', 'INVALID_SERVER_RESPONSE', 'UNKNOWN_ACTION'].includes(codiceErrore);
+           item.status = temporaneo ? QUEUE_STATUS.LOCAL : QUEUE_STATUS.ACTION_REQUIRED;
+           item.tentativi = (item.tentativi || 0) + 1;
+           item.ultimoErrore = messaggioErroreUtente(e, temporaneo ? 'Invio temporaneamente non riuscito' : 'Invio da controllare');

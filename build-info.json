@@ -1,11 +1,11 @@
 {
   "version": "14.1.10",
-  "latestVersion": "14.1.10",
+  "latestVersion": "14.1.6",
   "minimumVersion": "14.0.7",
   "buildDate": "2026-09-28",
   "name": "SeggioLink Roma",
-  "controlCenterVersion": "14.1.7",
+  "controlCenterVersion": "14.1.6",
   "backendVersion": "14.1.10-scrutiny-lock-retry-production",
-  "channel": "production",
-  "notes": "PWA finale p2: INVALID_DATA mostra il motivo preciso; tentativo scrutinio rifiutato resta correggibile con lo stesso idInvio; pulsante Correggi dati in I miei invii; retry UNKNOWN_ACTION e cache rotation già inclusi."
+  "channel": "production-candidate-security-hotfix",
+  "notes": "Patch conservativa c2 basata sullo ZIP originale. Mantiene tutta la logica originale di coda/bozza/correzione/logout. Modifiche app.js: (1) mostra motivo INVALID_DATA; (2) UNKNOWN_ACTION è temporaneo; (3) blocca la creazione di un nuovo scrutinio se esiste già un tentativo non confermato, obbligando al riuso dello stesso idInvio."
 }

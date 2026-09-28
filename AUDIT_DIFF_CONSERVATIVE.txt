@@ -1,0 +1,39 @@
+PATCH CONSERVATIVA 14.1.10
+Base: rete-seggi-IX-main(5).zip originale dell'utente
+
+app.js: sono state toccate SOLO queste due aree:
+1) INVALID_DATA mostra il messaggio concreto restituito dal backend.
+2) UNKNOWN_ACTION è classificato come errore temporaneo e quindi resta in coda.
+
+NON sono state modificate:
+- finalizzaLogoutLocale_
+- salvaBozzaScrutinio / caricaBozzaScrutinio
+- aggiornaDocumentoBozzaDaInvio
+- ultimoScrutinioAttivo
+- aggiornaPulsanteCorrezioneScrutinio
+- correggiUltimoScrutinio
+- renderTabellaInvii
+- accodaInvio / sostituisciInvioInCoda
+
+DIFF APP.JS:
+--- original/app.js
++++ conservative/app.js
+@@ -36,6 +36,9 @@
+ 
+   function userMessage(errorOrCode, fallback) {
+     const code = typeof errorOrCode === 'string' ? errorOrCode : (errorOrCode && errorOrCode.code) || '';
++    // Per INVALID_DATA il backend restituisce il motivo concreto del rifiuto:
++    // mostralo, invece di nasconderlo dietro il messaggio generico.
++    if (code === 'INVALID_DATA' && errorOrCode && errorOrCode.message) return errorOrCode.message;
+     if (PUBLIC_ERROR_MESSAGES[code]) return PUBLIC_ERROR_MESSAGES[code];
+     if (errorOrCode && errorOrCode.message) return errorOrCode.message;
+     return fallback || 'Operazione non riuscita. Riprova.';
+@@ -2803,7 +2806,7 @@
+             return false;
+           }
+           const codiceErrore = e && e.code ? String(e.code) : '';
+-          const temporaneo = ['', 'NETWORK_ERROR', 'NETWORK_TIMEOUT', 'BUSY', 'INTERNAL_ERROR', 'INVALID_SERVER_RESPONSE'].includes(codiceErrore);
++          const temporaneo = ['', 'NETWORK_ERROR', 'NETWORK_TIMEOUT', 'BUSY', 'INTERNAL_ERROR', 'INVALID_SERVER_RESPONSE', 'UNKNOWN_ACTION'].includes(codiceErrore);
+           item.status = temporaneo ? QUEUE_STATUS.LOCAL : QUEUE_STATUS.ACTION_REQUIRED;
+           item.tentativi = (item.tentativi || 0) + 1;
+           item.ultimoErrore = messaggioErroreUtente(e, temporaneo ? 'Invio temporaneamente non riuscito' : 'Invio da controllare');
