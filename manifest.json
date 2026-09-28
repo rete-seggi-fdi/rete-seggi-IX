@@ -1,7 +1,7 @@
 {
   "name": "SeggioLink · Coordinamento Fratelli d’Italia · Municipio IX Roma",
   "short_name": "SeggioLink",
-  "description": "SeggioLink 14.1.6 Security Hotfix, app operativa offline-first del Coordinamento Fratelli d’Italia del Municipio IX Roma",
+  "description": "SeggioLink 14.1.10 Production Final, app operativa offline-first del Coordinamento Fratelli d’Italia del Municipio IX Roma",
   "start_url": "./index.html?v=1416",
   "scope": "./",
   "id": "./index.html",

@@ -2803,7 +2803,7 @@ async function provaSvuotaCode() {
             return false;
           }
           const codiceErrore = e && e.code ? String(e.code) : '';
-          const temporaneo = ['', 'NETWORK_ERROR', 'NETWORK_TIMEOUT', 'BUSY', 'INTERNAL_ERROR', 'INVALID_SERVER_RESPONSE'].includes(codiceErrore);
+          const temporaneo = ['', 'NETWORK_ERROR', 'NETWORK_TIMEOUT', 'BUSY', 'INTERNAL_ERROR', 'INVALID_SERVER_RESPONSE', 'UNKNOWN_ACTION'].includes(codiceErrore);
           item.status = temporaneo ? QUEUE_STATUS.LOCAL : QUEUE_STATUS.ACTION_REQUIRED;
           item.tentativi = (item.tentativi || 0) + 1;
           item.ultimoErrore = messaggioErroreUtente(e, temporaneo ? 'Invio temporaneamente non riuscito' : 'Invio da controllare');

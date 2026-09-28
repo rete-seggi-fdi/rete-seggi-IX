@@ -1,11 +1,11 @@
 {
-  "version": "14.1.6",
-  "latestVersion": "14.1.6",
+  "version": "14.1.10",
+  "latestVersion": "14.1.10",
   "minimumVersion": "14.0.7",
-  "buildDate": "2026-09-09",
+  "buildDate": "2026-09-28",
   "name": "SeggioLink Roma",
-  "controlCenterVersion": "14.1.6",
-  "backendVersion": "14.1.6-security-session-registry-production",
-  "channel": "production-candidate-security-hotfix",
-  "notes": "Continuità storico + revoca: le nuove sessioni sono registrate lato server e rilette prima del successo login; logout revoca la singola sessione; lo storico e i fogli Invii non vengono modificati."
+  "controlCenterVersion": "14.1.7",
+  "backendVersion": "14.1.10-scrutiny-lock-retry-production",
+  "channel": "production",
+  "notes": "PWA finale: retry con stesso idInvio; UNKNOWN_ACTION trattato come anomalia temporanea; rotazione cache service worker; backend 14.1.10 già collaudato separatamente."
 }

@@ -1,0 +1,26 @@
+SeggioLink PWA 14.1.10 — patch frontend finale
+
+Sostituire su GitHub Pages SOLO questi file:
+- app.js
+- config.js
+- index.html
+- service-worker.js
+- manifest.json
+- build-info.json
+
+NON sostituire il backend Apps Script con i Code.gs presenti nel vecchio ZIP sorgente:
+- Code.gs nel ZIP dichiara 14.0.7-security-production
+- apps-script/Code.gs nel ZIP dichiara 13.6.0-production
+Il backend di produzione collaudato è invece:
+14.1.10-scrutiny-lock-retry-production
+
+Modifica funzionale PWA:
+- UNKNOWN_ACTION viene trattato come errore temporaneo: resta nella coda automatica e viene reinviato con lo STESSO idInvio.
+- NETWORK_ERROR, NETWORK_TIMEOUT, BUSY, INTERNAL_ERROR, INVALID_SERVER_RESPONSE restano automatici come prima.
+- duplicato:true continua a essere considerato successo/conferma.
+
+Modifiche distribuzione:
+- versione frontend 14.1.10
+- querystring index aggiornata a 14110p1
+- service worker ruotato a seggiolink-v14.1.10-production-final
+- build-info allineato a backend 14.1.10 e Control Center 14.1.7
