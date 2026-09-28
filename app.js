@@ -36,6 +36,11 @@
 
   function userMessage(errorOrCode, fallback) {
     const code = typeof errorOrCode === 'string' ? errorOrCode : (errorOrCode && errorOrCode.code) || '';
+    // INVALID_DATA contiene una spiegazione utile e non sensibile prodotta dal backend.
+    // Mostrala invece del messaggio generico, così il rappresentante sa cosa correggere.
+    if (code === 'INVALID_DATA' && errorOrCode && errorOrCode.message) {
+      return 'Dati da correggere: ' + errorOrCode.message;
+    }
     if (PUBLIC_ERROR_MESSAGES[code]) return PUBLIC_ERROR_MESSAGES[code];
     if (errorOrCode && errorOrCode.message) return errorOrCode.message;
     return fallback || 'Operazione non riuscita. Riprova.';
@@ -2463,8 +2468,25 @@ async function onConfermaInvioScrutinio() {
   payloadScrutinioPronto = null;
   await provaSvuotaCode();
   const item = trovaItem(LS.QUEUE_SCR, id);
-  if (item && item.status === QUEUE_STATUS.CONFIRMED) showToast('Scrutinio ricevuto dal coordinamento.');
-  else if (item && item.status === QUEUE_STATUS.ACTION_REQUIRED) showToast('Scrutinio salvato, ma non ancora ricevuto. Controlla “I miei invii”.', 4500);
+  if (item && item.status === QUEUE_STATUS.CONFIRMED) {
+    showToast('Scrutinio ricevuto dal coordinamento.');
+  } else if (item && item.status === QUEUE_STATUS.ACTION_REQUIRED) {
+    if (item.codiceErrore === 'INVALID_DATA') {
+      // Il backend non ha accettato il contenuto: lascia subito il form correggibile
+      // e riutilizza lo stesso idInvio al prossimo tentativo.
+      tentativoScrutinioDaSostituireId = item.idInvio;
+      const box = $('#scrutinioErrori');
+      if (box) {
+        box.textContent = item.ultimoErrore || 'Alcuni dati devono essere corretti prima dell’invio.';
+        box.hidden = false;
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      aggiornaPulsanteCorrezioneScrutinio();
+      showToast('Scrutinio non accettato. Correggi i dati indicati e premi di nuovo “Invia scrutinio”.', 6500);
+    } else {
+      showToast('Scrutinio salvato, ma non ancora ricevuto. Controlla “I miei invii”.', 4500);
+    }
+  }
 }
 
 function ultimoScrutinioAttivo() {
@@ -2486,30 +2508,65 @@ function impostaDynPerNome(prefix, valori, campoNome) {
   $all('[id^="' + prefix + '_"]').forEach((inp) => { inp.value = mappa.get(inp.dataset.nome) ?? 0; });
 }
 
-function correggiUltimoScrutinio() {
-  const item = ultimoScrutinioAttivo();
-  if (!item) return;
+function apriScrutinioDaCorreggere(idInvio) {
+  const item = idInvio ? trovaItem(LS.QUEUE_SCR, idInvio) : ultimoScrutinioAttivo();
+  if (!item || !item.payload) {
+    showToast('Tentativo di scrutinio non più presente sul telefono.');
+    return;
+  }
+
   const p = item.payload;
   const giaRicevuto = item.status === QUEUE_STATUS.CONFIRMED;
   correzioneScrutinioId = giaRicevuto ? item.idInvio : null;
   tentativoScrutinioDaSostituireId = giaRicevuto ? null : item.idInvio;
+
   $('#scCorrezioneBox').hidden = !giaRicevuto;
   $('#scMotivoCorrezione').value = '';
   $('#scElettori').value = p.elettori ?? '';
   $('#scVotanti').value = p.votanti ?? '';
+
   const sc = p.schedaComune || {}, sm = p.schedaMunicipio || {};
-  $('#comValide').value = sc.valide ?? ''; $('#comBianche').value = sc.bianche ?? ''; $('#comNulle').value = sc.nulle ?? ''; $('#comContestate').value = sc.contestate ?? '';
-  $('#munValide').value = sm.valide ?? ''; $('#munBianche').value = sm.bianche ?? ''; $('#munNulle').value = sm.nulle ?? ''; $('#munContestate').value = sm.contestate ?? '';
+  $('#comValide').value = sc.valide ?? '';
+  $('#comBianche').value = sc.bianche ?? '';
+  $('#comNulle').value = sc.nulle ?? '';
+  $('#comContestate').value = sc.contestate ?? '';
+  $('#munValide').value = sm.valide ?? '';
+  $('#munBianche').value = sm.bianche ?? '';
+  $('#munNulle').value = sm.nulle ?? '';
+  $('#munContestate').value = sm.contestate ?? '';
   $('#scNote').value = p.note || '';
-  impostaDynPerNome('si', p.sindaci || []); impostaDynPerNome('pr', p.presidenti || []);
+
+  impostaDynPerNome('si', p.sindaci || []);
+  impostaDynPerNome('pr', p.presidenti || []);
   impostaDynPerNome('lc', (p.liste || []).filter((x) => x.livello === 'Comune'));
   impostaDynPerNome('lm', (p.liste || []).filter((x) => x.livello === 'Municipio'));
   impostaDynPerNome('pc', (p.preferenze || []).filter((x) => x.livello === 'Comune'), 'candidato');
   impostaDynPerNome('pm', (p.preferenze || []).filter((x) => x.livello === 'Municipio'), 'candidato');
+
   document.querySelector('.tab[data-tab="scrutinio"]').click();
-  $('#scCorrezioneBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
   aggiornaAvvisiScrutinio();
-  $('#scMotivoCorrezione').focus();
+
+  if (giaRicevuto) {
+    $('#scCorrezioneBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('#scMotivoCorrezione').focus();
+    return;
+  }
+
+  // Per un tentativo rifiutato/non ricevuto NON serve un "motivo correzione":
+  // si modifica lo stesso tentativo e si conserva il medesimo idInvio.
+  const errBox = $('#scrutinioErrori');
+  if (errBox) {
+    errBox.textContent = item.ultimoErrore
+      ? item.ultimoErrore
+      : 'Correggi i dati del tentativo e premi di nuovo “Invia scrutinio”.';
+    errBox.hidden = false;
+  }
+  $('#scrStepRiepilogo').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showToast('Tentativo riaperto. Modifica i dati e reinvia: verrà mantenuto lo stesso ID.', 6000);
+}
+
+function correggiUltimoScrutinio() {
+  apriScrutinioDaCorreggere('');
 }
 
 // =======================================================================
@@ -2914,6 +2971,14 @@ function renderTabellaInvii() {
       btn.className = 'btn primary small';
       btn.textContent = 'Invia come nuovo';
       btn.addEventListener('click', () => recuperaCorrezioneComeNuovo(it.queueKey, it.idInvio));
+      tr.lastElementChild.appendChild(document.createElement('br'));
+      tr.lastElementChild.appendChild(btn);
+    } else if (it.queueKey === LS.QUEUE_SCR && it.status === QUEUE_STATUS.ACTION_REQUIRED && !it.superato) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn primary small';
+      btn.textContent = 'Correggi dati';
+      btn.addEventListener('click', () => apriScrutinioDaCorreggere(it.idInvio));
       tr.lastElementChild.appendChild(document.createElement('br'));
       tr.lastElementChild.appendChild(btn);
     }

@@ -7,5 +7,5 @@
   "controlCenterVersion": "14.1.7",
   "backendVersion": "14.1.10-scrutiny-lock-retry-production",
   "channel": "production",
-  "notes": "PWA finale: retry con stesso idInvio; UNKNOWN_ACTION trattato come anomalia temporanea; rotazione cache service worker; backend 14.1.10 già collaudato separatamente."
+  "notes": "PWA finale p2: INVALID_DATA mostra il motivo preciso; tentativo scrutinio rifiutato resta correggibile con lo stesso idInvio; pulsante Correggi dati in I miei invii; retry UNKNOWN_ACTION e cache rotation già inclusi."
 }

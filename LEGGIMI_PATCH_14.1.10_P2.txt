@@ -1,0 +1,12 @@
+SeggioLink PWA 14.1.10 — patch p2
+
+Correzioni:
+- INVALID_DATA mostra il motivo preciso restituito dal backend.
+- Se uno scrutinio viene rifiutato per INVALID_DATA, il form resta correggibile.
+- Il reinvio del tentativo corretto riutilizza lo STESSO idInvio.
+- In “I miei invii” compare “Correggi dati” sugli scrutini che richiedono attenzione.
+- Per un tentativo non ricevuto non viene richiesto il motivo di correzione.
+- Rotazione cache Service Worker p2.
+
+Non sostituire Code.gs e non fare un nuovo deploy Apps Script.
+Sostituire i file frontend contenuti in questa cartella su GitHub Pages.
